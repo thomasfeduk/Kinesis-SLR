@@ -1,0 +1,73 @@
+{
+  "StreamDescription": {
+    "StreamName": "user-activities",
+    "StreamARN": "arn:aws:kinesis:us-east-1:443035303084:stream/user-activities",
+    "StreamStatus": "ACTIVE",
+    "StreamModeDetails": {
+      "StreamMode": "ON_DEMAND"
+    },
+    "Shards": [
+      {
+        "ShardId": "shardId-000000000000",
+        "HashKeyRange": {
+          "StartingHashKey": "0",
+          "EndingHashKey": "85070591730234615865843651857942052863"
+        },
+        "SequenceNumberRange": {
+          "StartingSequenceNumber": "49634793967688079623494653137874567069363759896051318786"
+        }
+      },
+      {
+        "ShardId": "shardId-000000000001",
+        "HashKeyRange": {
+          "StartingHashKey": "85070591730234615865843651857942052864",
+          "EndingHashKey": "170141183460469231731687303715884105727"
+        },
+        "SequenceNumberRange": {
+          "StartingSequenceNumber": "49634793967710380368693183761016102787636408257557299218"
+        }
+      },
+      {
+        "ShardId": "shardId-000000000002",
+        "HashKeyRange": {
+          "StartingHashKey": "170141183460469231731687303715884105728",
+          "EndingHashKey": "255211775190703847597530955573826158591"
+        },
+        "SequenceNumberRange": {
+          "StartingSequenceNumber": "49634793967732681113891714384157638505909056619063279650"
+        }
+      },
+      {
+        "ShardId": "shardId-000000000003",
+        "HashKeyRange": {
+          "StartingHashKey": "255211775190703847597530955573826158592",
+          "EndingHashKey": "340282366920938463463374607431768211455"
+        },
+        "SequenceNumberRange": {
+          "StartingSequenceNumber": "49634793967754981859090245007299174224181704980569260082"
+        }
+      }
+    ],
+    "HasMoreShards": false,
+    "RetentionPeriodHours": 24,
+    "StreamCreationTimestamp": "2022-11-02 01:40:59-04:00",
+    "EnhancedMonitoring": [
+      {
+        "ShardLevelMetrics": []
+      }
+    ],
+    "EncryptionType": "NONE"
+  },
+  "ResponseMetadata": {
+    "RequestId": "e3db5173-3b62-2b83-bfcb-da7bb2160197",
+    "HTTPStatusCode": 200,
+    "HTTPHeaders": {
+      "x-amzn-requestid": "e3db5173-3b62-2b83-bfcb-da7bb2160197",
+      "x-amz-id-2": "wasc8T2dY7ePKuJNK9BKjAV9FSGdRlRj0ZtGk0NQmpUHBGNVE/XZQhNHL8de1x34deagdKVIbnCNcpXW7FIosCHIy2eeLUJOkjcu3UMN8/Q=",
+      "date": "Mon, 12 Dec 2022 01:50:00 GMT",
+      "content-type": "application/x-amz-json-1.1",
+      "content-length": "1444"
+    },
+    "RetryAttempts": 0
+  }
+}
