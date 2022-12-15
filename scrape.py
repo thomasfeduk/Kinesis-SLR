@@ -29,6 +29,11 @@ def get_shard_iterator(*, stream: str, shard_id: str = None):
 
 
 def main():
+    username = input("Enter username:")
+    print("Username is: " + username)
+    die()
+
+
     stream_name = 'user-activities'
 
     client = kinesis.Client(boto3.client('kinesis'), stream_name)
