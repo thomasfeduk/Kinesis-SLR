@@ -6,6 +6,9 @@ from debug import die
 import random
 import datetime
 from enum import Enum
+import logging
+log = logging.getLogger(__name__)
+# log.setLevel(logging.DEBUG)
 
 
 class ShardIteratorConfig:
@@ -119,7 +122,7 @@ class ShardIterator:
     def get_iterator(self) -> str:
         # If we have a timestamp specified, we call client.get_shard_iterator with the timestamp,
         # otherwise call it without that argument
-        print('Getting iterator for shard id: ' + self._shard_iterator_config.shard_id)
+        log.debug('Getting iterator for shard id: ' + self._shard_iterator_config.shard_id)
         if self._shard_iterator_config.timestamp is None:
             response = self._shard_iterator_config.client.get_shard_iterator(
                 StreamName=self._shard_iterator_config.stream_name,

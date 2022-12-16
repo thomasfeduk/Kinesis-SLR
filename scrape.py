@@ -6,6 +6,23 @@ from debug import die
 import random
 import kinesis
 
+import logging
+logging.debug('root')
+log = logging.getLogger(__name__)
+log.setLevel(level=logging.DEBUG)
+log.debug('scrape.py')
+
+# Initialize your own logger
+logger = logging.getLogger('kinesis')
+logger.setLevel(logging.DEBUG)
+
+# Silence other loggers
+for log_name, log_obj in logging.Logger.manager.loggerDict.items():
+    if log_name != 'kinesis':
+        # log_obj.disabled = True
+        logging.getLogger(log_name).setLevel(logging.ERROR)
+        pass
+
 
 # def create_fanout():
 
@@ -29,10 +46,9 @@ def get_shard_iterator(*, stream: str, shard_id: str = None):
 
 
 def main():
-    username = input("Enter username:")
-    print("Username is: " + username)
-    die()
-
+    # username = input("Enter username:")
+    # print("Username is: " + username)
+    # die()
 
     stream_name = 'user-activities'
 
