@@ -1,13 +1,18 @@
+
+
 import boto3
 import logging
 import json
-from debug import pvdd
+from debug import pvdd, pvd
 from debug import die
 import random
 import datetime
 from enum import Enum
 import logging
+
 log = logging.getLogger(__name__)
+
+
 # log.setLevel(logging.DEBUG)
 
 
@@ -136,5 +141,29 @@ class ShardIterator:
                 ShardIteratorType=self._shard_iterator_config.iterator_type,
                 Timestamp=self._shard_iterator_config.timestamp
             )
+
+        iterator = response['ShardIterator']
+        log.debug('Returned Iterator: ' + iterator)
+
+        i = 1
+        next_iterator = iterator
+        while next_iterator:
+            next_iterator = None
+            log.debug('Loop count: ' + str(i))
+            response = self._shard_iterator_config.client.get_records(
+                ShardIterator=iterator,
+                Limit=100
+            )
+            pvd(response)
+            next_iterator = response['NextShardIterator']
+            i += 1
+            if i > 100:
+                die('ended loop at 10')
+
+        response = self._shard_iterator_config.client.get_records(
+            ShardIterator=iterator,
+            Limit=10
+        )
+        pvdd(response)
 
         return response['ShardIterator']

@@ -1,30 +1,21 @@
 import boto3
 import logging
 import json
-from debug import pvdd
+from debug import pvdd, pvd
 from debug import die
 import random
 import kinesis
-
 import logging
-logging.debug('root')
+import stdout_unbuffered
+
+# Initialize our own logger
 log = logging.getLogger(__name__)
-log.setLevel(level=logging.DEBUG)
-log.debug('scrape.py')
+# Blank root log entry to enable logging output
+logging.debug(None)
 
-# Initialize your own logger
-logger = logging.getLogger('kinesis')
-logger.setLevel(logging.DEBUG)
-
-# Silence other loggers
-for log_name, log_obj in logging.Logger.manager.loggerDict.items():
-    if log_name != 'kinesis':
-        # log_obj.disabled = True
-        logging.getLogger(log_name).setLevel(logging.ERROR)
-        pass
-
-
-# def create_fanout():
+# Set kinesis to debug log level
+kinesis_logger = logging.getLogger('kinesis')
+kinesis_logger.setLevel(logging.DEBUG)
 
 
 def process_events(Events):
