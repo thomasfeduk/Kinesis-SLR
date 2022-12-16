@@ -111,6 +111,7 @@ class Client:
 
     def _get_shard_ids(self) -> list:
         response = self._client.describe_stream(StreamName=self._stream_name)
+        pvdd(response)
         shard_ids = []
         shard_details = response['StreamDescription']['Shards']
         for node in shard_details:
@@ -141,7 +142,6 @@ class ShardIterator:
                 ShardIteratorType=self._shard_iterator_config.iterator_type,
                 Timestamp=self._shard_iterator_config.timestamp
             )
-
         iterator = response['ShardIterator']
         log.debug('Returned Iterator: ' + iterator)
 
