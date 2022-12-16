@@ -1,3 +1,4 @@
+import stdout_unbuffered
 import boto3
 import logging
 import json
@@ -6,7 +7,6 @@ from debug import die
 import random
 import kinesis
 import logging
-import stdout_unbuffered
 
 # Initialize our own logger
 log = logging.getLogger(__name__)

@@ -154,11 +154,11 @@ class ShardIterator:
                 ShardIterator=iterator,
                 Limit=100
             )
-            pvd(response)
+            log.debug(response)
             next_iterator = response['NextShardIterator']
             i += 1
-            if i > 100:
-                die('ended loop at 10')
+            if i > 101:
+                die('ended loop at 101')
 
         response = self._shard_iterator_config.client.get_records(
             ShardIterator=iterator,
