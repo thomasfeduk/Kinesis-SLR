@@ -1,4 +1,3 @@
-#
 ###################################
 ## Section: Basic Configuration ##
 ###################################
@@ -32,6 +31,7 @@ shardIds: []
 # ---------------------------
 # Description: At which point in the stream should the scraper begin reading from?
 # Possible values: AT_SEQUENCE_NUMBER|AFTER_SEQUENCE_NUMBER|TRIM_HORIZON|LATEST|AT_TIMESTAMP
+#
 # Note: TRIM_HORIZON = Start with the oldest record in the stream
 #
 starting_position: TRIM_HORIZON
@@ -39,14 +39,48 @@ starting_position: TRIM_HORIZON
 # ---------------------------
 # Property: timestamp
 # ---------------------------
-# Description: Only used if starting_position = AT_TIMESTAMP
+# Description: Only used if starting_position = AT_TIMESTAMP, otherwise just comment out the line
 # Format (UTC): YYYY-MM-DD HH:MM:SS
 #
 timestamp: "2022-12-01 00:00:00"
 
-#sequence_number: 1234 # Only use if position is either AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER
+# ---------------------------
+# Property: sequence_number
+# ---------------------------
+# Description: Only used if starting_position = AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER
+# otherwise just comment out the line
+#
+sequence_number: 49634793967732681113891714384157638505909056619063279650
+
+#####################################
+## Stream Processing Configuration ##
+#####################################
+
+# -------------------------------
+# Property: max_records_per_shard
+# -------------------------------
+# Description: The maximum amount of records to retrieve per shard. If unlimited, comment out or set to 0
+#
+# Note: In some cases the amount of records fetched per shard may exceed the amount specified below,
+# but only upto the poll_batch_size+max_records_per_shard due to record fetches always being called
+# in batches as specified by the poll_batch_size
+#
+max_records_per_shard: 0
+
+# -------------------------
+# Property: poll_batch_size
+# -------------------------
+# Description: The number of records fetched per poll (used via boto3.kinesis.get_records(Limit=X))
+#
+# 
+#
+poll_batch_size: 100
 
 
+# -------------------------------
+# Property: max_empty_record_sets
+# -------------------------------
+# Description: The name of the stream you want to scrape
+# Example value: user_activities
 #
-# Section: Processing Configuration
-#
+max_empty_record_polls: 100
