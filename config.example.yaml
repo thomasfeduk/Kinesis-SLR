@@ -39,7 +39,7 @@ starting_position: TRIM_HORIZON
 # ---------------------------
 # Property: timestamp
 # ---------------------------
-# Description: Only used if starting_position = AT_TIMESTAMP, otherwise just comment out the line
+# Description: Only used if starting_position = AT_TIMESTAMP
 # Format (UTC): YYYY-MM-DD HH:MM:SS
 #
 timestamp: "2022-12-01 00:00:00"
@@ -48,7 +48,6 @@ timestamp: "2022-12-01 00:00:00"
 # Property: sequence_number
 # ---------------------------
 # Description: Only used if starting_position = AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER
-# otherwise just comment out the line
 #
 sequence_number: 49634793967732681113891714384157638505909056619063279650
 
@@ -56,31 +55,65 @@ sequence_number: 49634793967732681113891714384157638505909056619063279650
 ## Stream Processing Configuration ##
 #####################################
 
-# -------------------------------
-# Property: max_records_per_shard
-# -------------------------------
-# Description: The maximum amount of records to retrieve per shard. If unlimited, comment out or set to 0
+# -------------------------------------
+# Property: max_total_records_per_shard
+# -------------------------------------
+# Description: The maximum amount of records to retrieve per shard. If all/unlimited, set to 0
 #
 # Note: In some cases the amount of records fetched per shard may exceed the amount specified below,
 # but only upto the poll_batch_size+max_records_per_shard due to record fetches always being called
 # in batches as specified by the poll_batch_size
 #
-max_records_per_shard: 0
+max_total_records_per_shard: 0
 
 # -------------------------
 # Property: poll_batch_size
 # -------------------------
 # Description: The number of records fetched per poll (used via boto3.kinesis.get_records(Limit=X))
 #
-# 
+# AWS Quota Note: The next two values must be considered carefully from an engineering perspective
+# as AWS enforces the following quota on reads from shards:
+# https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html
+#   - GetRecords can retrieve up to 10 MB of data per call from a single shard,
+#     and up to 10,000 records per call.
+#   - Each call to GetRecords is counted as one read transaction.
+#   - Each shard can support up to five read transactions per second.
+#   - Each read transaction can provide up to 10,000 records with an upper quota of 10 MB per transaction.
+# Therefore, if you have 1MB messages, this value cannot be greater than 10
 #
-poll_batch_size: 100
+poll_batch_size: 100 # Max 500
 
+# --------------------
+# Property: poll_delay
+# --------------------
+# Description: The wait delay between each GetRecords poll call.
+#
+# AWS Quota Note: This value must be considered carefully from an engineering perspective and engineers
+# must take into account the total number of consumers making polls to a shard, as well as the
+# poll_batch_size config option in this to ensure they don't exceed a total aggregate of 5 reads/second
+# or 2MB/second, otherwise any pollers for the next 5 seconds will receive a
+# ProvisionedThroughputExceededException
+#
+poll_delay: 0
 
-# -------------------------------
-# Property: max_empty_record_sets
-# -------------------------------
-# Description: The name of the stream you want to scrape
-# Example value: user_activities
+# --------------------------------
+# Property: max_empty_record_polls
+# --------------------------------
+# Description: Kinesis will often return a blank set of records on a poll depending on how much time has
+# elapsed in the stream between messages being published and how sparsely the stream is populated.
+# It is generally recommended to attempt to repeat subsequent polls if the record set is empty a
+# variable number of times depending on how the stream is used.
+#
+# Some examples and research: https://stackoverflow.com/a/66492331
+# Also see for more info: https://medium.com/software-ascending/surprises-from-polling-kinesis-a76462a7efd4
+# "A Kinesis shard is time-sliced into possibly-empty buckets, and each call to GetRecords
+#  will only return records from a single bucket."
+#
+# It is important to note, that relying on "MillisBehindLatest" has proven to be unreliable.
+#
+# Once the number of polls that returned empty records matches the max_empty_record_polls value, the
+# Kinesis-SLP will consider the shard to be fully read and stop scraping messages. A rule of thumb is
+# 2 empty polls per every 500 contiguous seconds of "empty time" that could exist between messages anywhere
+# in the stream from the oldest message until now.
 #
 max_empty_record_polls: 100
