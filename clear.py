@@ -1,6 +1,9 @@
 import boto3
 bucket_name = 'thomasfeduk-kinesis1'
 
+cwlogs = boto3.client('logs')
+
+cwlogs.delete_log_group(logGroupName='/aws/lambda/scraper')
 s3 = boto3.resource('s3')
 s3.Bucket(bucket_name).objects.all().delete()
 

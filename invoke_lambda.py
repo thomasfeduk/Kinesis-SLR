@@ -17,4 +17,4 @@ response = client.invoke(
     # Qualifier='LATEST'
 )
 
-print(json.dumps(response, default=str))
+print(json.dumps(response, default=str, indent=4))
