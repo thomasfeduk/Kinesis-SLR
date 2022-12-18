@@ -13,4 +13,7 @@ def lambda_handler(event, context):
                + str(random.randrange(1, 99999))
     s3.Object(bucket_name, filename).put(Body=json.dumps(event))
 
-    raise Exception('Oops')
+    # raise Exception('Oops')
+
+    response = {"batchItemFailures": [{"itemIdentifier": "49634793967732681113891714384157638505909056619063279650"}]}
+    return response
