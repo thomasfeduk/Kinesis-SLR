@@ -1,0 +1,50 @@
+###################################
+## Section: Basic Configuration ##
+###################################
+
+# ----------------------
+# Property: stream_name
+# ----------------------
+# Description: The name of the lambda function which will be sent the scraped events.
+#
+function_name: kworker
+
+# --------------------
+# Property: batch_size
+# --------------------
+# Description: How many events per batch should be sent to the lambda.
+#
+# Note: The Kinesis-SLR will preserve the original event Records structure Kinesis normally sends to the lambda as
+# possible. However, the following values will be X due to the getRecords call not having this information.
+#  - event.Records[].eventID
+#  - event.Records[].invokeIdentityArn
+#  - event.Records[].awsRegion
+#  - event.Records[].eventSourceARN
+#
+batch_size: 100
+
+# --------------------
+# Property: local_dlq
+# --------------------
+# Description: Utilizes a local dlq (/dlq directory) to dump failed messages in the same manner they would
+# be sent to an SQS dlq.
+#
+local_dlq: True
+
+# -----------------------------
+# Property: local_dlq_fullevent
+# -----------------------------
+# Description: If true, rather than utilizing AWS' metadata-only contents a DQL message normally contains
+# when being sent to an SQS dlq, the Kinesis-SLR will instead drop the exact .json file it builds when
+# scraping events to disk. This allows for a "second replay" of any dlq'd messages to occur by simply
+# deleting all the event messages from the events directory, then copying the .json files from the /dlq
+# directory back into the events directory and re-running the replay option.
+#
+local_dlq_fullevent: True
+
+# -------------------------
+# Property: retry_attempts
+# -------------------------
+# Description: The number of times a retry
+#
+local_dlq: True

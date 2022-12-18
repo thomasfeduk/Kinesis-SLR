@@ -1,0 +1,20 @@
+{
+  "ResponseMetadata": {
+    "RequestId": "89f341c1-2cfd-45a6-81bc-bfb0a9c95ade",
+    "HTTPStatusCode": 200,
+    "HTTPHeaders": {
+      "date": "Sun, 18 Dec 2022 01:10:37 GMT",
+      "content-type": "application/json",
+      "content-length": "247",
+      "connection": "keep-alive",
+      "x-amzn-requestid": "89f341c1-2cfd-45a6-81bc-bfb0a9c95ade",
+      "x-amzn-remapped-content-length": "0",
+      "x-amz-executed-version": "$LATEST",
+      "x-amzn-trace-id": "root=1-639e688d-3c414a136b116ff0044dc8b7;sampled=0"
+    },
+    "RetryAttempts": 0
+  },
+  "StatusCode": 200,
+  "ExecutedVersion": "$LATEST",
+  "Payload": "<botocore.response.StreamingBody object at 0x0000028A60AB8B20>"
+}

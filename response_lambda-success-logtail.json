@@ -1,0 +1,22 @@
+{
+  "ResponseMetadata": {
+    "RequestId": "d57c699a-7e56-42ac-b925-bf0df7c025c3",
+    "HTTPStatusCode": 200,
+    "HTTPHeaders": {
+      "date": "Sun, 18 Dec 2022 01:09:58 GMT",
+      "content-type": "application/json",
+      "content-length": "247",
+      "connection": "keep-alive",
+      "x-amzn-requestid": "d57c699a-7e56-42ac-b925-bf0df7c025c3",
+      "x-amzn-remapped-content-length": "0",
+      "x-amz-executed-version": "$LATEST",
+      "x-amz-log-result": "U1RBUlQgUmVxdWVzdElkOiBkNTdjNjk5YS03ZTU2LTQyYWMtYjkyNS1iZjBkZjdjMDI1YzMgVmVyc2lvbjogJExBVEVTVApFTkQgUmVxdWVzdElkOiBkNTdjNjk5YS03ZTU2LTQyYWMtYjkyNS1iZjBkZjdjMDI1YzMKUkVQT1JUIFJlcXVlc3RJZDogZDU3YzY5OWEtN2U1Ni00MmFjLWI5MjUtYmYwZGY3YzAyNWMzCUR1cmF0aW9uOiAxLjQ5IG1zCUJpbGxlZCBEdXJhdGlvbjogMiBtcwlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMzYgTUIJSW5pdCBEdXJhdGlvbjogMTQ5Ljk0IG1zCQo=",
+      "x-amzn-trace-id": "root=1-639e6865-68720ac3347b1cf3381ea7f9;sampled=0"
+    },
+    "RetryAttempts": 0
+  },
+  "StatusCode": 200,
+  "LogResult": "U1RBUlQgUmVxdWVzdElkOiBkNTdjNjk5YS03ZTU2LTQyYWMtYjkyNS1iZjBkZjdjMDI1YzMgVmVyc2lvbjogJExBVEVTVApFTkQgUmVxdWVzdElkOiBkNTdjNjk5YS03ZTU2LTQyYWMtYjkyNS1iZjBkZjdjMDI1YzMKUkVQT1JUIFJlcXVlc3RJZDogZDU3YzY5OWEtN2U1Ni00MmFjLWI5MjUtYmYwZGY3YzAyNWMzCUR1cmF0aW9uOiAxLjQ5IG1zCUJpbGxlZCBEdXJhdGlvbjogMiBtcwlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMzYgTUIJSW5pdCBEdXJhdGlvbjogMTQ5Ljk0IG1zCQo=",
+  "ExecutedVersion": "$LATEST",
+  "Payload": "<botocore.response.StreamingBody object at 0x000001FB3D3C6C70>"
+}
