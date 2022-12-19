@@ -1,20 +1,16 @@
-
-
 import boto3
 import logging
 import json
-from debug import pvdd, pvd
-from debug import die
+from debug import pvdd, pvd, die
 import random
 import datetime
-from enum import Enum
+import common
 import logging
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 
 
 # log.setLevel(logging.DEBUG)
-
 
 class ShardIteratorConfig:
     def __init__(self, *,
@@ -167,3 +163,34 @@ class ShardIterator:
         pvdd(response)
 
         return response['ShardIterator']
+
+
+class ConfigScraper(common.ConfigSLR):
+    def __init__(self, passed_data: [dict, str] = None):
+        self.stream_name = None
+        self.shardIds = []
+        self.starting_position = None
+        self.timestamp = None
+        self.sequence_number = None
+        self.max_total_records_per_shard = None
+        self.poll_batch_size = None
+        self.poll_delay = None
+        self.max_empty_record_polls = None
+
+        # Have to call parent after defining attributes other they are not populated
+        super().__init__(passed_data)
+
+    def is_valid(self):
+        validate_shard_ids(self.shardIds)
+        validate_iterator_types(self.starting_position)
+        if self.starting_position.upper() == 'TIMESTAMP':
+            validate_datetime(self.timestamp)
+        if self.starting_position.upper() in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
+            if isinstance(self.sequence_number, str) is False and isinstance(self.sequence_number, int) is False:
+                raise TypeError(f"If config-kinesis-scraper property starting_position is AT_SEQUENCE_NUMBER or "
+                                f"AFTER_SEQUENCE_NUMBER, the value must be either a numeric string, or an integer. "
+                                f"Value provided: {repr(type(self.starting_position))} {repr(self.starting_position)}")
+
+
+config_kinesis = ConfigScraper(common.read_config('config-kinesis_scraper.example.yaml'))
+pvdd(config_kinesis)
