@@ -183,7 +183,7 @@ class ConfigScraper(common.ConfigSLR):
     def is_valid(self):
         validate_shard_ids(self.shardIds)
         validate_iterator_types(self.starting_position)
-        if self.starting_position.upper() == 'TIMESTAMP':
+        if self.starting_position.upper() == 'AT_TIMESTAMP':
             validate_datetime(self.timestamp)
         if self.starting_position.upper() in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
             try:
