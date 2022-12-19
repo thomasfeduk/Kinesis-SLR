@@ -3,6 +3,7 @@ import json
 import logging
 import traceback
 import yaml
+from debug import pvdd, pvd, die
 
 log = logging.getLogger()
 
@@ -18,7 +19,7 @@ def read_config(filename: str) -> str:
     return config_json
 
 
-def validate_numeric(id: str or int) -> int:
+def validate_numeric(check_value: str or int) -> int:
     """ Confirms the id is either a string or int
 
     Arguments:
@@ -32,11 +33,11 @@ def validate_numeric(id: str or int) -> int:
     ValueError: If not numeric
 
     """
-    if not isinstance(id, str) and not isinstance(id, int):
+    if not isinstance(check_value, str) and not isinstance(check_value, int):
         raise TypeError('Value must be a numeric string or int.')
-    if isinstance(id, str) and not id.isnumeric():
+    if isinstance(check_value, str) and not check_value.isnumeric():
         raise ValueError('String value must be numeric.')
-    return int(id)
+    return int(check_value)
 
 
 def json_or_dict_or_obj_to_dict(data: [dict, str, object]):

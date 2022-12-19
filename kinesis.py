@@ -186,10 +186,13 @@ class ConfigScraper(common.ConfigSLR):
         if self.starting_position.upper() == 'TIMESTAMP':
             validate_datetime(self.timestamp)
         if self.starting_position.upper() in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
-            if isinstance(self.sequence_number, str) is False and isinstance(self.sequence_number, int) is False:
-                raise TypeError(f"If config-kinesis-scraper property starting_position is AT_SEQUENCE_NUMBER or "
-                                f"AFTER_SEQUENCE_NUMBER, the value must be either a numeric string, or an integer. "
-                                f"Value provided: {repr(type(self.starting_position))} {repr(self.starting_position)}")
+            try:
+                common.validate_numeric(self.sequence_number)
+            except (TypeError, ValueError) as e:
+                raise TypeError(f"If config-kinesis_scraper.yaml property \"starting_position\" is AT_SEQUENCE_NUMBER "
+                                f"or AFTER_SEQUENCE_NUMBER, the value must be either a numeric string, or an integer. "
+                                f"\nValue provided: {repr(type(self.sequence_number))} "
+                                f"{repr(self.sequence_number)}") from e
 
 
 config_kinesis = ConfigScraper(common.read_config('config-kinesis_scraper.example.yaml'))
