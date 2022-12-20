@@ -7,7 +7,7 @@
 # ----------------------
 # Description: The name of the lambda function which will be sent the scraped events.
 #
-function_name: kworker
+function_name: function_name_here
 
 # --------------------
 # Property: batch_size
@@ -21,7 +21,7 @@ function_name: kworker
 #  - event.Records[].awsRegion
 #  - event.Records[].eventSourceARN
 #
-batch_size: 100
+batch_size: 100 # Max 10000
 
 # --------------------
 # Property: local_dlq
@@ -45,6 +45,35 @@ local_dlq_fullevent: True
 # -------------------------
 # Property: retry_attempts
 # -------------------------
-# Description: The number of times a retry
+# Description: The number of times a retry should occur before moving the message/batch (depending on integration mode)
+# and move to a local dlq (if set) then aborting
 #
-local_dlq: True
+# Note: If set to 0, no retries will occur. Only a single attempt will be made.
+retry_attempts: 0 # Max 5
+
+# -------------------------
+# Property: bisect_on_error
+# -------------------------
+# Description: Mimic the behavior and integration handling as though bisectBatchOnFunctionError=1 (split batch on error)
+#
+bisect_on_error: False
+
+# ---------------------------------
+# Property: tumbling_window_seconds
+# ---------------------------------
+# Description: Mimic the behavior and integration handling as though TumblingWindowInSeconds=X was set.
+#
+# Note: This feature is not yet available and kept here as a placeholder.
+#
+tumbling_window_seconds: N/A # Do NOT use the Kinesis-SLR if your lambda requires this option to function!
+
+# ---------------------------------
+# Property: custom_checkpoints
+# ---------------------------------
+# Description: Mimic the behavior and integration handling as though ReportBatchItemFailures=1 was set.
+# For custom checkpoints handling docs, see:
+# https://aws.amazon.com/blogs/compute/optimizing-batch-processing-with-custom-checkpoints-in-aws-lambda/
+#
+# Note: This feature is not yet available and kept here as a placeholder.
+#
+custom_checkpoints: N/A # Do NOT use the Kinesis-SLR if your lambda requires this option to function!

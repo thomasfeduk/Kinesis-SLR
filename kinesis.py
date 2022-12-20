@@ -1,20 +1,16 @@
-
-
 import boto3
 import logging
 import json
-from debug import pvdd, pvd
-from debug import die
+from debug import pvdd, pvd, die
 import random
 import datetime
-from enum import Enum
+import common
 import logging
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 
 
 # log.setLevel(logging.DEBUG)
-
 
 class ShardIteratorConfig:
     def __init__(self, *,
@@ -167,3 +163,48 @@ class ShardIterator:
         pvdd(response)
 
         return response['ShardIterator']
+
+
+class ConfigScraper(common.ConfigSLR):
+    def __init__(self, passed_data: [dict, str] = None):
+        self.stream_name = None
+        self.shardIds = []
+        self.starting_position = None
+        self.timestamp = None
+        self.sequence_number = None
+        self.max_total_records_per_shard = None
+        self.poll_batch_size = None
+        self.poll_delay = None
+        self.max_empty_record_polls = None
+
+        # Have to call parent after defining attributes other they are not populated
+        super().__init__(passed_data)
+
+    def _is_valid(self):
+        if self.stream_name == 'stream_name_here':
+            raise ValueError('config-kinesis_scraper.yaml: A stream name must be set.')
+        validate_shard_ids(self.shardIds)
+        validate_iterator_types(self.starting_position)
+        if self.starting_position.upper() == 'AT_TIMESTAMP':
+            validate_datetime(self.timestamp)
+        if self.starting_position.upper() in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
+            try:
+                common.validate_numeric(self.sequence_number)
+            except (TypeError, ValueError) as e:
+                raise TypeError(f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
+                                f"or AFTER_SEQUENCE_NUMBER, the value must be either a numeric string, or an integer. "
+                                f"\nValue provided: {repr(type(self.sequence_number))} "
+                                f"{repr(self.sequence_number)}") from e
+
+        if self.max_empty_record_polls > 1000:
+            raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 1000')
+
+        if self.poll_batch_size > 500:
+            raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
+
+    def _post_init_processing(self):
+        self.starting_position = self.starting_position.upper()
+
+
+config_kinesis = ConfigScraper(common.read_config('config-kinesis_scraper.example.yaml'))
+pvdd(config_kinesis)
