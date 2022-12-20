@@ -40,6 +40,13 @@ def validate_numeric(check_value: str or int) -> int:
     return int(check_value)
 
 
+# If passed a number, it returns upto max, or the input if its less, otherwise return max as the default
+def maxof(input_val: int, maxval: int):
+    if input_val <= maxval:
+        return input_val
+    return maxval
+
+
 def json_or_dict_or_obj_to_dict(data: [dict, str, object]):
     data_orig = data
     # If data is a json string, convert it to a dict
@@ -120,8 +127,16 @@ class ConfigSLR(BaseSuperclass):
     def __init__(self, passed_data: [dict, str] = None):
         # Have to call parent after defining attributes other they are not populated
         super().__init__(passed_data)
-        self.is_valid()
+        self._is_valid()
+        self._post_init_processing()
 
     # Overriden by the extended class
-    def is_valid(self):
+    # Class should implement config specific validation rules
+    def _is_valid(self):
+        raise NotImplementedError('The is_valid() method must be overwritten by extended classes')
+
+    # Overriden by the extended class
+    # Class can use this to implement any post-init processing of properties (ie uppercaseing values,
+    # setting defaults etc.)
+    def _post_init_processing(self):
         raise NotImplementedError('The is_valid() method must be overwritten by extended classes')

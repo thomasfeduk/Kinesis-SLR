@@ -180,7 +180,9 @@ class ConfigScraper(common.ConfigSLR):
         # Have to call parent after defining attributes other they are not populated
         super().__init__(passed_data)
 
-    def is_valid(self):
+    def _is_valid(self):
+        if self.stream_name == 'stream_name_here':
+            raise ValueError('config-kinesis_scraper.yaml: A stream name must be set.')
         validate_shard_ids(self.shardIds)
         validate_iterator_types(self.starting_position)
         if self.starting_position.upper() == 'AT_TIMESTAMP':
@@ -189,10 +191,19 @@ class ConfigScraper(common.ConfigSLR):
             try:
                 common.validate_numeric(self.sequence_number)
             except (TypeError, ValueError) as e:
-                raise TypeError(f"If config-kinesis_scraper.yaml property \"starting_position\" is AT_SEQUENCE_NUMBER "
+                raise TypeError(f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
                                 f"or AFTER_SEQUENCE_NUMBER, the value must be either a numeric string, or an integer. "
                                 f"\nValue provided: {repr(type(self.sequence_number))} "
                                 f"{repr(self.sequence_number)}") from e
+
+        if self.max_empty_record_polls > 1000:
+            raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 1000')
+
+        if self.poll_batch_size > 500:
+            raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
+
+    def _post_init_processing(self):
+        self.starting_position = self.starting_position.upper()
 
 
 config_kinesis = ConfigScraper(common.read_config('config-kinesis_scraper.example.yaml'))

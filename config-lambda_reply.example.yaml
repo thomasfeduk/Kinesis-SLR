@@ -7,7 +7,7 @@
 # ----------------------
 # Description: The name of the lambda function which will be sent the scraped events.
 #
-function_name: kworker
+function_name: function_name_here
 
 # --------------------
 # Property: batch_size
@@ -45,6 +45,7 @@ local_dlq_fullevent: True
 # -------------------------
 # Property: retry_attempts
 # -------------------------
-# Description: The number of times a retry
+# Description: The number of times a retry should occur before moving the message/batch (depending on integration mode)
+# and move to a local dlq (if set) then aborting
 #
-local_dlq: True
+retry_attempts: 0
