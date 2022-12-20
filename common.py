@@ -139,4 +139,4 @@ class ConfigSLR(BaseSuperclass):
     # Class can use this to implement any post-init processing of properties (ie uppercaseing values,
     # setting defaults etc.)
     def _post_init_processing(self):
-        raise NotImplementedError('The is_valid() method must be overwritten by extended classes')
+        raise NotImplementedError('The _post_init_processing() method must be overwritten by extended classes')

@@ -117,4 +117,4 @@ poll_delay: 0
 # 2 empty polls per every 500 contiguous seconds of "empty time" that could exist between messages anywhere
 # in the stream from the oldest message until now.
 #
-max_empty_record_polls: 999999 #100 # Max 1000
+max_empty_record_polls: 100 # Max 1000
