@@ -1,10 +1,10 @@
 import boto3
 import logging
 import json
-from debug import pvdd, pvd, die
+from includes.debug import pvdd, pvd, die
 import random
 import datetime
-import common
+import includes.common as common
 import logging
 
 log = logging.getLogger()

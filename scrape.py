@@ -1,11 +1,11 @@
-import stdout_unbuffered
+import includes.stdout_unbuffered
 import boto3
 import logging
 import json
-from debug import pvdd, pvd
-from debug import die
+from includes.debug import pvdd, pvd, die
 import random
-import kinesis
+import includes.kinesis as kinesis
+import includes.lambda_replay as lambda_replay
 import logging
 
 # Initialize our own logger
@@ -16,7 +16,8 @@ logging.debug(None)
 # Set kinesis to debug log level
 kinesis_logger = logging.getLogger('kinesis')
 kinesis_logger.setLevel(logging.DEBUG)
-
+lambda_replay_logger = logging.getLogger('lambda_replay')
+lambda_replay_logger.setLevel(logging.DEBUG)
 
 def process_events(Events):
     # ---------------------------
@@ -41,8 +42,10 @@ def main():
     # print("Username is: " + username)
     # die()
 
-    stream_name = 'user-activities'
+    config_lambda = lambda_replay.ConfigLambda(lambda_replay.read_config('config-lamda_replay.example.yaml'))
+    pvdd(config_lambda)
 
+    stream_name = 'user-activities'
     client = kinesis.Client(boto3.client('kinesis'), stream_name)
     records = client.get_records('TRIM_HORIZON', 100)
     pvdd(records)

@@ -1,10 +1,10 @@
 import boto3
 import logging
 import json
-from debug import pvdd, pvd, die
+from includes.debug import pvdd, pvd, die
 import random
 import datetime
-import common
+import includes.common as common
 import logging
 
 log = logging.getLogger()
@@ -204,7 +204,3 @@ class ConfigScraper(common.ConfigSLR):
 
     def _post_init_processing(self):
         self.starting_position = self.starting_position.upper()
-
-
-config_kinesis = ConfigScraper(common.read_config('config-kinesis_scraper.example.yaml'))
-pvdd(config_kinesis)
