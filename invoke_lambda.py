@@ -1,11 +1,11 @@
 import json
 import boto3
 from var_dump import var_dump
-from debug import die, pvd, pvdd
+from includes.debug import die, pvd, pvdd
 
 
 
-f = open("payload.json", "r")
+f = open("includes/payload.json", "r")
 payload = f.read()
 f.close()
 
