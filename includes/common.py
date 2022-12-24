@@ -3,6 +3,7 @@ import json
 import logging
 import traceback
 import yaml
+from abc import ABC, abstractmethod
 from includes.debug import pvdd, pvd, die
 
 log = logging.getLogger()
@@ -80,7 +81,7 @@ def get_exception_trace(ex):
 
 
 # Abstract class, extend only
-class BaseSuperclass:
+class BaseSuperclass(ABC):
     def __init__(self, passed_data: [dict, str] = None):
         # Define the attributes for this class
         # None at superclass level
@@ -123,20 +124,20 @@ class BaseSuperclass:
         return dict_dump
 
 
-class ConfigSLR(BaseSuperclass):
+class ConfigSLR(BaseSuperclass, ABC):
     def __init__(self, passed_data: [dict, str] = None):
         # Have to call parent after defining attributes other they are not populated
         super().__init__(passed_data)
         self._is_valid()
         self._post_init_processing()
 
-    # Overriden by the extended class
     # Class should implement config specific validation rules
+    @abstractmethod
     def _is_valid(self):
-        raise NotImplementedError('The is_valid() method must be overwritten by extended classes')
+        pass
 
-    # Overriden by the extended class
     # Class can use this to implement any post-init processing of properties (ie uppercaseing values,
     # setting defaults etc.)
+    @abstractmethod
     def _post_init_processing(self):
-        raise NotImplementedError('The _post_init_processing() method must be overwritten by extended classes')
+        pass
