@@ -21,19 +21,6 @@ def read_config(filename: str) -> str:
 
 
 def validate_numeric(check_value: str or int) -> int:
-    """ Confirms the id is either a string or int
-
-    Arguments:
-    id (str or int): The number to check
-
-    Returns:
-    int: int version of the number
-
-    Raises:
-    TypeError: If wrong data type
-    ValueError: If not numeric
-
-    """
     if not isinstance(check_value, str) and not isinstance(check_value, int):
         raise TypeError('Value must be a numeric string or int.')
     if isinstance(check_value, str) and not check_value.isnumeric():
@@ -42,13 +29,13 @@ def validate_numeric(check_value: str or int) -> int:
 
 
 # If passed a number, it returns upto max, or the input if its less, otherwise return max as the default
-def maxof(input_val: int, maxval: int):
-    if input_val <= maxval:
+def max_of(input_val: int, max_val: int):
+    if input_val <= max_val:
         return input_val
-    return maxval
+    return max_val
 
 
-def json_or_dict_or_obj_to_dict(data: [dict, str, object]):
+def json_or_dict_or_obj_to_dict(data: [dict, str, object]) -> dict:
     data_orig = data
     # If data is a json string, convert it to a dict
     if isinstance(data_orig, str):
@@ -74,14 +61,15 @@ def json_or_dict_or_obj_to_dict(data: [dict, str, object]):
 
 
 # Gets the stack trace of an exception
-def get_exception_trace(ex):
+def get_exception_trace(ex: Exception) -> str:
     if ex is None:
         return ''
     return "".join(traceback.TracebackException.from_exception(ex).format())
 
 
-# Abstract class, extend only
+# Abstract class that allows population of pre-defined attributes from a passed dict or json
 class BaseSuperclass(ABC):
+    @abstractmethod
     def __init__(self, passed_data: [dict, str] = None):
         # Define the attributes for this class
         # None at superclass level
@@ -125,8 +113,9 @@ class BaseSuperclass(ABC):
 
 
 class ConfigSLR(BaseSuperclass, ABC):
+    @abstractmethod
     def __init__(self, passed_data: [dict, str] = None):
-        # Have to call parent after defining attributes other they are not populated
+        # Have to call parent after defining attributes to populate them
         super().__init__(passed_data)
         self._is_valid()
         self._post_init_processing()
