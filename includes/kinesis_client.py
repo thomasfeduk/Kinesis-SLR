@@ -9,9 +9,88 @@ from includes.common import validate_datetime
 import logging
 
 log = logging.getLogger()
-
-
 # log.setLevel(logging.DEBUG)
+
+
+class ConfigClient(common.ConfigSLR):
+    def __init__(self, passed_data: [dict, str] = None):
+        self.stream_name = None
+        self.shardIds = []
+        self.starting_position = None
+        self.timestamp = None
+        self.sequence_number = None
+        self.max_total_records_per_shard = None
+        self.poll_batch_size = None
+        self.poll_delay = None
+        self.max_empty_record_polls = None
+
+        # Have to call parent after defining attributes other they are not populated
+        super().__init__(passed_data)
+
+    def _is_valid(self):
+        # Stream Name
+        if not isinstance(self.stream_name, str):
+            raise TypeError('stream_name must be a string if. Type provided: '
+                            + str(type(self.stream_name)))
+        if self.stream_name == '' or self.stream_name == 'stream_name_here':
+            raise ValueError('config-kinesis_scraper.yaml: A stream name must be set.')
+
+        # Shard IDs
+        Client.validate_shard_ids(self.shardIds)
+
+        # Starting position iterator Type/Timestamp
+        Client.validate_iterator_types(self.starting_position)
+        if self.starting_position.upper() == 'AT_TIMESTAMP':
+            validate_datetime(self.timestamp)
+
+        # Sequence Number
+        self.is_valid_sequence_number()
+
+        # Batch Size
+        try:
+            common.validate_numeric(self.poll_batch_size)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be either a numeric "
+                f"string, or an integer.\nValue provided: {repr(type(self.poll_batch_size))} "
+            ) from e
+        if int(self.poll_batch_size) > 500:
+            raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
+
+        # Max Empty Record Polls
+        try:
+            common.validate_numeric(self.max_empty_record_polls)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"If config-kinesis_scraper.yaml: \"max_empty_record_polls\" must be either a numeric "
+                f"string, or an integer.\nValue provided: {repr(type(self.max_empty_record_polls))} "
+            ) from e
+        if int(self.max_empty_record_polls) > 1000:
+            raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 1000')
+
+    def is_valid_sequence_number(self):
+        if self.starting_position.upper() in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
+            # A sequence number is only unique within a shard, so we cannot specify at/after sequence
+            # unless a single and only a single shard is id specified
+            if len(self.shardIds) != 1:
+                raise ValueError(
+                    f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
+                    f"or AFTER_SEQUENCE_NUMBER, exactly 1 shard id must be specified as the sequence numbers "
+                    f"are unique per shard.\nValue provided: {repr(type(self.sequence_number))} "
+                )
+            try:
+                common.validate_numeric(self.sequence_number)
+            except (TypeError, ValueError) as e:
+                raise ValueError(
+                    f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
+                    f"or AFTER_SEQUENCE_NUMBER, the value must be either a numeric string, or an integer. "
+                    f"\nValue provided: {repr(type(self.sequence_number))} "
+                    f"{repr(self.sequence_number)}"
+                ) from e
+
+    def _post_init_processing(self):
+        self.starting_position = self.starting_position.upper()
+
 
 class ShardIteratorConfig:
     def __init__(self, *,
@@ -36,7 +115,7 @@ class ShardIteratorConfig:
 
 
 class Client:
-    def __init__(self, kinesis_client: object, stream_name: str, shard_ids: list = None):
+    def __init__(self, config: ConfigClient):
         self._client = kinesis_client
         self._stream_name = stream_name
         self._shard_ids = Client.validate_shard_ids(shard_ids)
@@ -156,54 +235,3 @@ class ShardIterator:
         pvdd(response)
 
         return response['ShardIterator']
-
-
-class ConfigScraper(common.ConfigSLR):
-    def __init__(self, passed_data: [dict, str] = None):
-        self.stream_name = None
-        self.shardIds = []
-        self.starting_position = None
-        self.timestamp = None
-        self.sequence_number = None
-        self.max_total_records_per_shard = None
-        self.poll_batch_size = None
-        self.poll_delay = None
-        self.max_empty_record_polls = None
-
-        # Have to call parent after defining attributes other they are not populated
-        super().__init__(passed_data)
-
-    def _is_valid(self):
-        if self.stream_name == 'stream_name_here':
-            raise ValueError('config-kinesis_scraper.yaml: A stream name must be set.')
-        Client.validate_shard_ids(self.shardIds)
-        Client.validate_iterator_types(self.starting_position)
-        if self.starting_position.upper() == 'AT_TIMESTAMP':
-            validate_datetime(self.timestamp)
-        # Call a sequence number validation method since there are more complex constraints
-        self._is_valid_sequence_number()
-
-        if self.max_empty_record_polls > 1000:
-            raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 1000')
-
-        if self.poll_batch_size > 500:
-            raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
-
-    def _is_valid_sequence_number(self):
-        # A sequence number is only unique within a shard, so we cannot specify at/after sequence
-        # unless a single and only a single shard is id specified
-        if len(self.shardIds) != 1:
-            raise ValueError(f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
-                             f"or AFTER_SEQUENCE_NUMBER, exactly 1 shard id must be specified as the sequence numbers "
-                             f"are unique per shard.\nValue provided: {repr(type(self.sequence_number))} ")
-        if self.starting_position.upper() in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
-            try:
-                common.validate_numeric(self.sequence_number)
-            except (TypeError, ValueError) as e:
-                raise ValueError(f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
-                                f"or AFTER_SEQUENCE_NUMBER, the value must be either a numeric string, or an integer. "
-                                f"\nValue provided: {repr(type(self.sequence_number))} "
-                                f"{repr(self.sequence_number)}") from e
-
-    def _post_init_processing(self):
-        self.starting_position = self.starting_position.upper()

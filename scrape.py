@@ -44,8 +44,9 @@ def main():
     # print("Username is: " + username)
     # die()
 
-    config = kinesis.ConfigScraper(common.read_config('config-kinesis_scraper.example.yaml'))
-    pvdd(config)
+    kinesis_obj = kinesis.ConfigClient(common.read_config('config-kinesis_scraper.example.yaml'))
+    # kinesis_obj = kinesis.ConfigClient(common.read_config('config-kinesis_scraper.example.yaml'))
+    pvdd(kinesis_obj)
 
     # stream_name = 'user-activities'
     # client = kinesis.Client(boto3.client('kinesis'), stream_name)

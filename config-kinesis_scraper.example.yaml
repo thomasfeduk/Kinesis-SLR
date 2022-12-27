@@ -8,7 +8,7 @@
 # Description: The name of the stream you want to scrape
 # Example value: user_activities
 #
-stream_name: stream_name_here
+stream_name: stream_name_here2
 
 # -------------------
 # Property: shardIds
@@ -34,7 +34,9 @@ shardIds: []
 #
 # Note: TRIM_HORIZON = Start with the oldest record in the stream
 #
-#starting_position: TRIM_HORIZON
+# Note2: If set to AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER, sequence ids are unique per-shard
+# thus, "shardIds" must be populated with a single shard id
+#
 starting_position: AT_TIMESTAMP
 
 # ---------------------------
@@ -117,4 +119,4 @@ poll_delay: 0
 # 2 empty polls per every 500 contiguous seconds of "empty time" that could exist between messages anywhere
 # in the stream from the oldest message until now.
 #
-max_empty_record_polls: 100 # Max 1000
+max_empty_record_polls: 1000 # Max 1000
