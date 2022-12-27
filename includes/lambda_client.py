@@ -6,12 +6,13 @@ import random
 import datetime
 import includes.common as common
 import logging
+from abc import ABC, abstractmethod
 
 log = logging.getLogger()
 # log.setLevel(logging.DEBUG)
 
 
-class ConfigLambda(common.ConfigSLR):
+class ConfigLambda(common.ConfigSLR, ABC):
     def __init__(self, passed_data: [dict, str] = None):
         self.function_name = None
         self.batch_size = None
@@ -45,5 +46,5 @@ class ConfigLambda(common.ConfigSLR):
         pass
 
 
-config_lambda = ConfigLambda(common.read_config('config-lambda_replay.example.yaml'))
-pvdd(config_lambda)
+# config_lambda = ConfigLambda(common.read_config('config-lambda_replay.example.yaml'))
+# pvdd(config_lambda)

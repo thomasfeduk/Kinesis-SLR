@@ -3,36 +3,33 @@ import json
 import logging
 import traceback
 import yaml
+from abc import ABC, abstractmethod
+import datetime
 from includes.debug import pvdd, pvd, die
 
 log = logging.getLogger()
+
+
+def validate_datetime(timestamp):
+    try:
+        datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        raise ValueError("Incorrect data format, should be YYYY-MM-DD HH:MM:SS. Value provided: " + repr(timestamp))
+    return timestamp
 
 
 def read_config(filename: str) -> str:
     if not path.exists(filename):
         raise FileNotFoundError(f'The specified config file does not exist: {filename}')
     f = open(filename, "r")
-    manifest_yaml = f.read()
+    file_yaml_raw = f.read()
     f.close()
-    yaml_data = yaml.safe_load(manifest_yaml)
+    yaml_data = yaml.safe_load(file_yaml_raw)
     config_json = json.dumps(yaml_data)
     return config_json
 
 
 def validate_numeric(check_value: str or int) -> int:
-    """ Confirms the id is either a string or int
-
-    Arguments:
-    id (str or int): The number to check
-
-    Returns:
-    int: int version of the number
-
-    Raises:
-    TypeError: If wrong data type
-    ValueError: If not numeric
-
-    """
     if not isinstance(check_value, str) and not isinstance(check_value, int):
         raise TypeError('Value must be a numeric string or int.')
     if isinstance(check_value, str) and not check_value.isnumeric():
@@ -41,13 +38,13 @@ def validate_numeric(check_value: str or int) -> int:
 
 
 # If passed a number, it returns upto max, or the input if its less, otherwise return max as the default
-def maxof(input_val: int, maxval: int):
-    if input_val <= maxval:
+def max_of(input_val: int, max_val: int):
+    if input_val <= max_val:
         return input_val
-    return maxval
+    return max_val
 
 
-def json_or_dict_or_obj_to_dict(data: [dict, str, object]):
+def json_or_dict_or_obj_to_dict(data: [dict, str, object]) -> dict:
     data_orig = data
     # If data is a json string, convert it to a dict
     if isinstance(data_orig, str):
@@ -73,14 +70,15 @@ def json_or_dict_or_obj_to_dict(data: [dict, str, object]):
 
 
 # Gets the stack trace of an exception
-def get_exception_trace(ex):
+def get_exception_trace(ex: Exception) -> str:
     if ex is None:
         return ''
     return "".join(traceback.TracebackException.from_exception(ex).format())
 
 
-# Abstract class, extend only
-class BaseSuperclass:
+# Abstract class that allows population of pre-defined attributes from a passed dict or json
+class BaseSuperclass(ABC):
+    @abstractmethod
     def __init__(self, passed_data: [dict, str] = None):
         # Define the attributes for this class
         # None at superclass level
@@ -105,8 +103,8 @@ class BaseSuperclass:
                 if hasattr(self, key) and not callable(getattr(self, key)):
                     setattr(self, key, passed_data[key])
         except Exception as ex:
-            log.warning(__name__ + ".load(): Could not convert passed_data to a dict " + repr(ex) +
-                        "passed_data: " + repr(passed_data))
+            log.error(__name__ + ".load(): Could not convert passed_data to a dict " + repr(ex) +
+                      "passed_data: " + repr(passed_data))
 
     # Returns a recursive dict of the entire object and any attributes that are also objects
     # Similar to .__dict__ but recursive
@@ -123,20 +121,21 @@ class BaseSuperclass:
         return dict_dump
 
 
-class ConfigSLR(BaseSuperclass):
+class ConfigSLR(BaseSuperclass, ABC):
+    @abstractmethod
     def __init__(self, passed_data: [dict, str] = None):
-        # Have to call parent after defining attributes other they are not populated
+        # Have to call parent after defining attributes to populate them
         super().__init__(passed_data)
         self._is_valid()
         self._post_init_processing()
 
-    # Overriden by the extended class
     # Class should implement config specific validation rules
+    @abstractmethod
     def _is_valid(self):
-        raise NotImplementedError('The is_valid() method must be overwritten by extended classes')
+        pass
 
-    # Overriden by the extended class
     # Class can use this to implement any post-init processing of properties (ie uppercaseing values,
     # setting defaults etc.)
+    @abstractmethod
     def _post_init_processing(self):
-        raise NotImplementedError('The _post_init_processing() method must be overwritten by extended classes')
+        pass
