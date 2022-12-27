@@ -4,9 +4,10 @@ import logging
 import json
 from includes.debug import pvdd, pvd, die
 import random
-import includes.kinesis as kinesis
-import includes.lambda_replay as lambda_replay
+import includes.kinesis_client as kinesis
+import includes.lambda_client as lambda_client
 import logging
+import includes.common as common
 
 # Initialize our own logger
 log = logging.getLogger(__name__)
@@ -14,10 +15,11 @@ log = logging.getLogger(__name__)
 logging.debug(None)
 
 # Set kinesis to debug log level
-kinesis_logger = logging.getLogger('kinesis')
+kinesis_logger = logging.getLogger('kinesis_client')
 kinesis_logger.setLevel(logging.DEBUG)
-lambda_replay_logger = logging.getLogger('lambda_replay')
-lambda_replay_logger.setLevel(logging.DEBUG)
+lambda_client_logger = logging.getLogger('lambda_client')
+lambda_client_logger.setLevel(logging.DEBUG)
+
 
 def process_events(Events):
     # ---------------------------
@@ -42,12 +44,13 @@ def main():
     # print("Username is: " + username)
     # die()
 
-    config_lambda = lambda_replay.ConfigLambda(lambda_replay.read_config('config-lamda_replay.example.yaml'))
-    pvdd(config_lambda)
+    config = kinesis.ConfigScraper(common.read_config('config-kinesis_scraper.example.yaml'))
+    pvdd(config)
 
-    stream_name = 'user-activities'
-    client = kinesis.Client(boto3.client('kinesis'), stream_name)
-    records = client.get_records('TRIM_HORIZON', 100)
+    # stream_name = 'user-activities'
+    # client = kinesis.Client(boto3.client('kinesis'), stream_name)
+    # records = client.get_records('TRIM_HORIZON', 100)
+    records = []
     pvdd(records)
 
     # ------------------

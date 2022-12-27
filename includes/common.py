@@ -4,18 +4,27 @@ import logging
 import traceback
 import yaml
 from abc import ABC, abstractmethod
+import datetime
 from includes.debug import pvdd, pvd, die
 
 log = logging.getLogger()
+
+
+def validate_datetime(timestamp):
+    try:
+        datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        raise ValueError("Incorrect data format, should be YYYY-MM-DD HH:MM:SS. Value provided: " + repr(timestamp))
+    return timestamp
 
 
 def read_config(filename: str) -> str:
     if not path.exists(filename):
         raise FileNotFoundError(f'The specified config file does not exist: {filename}')
     f = open(filename, "r")
-    manifest_yaml = f.read()
+    file_yaml_raw = f.read()
     f.close()
-    yaml_data = yaml.safe_load(manifest_yaml)
+    yaml_data = yaml.safe_load(file_yaml_raw)
     config_json = json.dumps(yaml_data)
     return config_json
 
@@ -94,8 +103,8 @@ class BaseSuperclass(ABC):
                 if hasattr(self, key) and not callable(getattr(self, key)):
                     setattr(self, key, passed_data[key])
         except Exception as ex:
-            log.warning(__name__ + ".load(): Could not convert passed_data to a dict " + repr(ex) +
-                        "passed_data: " + repr(passed_data))
+            log.error(__name__ + ".load(): Could not convert passed_data to a dict " + repr(ex) +
+                      "passed_data: " + repr(passed_data))
 
     # Returns a recursive dict of the entire object and any attributes that are also objects
     # Similar to .__dict__ but recursive
