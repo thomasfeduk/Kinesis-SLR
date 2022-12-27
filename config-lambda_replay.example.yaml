@@ -7,7 +7,7 @@
 # ----------------------
 # Description: The name of the lambda function which will be sent the scraped events.
 #
-function_name: function_name_here
+function_name: f2unction_name_here
 
 # --------------------
 # Property: batch_size
