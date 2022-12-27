@@ -44,7 +44,7 @@ class ConfigClient(common.ConfigSLR):
             validate_datetime(self.timestamp)
 
         # Sequence Number
-        self.is_valid_sequence_number()
+        self._is_valid_sequence_number()
 
         # Batch Size
         try:
@@ -68,7 +68,7 @@ class ConfigClient(common.ConfigSLR):
         if int(self.max_empty_record_polls) > 1000:
             raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 1000')
 
-    def is_valid_sequence_number(self):
+    def _is_valid_sequence_number(self):
         if self.starting_position.upper() in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
             # A sequence number is only unique within a shard, so we cannot specify at/after sequence
             # unless a single and only a single shard is id specified
