@@ -15,7 +15,7 @@ log = logging.getLogger()
 class ConfigClient(common.ConfigSLR):
     def __init__(self, passed_data: [dict, str] = None):
         self.stream_name = None
-        self.shardIds = []
+        self.shardIds = None
         self.starting_position = None
         self.timestamp = None
         self.sequence_number = None
@@ -28,6 +28,22 @@ class ConfigClient(common.ConfigSLR):
         super().__init__(passed_data)
 
     def _is_valid(self):
+        # Confirm minimum needed values exist
+        required_configs = [
+            'stream_name',
+            'shardIds',
+            'starting_position',
+            # 'timestamp', # Conditionally required
+            # 'sequence_number', # Conditionally required
+            'max_total_records_per_shard',
+            'poll_batch_size',
+            'poll_delay',
+            'max_empty_record_polls',
+        ]
+
+        for req_conf in required_configs:
+            if getattr(self, req_conf) is None:
+                raise ValueError(f"config-kinesis_scraper.yaml: Missing config parameter: {req_conf}")
         # Stream Name
         if not isinstance(self.stream_name, str):
             raise TypeError('stream_name must be a string if. Type provided: '
