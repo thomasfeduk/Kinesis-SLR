@@ -44,7 +44,7 @@ def main():
     # print("Username is: " + username)
     # die()
 
-    kinesis_obj = kinesis.ConfigClient(common.read_config('config-kinesis_scraper.example.yaml'))
+    kinesis_obj = kinesis.ClientConfig(common.read_config('config-kinesis_scraper.example.yaml'))
     # kinesis_obj = kinesis.ConfigClient(common.read_config('config-kinesis_scraper.example.yaml'))
     pvdd(kinesis_obj)
 

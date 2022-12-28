@@ -28,7 +28,7 @@ class ClientConfig(unittest.TestCase):
         # Run the test once with an empty input config list to simulate no configs set
         config_input = {}
         with self.assertRaises(ValueError) as ex:
-            kinesis.ConfigClient(config_input)
+            kinesis.ClientConfig(config_input)
         self.assertEqual(
             'config-kinesis_scraper.yaml: Missing config parameter: stream_name',
             str(ex.exception)
@@ -54,13 +54,15 @@ class ClientConfig(unittest.TestCase):
                 return
             config_input[current_conf] = "x"
             with self.assertRaises(ValueError) as ex:
-                kinesis.ConfigClient(config_input)
+                kinesis.ClientConfig(config_input)
             self.assertEqual(
                 f'config-kinesis_scraper.yaml: Missing config parameter: {required_configs[i+1]}',
                 str(ex.exception)
             )
             i += 1
 
+
+    def test_
     # def test_ClientConfig(self):
     #     with patch('includes.kinesis_client.ShardIteratorConfig.is_valid', create=True) as mocked_kinesis_client:
     #         mocked_kinesis_client.return_value = 'boo'
