@@ -81,8 +81,7 @@ class ClientConfig(common.ConfigSLR):
                 raise ValueError(f"config-kinesis_scraper.yaml: Missing config parameter: {req_conf}")
         # Stream Name
         if not isinstance(self._stream_name, str):
-            raise TypeError('stream_name must be a string if. Type provided: '
-                            + str(type(self._stream_name)))
+            raise TypeError(f"stream_name must be a string. Type provided: {str(type(self._stream_name))}")
         if self._stream_name == '' or self._stream_name == 'stream_name_here':
             raise ValueError('config-kinesis_scraper.yaml: A stream name must be set.')
 
@@ -145,7 +144,7 @@ class ClientConfig(common.ConfigSLR):
                 ) from e
 
     @staticmethod
-    def validate_iterator_types(iterator_type):
+    def validate_iterator_types(iterator_type: str) -> str:
         iterator_types = [
             "AT_SEQUENCE_NUMBER",
             "AFTER_SEQUENCE_NUMBER",
@@ -163,11 +162,8 @@ class ClientConfig(common.ConfigSLR):
         # we want to proceed as that indicates we will be processing all shards
         if shard_ids is None:
             return []
-
         if not isinstance(shard_ids, list):
-            raise TypeError('shard_ids must be of type list if specified. Type provided: '
-                            + str(type(shard_ids)))
-
+            raise TypeError(f'shard_ids must be of type list if specified. Type provided: {str(type(shard_ids))}')
         for shard_id in shard_ids:
             ClientConfig.validate_shard_id(shard_id)
         return shard_ids
@@ -175,10 +171,7 @@ class ClientConfig(common.ConfigSLR):
     @staticmethod
     def validate_shard_id(shard_id: str = None):
         if not isinstance(shard_id, str):
-            raise TypeError('Each shard_id must be a string. Value provided: '
-                            + repr(type(shard_id))
-                            + ' '
-                            + repr(shard_id))
+            raise TypeError(f'Each shard_id must be a string. Value provided: {repr(type(shard_id))} {repr(shard_id)}')
         return shard_id
 
 
@@ -232,7 +225,6 @@ class Client:
 
     def _get_shard_ids(self) -> list:
         response = self._client.describe_stream(StreamName=self._stream_name)
-        pvdd(response)
         shard_ids = []
         shard_details = response['StreamDescription']['Shards']
         for node in shard_details:
