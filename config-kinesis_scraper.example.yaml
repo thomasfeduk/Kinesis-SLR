@@ -24,7 +24,7 @@ stream_name: stream_name_here2
 #  - shardId-000000000000
 #  - shardId-000000000001
 #
-shardIds: []
+shard_ids: []
 
 # ---------------------------
 # Property: starting_position

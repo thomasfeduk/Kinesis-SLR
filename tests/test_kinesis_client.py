@@ -38,7 +38,7 @@ class ClientConfig(unittest.TestCase):
         # Must match the same list order declared in kinesis.ConfigClient._is_valid
         required_configs = [
             'stream_name',
-            'shardIds',
+            'shard_ids',
             'starting_position',
             'max_total_records_per_shard',
             'poll_batch_size',
@@ -61,8 +61,6 @@ class ClientConfig(unittest.TestCase):
             )
             i += 1
 
-
-    def test_
     # def test_ClientConfig(self):
     #     with patch('includes.kinesis_client.ShardIteratorConfig.is_valid', create=True) as mocked_kinesis_client:
     #         mocked_kinesis_client.return_value = 'boo'

@@ -13,24 +13,60 @@ log = logging.getLogger()
 
 class ClientConfig(common.ConfigSLR):
     def __init__(self, passed_data: [dict, str] = None):
-        self.stream_name = None
-        self.shardIds = None
-        self.starting_position = None
-        self.timestamp = None
-        self.sequence_number = None
-        self.max_total_records_per_shard = None
-        self.poll_batch_size = None
-        self.poll_delay = None
-        self.max_empty_record_polls = None
+        self._stream_name = None
+        self._shard_ids = None
+        self._starting_position = None
+        self._timestamp = None
+        self._sequence_number = None
+        self._max_total_records_per_shard = None
+        self._poll_batch_size = None
+        self._poll_delay = None
+        self._max_empty_record_polls = None
 
         # Have to call parent after defining attributes other they are not populated
         super().__init__(passed_data)
+
+    @property
+    def stream_name(self):
+        return self._stream_name
+
+    @property
+    def shard_ids(self):
+        return self._shard_ids
+
+    @property
+    def starting_position(self):
+        return self._starting_position
+
+    @property
+    def timestamp(self):
+        return self._timestamp
+
+    @property
+    def sequence_number(self):
+        return self._sequence_number
+
+    @property
+    def max_total_records_per_shard(self):
+        return self._max_total_records_per_shard
+
+    @property
+    def poll_batch_size(self):
+        return self._poll_batch_size
+
+    @property
+    def poll_delay(self):
+        return self._poll_delay
+
+    @property
+    def max_empty_record_polls(self):
+        return self._max_empty_record_polls
 
     def _is_valid(self):
         # Confirm minimum needed values exist
         required_configs = [
             'stream_name',
-            'shardIds',
+            'shard_ids',
             'starting_position',
             # 'timestamp', # Conditionally required
             # 'sequence_number', # Conditionally required
@@ -44,47 +80,47 @@ class ClientConfig(common.ConfigSLR):
             if getattr(self, req_conf) is None:
                 raise ValueError(f"config-kinesis_scraper.yaml: Missing config parameter: {req_conf}")
         # Stream Name
-        if not isinstance(self.stream_name, str):
+        if not isinstance(self._stream_name, str):
             raise TypeError('stream_name must be a string if. Type provided: '
-                            + str(type(self.stream_name)))
-        if self.stream_name == '' or self.stream_name == 'stream_name_here':
+                            + str(type(self._stream_name)))
+        if self._stream_name == '' or self._stream_name == 'stream_name_here':
             raise ValueError('config-kinesis_scraper.yaml: A stream name must be set.')
 
         # Shard IDs
-        ClientConfig.validate_shard_ids(self.shardIds)
+        ClientConfig.validate_shard_ids(self._shard_ids)
 
         # Starting position iterator Type/Timestamp
-        ClientConfig.validate_iterator_types(self.starting_position)
-        if self.starting_position.upper() == 'AT_TIMESTAMP':
-            common.validate_datetime(self.timestamp)
+        ClientConfig.validate_iterator_types(self._starting_position)
+        if self._starting_position.upper() == 'AT_TIMESTAMP':
+            common.validate_datetime(self._timestamp)
 
         # Sequence Number
-        self.validate_sequence_number(self.shardIds, self.starting_position, self.sequence_number)
+        self.validate_sequence_number(self._shard_ids, self._starting_position, self._sequence_number)
 
         # Batch Size
         try:
-            common.validate_numeric(self.poll_batch_size)
+            common.validate_numeric(self._poll_batch_size)
         except (TypeError, ValueError) as e:
             raise ValueError(
                 f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be either a numeric "
-                f"string, or an integer.\nValue provided: {repr(type(self.poll_batch_size))} "
+                f"string, or an integer.\nValue provided: {repr(type(self._poll_batch_size))} "
             ) from e
-        if int(self.poll_batch_size) > 500:
+        if int(self._poll_batch_size) > 500:
             raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
 
         # Max Empty Record Polls
         try:
-            common.validate_numeric(self.max_empty_record_polls)
+            common.validate_numeric(self._max_empty_record_polls)
         except (TypeError, ValueError) as e:
             raise ValueError(
                 f"If config-kinesis_scraper.yaml: \"max_empty_record_polls\" must be either a numeric "
-                f"string, or an integer.\nValue provided: {repr(type(self.max_empty_record_polls))} "
+                f"string, or an integer.\nValue provided: {repr(type(self._max_empty_record_polls))} "
             ) from e
-        if int(self.max_empty_record_polls) > 1000:
+        if int(self._max_empty_record_polls) > 1000:
             raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 1000')
 
     def _post_init_processing(self):
-        self.starting_position = self.starting_position.upper()
+        self._starting_position = self._starting_position.upper()
 
     @staticmethod
     def validate_sequence_number(shard_ids: list, starting_position: str, sequence_number: [str, int]) -> None:

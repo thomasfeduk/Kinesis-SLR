@@ -100,8 +100,14 @@ class BaseSuperclass(ABC):
             for key in passed_data:
                 # We make SURE to ensure it's not callable so they don't try to overwrite __del__
                 # or something by naming a key that is a method as opposed to a property
-                if hasattr(self, key) and not callable(getattr(self, key)):
-                    setattr(self, key, passed_data[key])
+
+                # We first check if we have hidden _ prefixed versions of the values, so we can define property
+                # decorators. Otherwise, look for the standard attrbute names
+                if hasattr(self, "_" + key) and not callable(getattr(self, "_" + key)):
+                    setattr(self, "_" + key, passed_data[key])
+                else:
+                    if hasattr(self, key) and not callable(getattr(self, key)):
+                        setattr(self, key, passed_data[key])
         except Exception as ex:
             log.error(__name__ + ".load(): Could not convert passed_data to a dict " + repr(ex) +
                       "passed_data: " + repr(passed_data))
