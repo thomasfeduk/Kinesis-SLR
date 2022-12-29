@@ -6,13 +6,16 @@ import random
 import datetime
 import includes.common as common
 import logging
-
+import botocore
 log = logging.getLogger()
+
+
 # log.setLevel(logging.DEBUG)
 
 
 class ClientConfig(common.ConfigSLR):
-    def __init__(self, passed_data: [dict, str] = None):
+    def __init__(self, passed_data: [dict, str], boto_client: botocore.client.BaseClient):
+        self._boto_client = boto_client
         self._stream_name = None
         self._shard_ids = None
         self._starting_position = None
@@ -25,6 +28,10 @@ class ClientConfig(common.ConfigSLR):
 
         # Have to call parent after defining attributes other they are not populated
         super().__init__(passed_data)
+
+    @property
+    def boto_client(self):
+        return self._boto_client
 
     @property
     def stream_name(self):
@@ -63,7 +70,12 @@ class ClientConfig(common.ConfigSLR):
         return self._max_empty_record_polls
 
     def _is_valid(self):
-        # Confirm minimum needed values exist
+        # Confirm we have received a real boto client object instance
+        if not isinstance(self.boto_client, botocore.client.BaseClient):
+            raise TypeError(f"A boto3 Kinesis client object is required. Example: \"boto3.client('kinesis')\". "
+                            f"Value provided: {str(type(self.boto_client))} {repr(self.boto_client)}")
+
+        # Confirm minimum needed passed_data values exist
         required_configs = [
             'stream_name',
             'shard_ids',
@@ -203,17 +215,24 @@ class ShardIteratorConfig:
 
 
 class Client:
-    def __init__(self, config: ClientConfig):
-        self._client = kinesis_client
-        self._stream_name = stream_name
-        self._shard_ids = Client.validate_shard_ids(shard_ids)
-        if self._shard_ids is None:
-            self._shard_ids = self._get_shard_ids()
-        self._shard_id_current = None
-        self._shard_id_current = self._shard_ids[0]
-        self._shard_iterator = None
-        # After finished scraping all messages from a shard, we record it as "done/processed" in this list
-        self._shard_ids_processed = []
+    def __init__(self, client_config: ClientConfig):
+        self._client_config = client_config
+        self._is_valid()
+
+    def _is_valid(self):
+        if not isinstance(self._client_config, ClientConfig):
+            raise TypeError(f"client_config must be an instance of ClientConfig. Value provided: "
+                            f"{repr(type(self._client_config))} {repr(self._client_config)}")
+        # self._client = kinesis_client
+        # self._stream_name = stream_name
+        # self._shard_ids = Client.validate_shard_ids(shard_ids)
+        # if self._shard_ids is None:
+        #     self._shard_ids = self._get_shard_ids()
+        # self._shard_id_current = None
+        # self._shard_id_current = self._shard_ids[0]
+        # self._shard_iterator = None
+        # # After finished scraping all messages from a shard, we record it as "done/processed" in this list
+        # self._shard_ids_processed = []
 
     def get_records(self, iterator_type: str, limit: int = 100, *, timestamp: str = None) -> str:
         if self._shard_iterator is None:
@@ -228,8 +247,8 @@ class Client:
             )
         return self._shard_iterator.get_iterator()
 
-    def _get_shard_ids(self) -> list:
-        response = self._client.describe_stream(StreamName=self._stream_name)
+    def get_shard_ids(self) -> list:
+        response = self._client_config.boto_client.describe_stream(StreamName=self._client_config.stream_name)
         shard_ids = []
         shard_details = response['StreamDescription']['Shards']
         for node in shard_details:

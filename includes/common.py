@@ -82,15 +82,14 @@ def validate_datetime(timestamp) -> str:
     return timestamp
 
 
-def read_config(filename: str) -> str:
+def read_config(filename: str) -> dict:
     if not path.exists(filename):
         raise FileNotFoundError(f'The specified config file does not exist: {filename}')
     f = open(filename, "r")
     file_yaml_raw = f.read()
     f.close()
     yaml_data = yaml.safe_load(file_yaml_raw)
-    config_json = json.dumps(yaml_data)
-    return config_json
+    return yaml_data
 
 
 def validate_numeric(check_value: [str, int]) -> int:

@@ -44,18 +44,21 @@ def main():
     # print("Username is: " + username)
     # die()
 
-    kinesis_config = kinesis.ClientConfig(common.read_config('config-kinesis_scraper.example.yaml'))
-    iterator_config = kinesis.ShardIteratorConfig(kinesis_config, 'abc123')
-    pvdd(iterator_config)
+    kinesis_config = kinesis.ClientConfig(
+        common.read_config('config-kinesis_scraper.example.yaml'),
+        boto3.client('kinesis')
+    )
+
+    # iterator_config = kinesis.ShardIteratorConfig(kinesis_config, 'abc123')
+    kinesis_client = kinesis.Client(kinesis_config)
+    output = kinesis_client.get_shard_ids()
+    pvdd(output)
 
 
 
+    # pvdd(str(kinesis_config))
 
-
-
-
-    die('Here')
-
+    die('Here213213')
 
     # kinesis_obj = kinesis.ConfigClient(common.read_config('config-kinesis_scraper.example.yaml'))
     pvdd(type(kinesis_config))
