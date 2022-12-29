@@ -91,7 +91,12 @@ class ClientConfig(common.ConfigSLR):
         # Starting position iterator Type/Timestamp
         ClientConfig.validate_iterator_types(self._starting_position)
         if self._starting_position.upper() == 'AT_TIMESTAMP':
-            common.validate_datetime(self._timestamp)
+            try:
+                common.validate_datetime(self._timestamp)
+            except ValueError as e:
+                raise ValueError(f"config-kinesis_scraper.yaml: Invalid format for config parameter \"timestamp\". "
+                                 f"Format should be YYYY-MM-DD HH:MM:SS.\nValue provided: "
+                                 f"{str(type(self._timestamp))} {repr(self._timestamp)}") from e
 
         # Sequence Number
         self.validate_sequence_number(self._shard_ids, self._starting_position, self._sequence_number)
@@ -169,32 +174,32 @@ class ClientConfig(common.ConfigSLR):
         return shard_ids
 
     @staticmethod
-    def validate_shard_id(shard_id: str = None):
+    def validate_shard_id(shard_id: str = None) -> str:
         if not isinstance(shard_id, str):
             raise TypeError(f'Each shard_id must be a string. Value provided: {repr(type(shard_id))} {repr(shard_id)}')
         return shard_id
 
 
 class ShardIteratorConfig:
-    def __init__(self, *,
-                 kinesis_client: object,
-                 stream_name: str,
-                 shard_id: str,
-                 iterator_type: str,
-                 timestamp: str = None
-                 ):
-        self.client = kinesis_client
-        self.stream_name = stream_name
-        self.shard_id = shard_id
-        self.iterator_type = iterator_type
-        self.timestamp = timestamp
-        self.is_valid()
+    def __init__(self, client_config: ClientConfig, shard_id: str):
+        self._client_config = client_config
+        self._shard_id = shard_id
 
-    def is_valid(self):
-        Client.validate_shard_id(self.shard_id)
-        Client.validate_iterator_types(self.iterator_type)
-        if self.timestamp is not None:
-            validate_datetime(self.timestamp)
+        self._is_valid()
+
+    @property
+    def client_config(self) -> ClientConfig:
+        return self._client_config
+
+    @property
+    def shard_id(self) -> str:
+        return self._shard_id
+
+    def _is_valid(self):
+        if not isinstance(self._client_config, ClientConfig):
+            raise TypeError(f"client_config must be an instance of ClientConfig. Value provided: "
+                            f"{repr(type(self._client_config))} {repr(self._client_config)}")
+        ClientConfig.validate_shard_id(self._shard_id)
 
 
 class Client:

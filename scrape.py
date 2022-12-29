@@ -45,14 +45,26 @@ def main():
     # die()
 
     kinesis_config = kinesis.ClientConfig(common.read_config('config-kinesis_scraper.example.yaml'))
+    iterator_config = kinesis.ShardIteratorConfig(kinesis_config, 'abc123')
+    pvdd(iterator_config)
+
+
+
+
+
+
+
+    die('Here')
+
+
     # kinesis_obj = kinesis.ConfigClient(common.read_config('config-kinesis_scraper.example.yaml'))
-    pvdd(kinesis_config.dict())
+    pvdd(type(kinesis_config))
 
     # stream_name = 'user-activities'
     # client = kinesis.Client(boto3.client('kinesis'), stream_name)
     # records = client.get_records('TRIM_HORIZON', 100)
     records = []
-    pvdd(records)
+    # pvdd(records.)
 
     # ------------------
     # Get the shard ID.

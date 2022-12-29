@@ -78,7 +78,7 @@ def validate_datetime(timestamp) -> str:
     try:
         datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
     except ValueError:
-        raise ValueError("Incorrect data format, should be YYYY-MM-DD HH:MM:SS. Value provided: " + repr(timestamp))
+        raise ValueError("Incorrect datetime format, should be YYYY-MM-DD HH:MM:SS. Value provided: " + repr(timestamp))
     return timestamp
 
 
