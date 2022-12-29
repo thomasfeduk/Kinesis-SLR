@@ -5,91 +5,174 @@ from includes.debug import pvdd, pvd, die
 import random
 import datetime
 import includes.common as common
-from includes.common import validate_datetime
 import logging
 
 log = logging.getLogger()
 # log.setLevel(logging.DEBUG)
 
 
-class ConfigClient(common.ConfigSLR):
+class ClientConfig(common.ConfigSLR):
     def __init__(self, passed_data: [dict, str] = None):
-        self.stream_name = None
-        self.shardIds = []
-        self.starting_position = None
-        self.timestamp = None
-        self.sequence_number = None
-        self.max_total_records_per_shard = None
-        self.poll_batch_size = None
-        self.poll_delay = None
-        self.max_empty_record_polls = None
+        self._stream_name = None
+        self._shard_ids = None
+        self._starting_position = None
+        self._timestamp = None
+        self._sequence_number = None
+        self._max_total_records_per_shard = None
+        self._poll_batch_size = None
+        self._poll_delay = None
+        self._max_empty_record_polls = None
 
         # Have to call parent after defining attributes other they are not populated
         super().__init__(passed_data)
 
+    @property
+    def stream_name(self):
+        return self._stream_name
+
+    @property
+    def shard_ids(self):
+        return self._shard_ids
+
+    @property
+    def starting_position(self):
+        return self._starting_position
+
+    @property
+    def timestamp(self):
+        return self._timestamp
+
+    @property
+    def sequence_number(self):
+        return self._sequence_number
+
+    @property
+    def max_total_records_per_shard(self):
+        return self._max_total_records_per_shard
+
+    @property
+    def poll_batch_size(self):
+        return self._poll_batch_size
+
+    @property
+    def poll_delay(self):
+        return self._poll_delay
+
+    @property
+    def max_empty_record_polls(self):
+        return self._max_empty_record_polls
+
     def _is_valid(self):
+        # Confirm minimum needed values exist
+        required_configs = [
+            'stream_name',
+            'shard_ids',
+            'starting_position',
+            # 'timestamp', # Conditionally required
+            # 'sequence_number', # Conditionally required
+            'max_total_records_per_shard',
+            'poll_batch_size',
+            'poll_delay',
+            'max_empty_record_polls',
+        ]
+
+        for req_conf in required_configs:
+            if getattr(self, req_conf) is None:
+                raise ValueError(f"config-kinesis_scraper.yaml: Missing config parameter: {req_conf}")
         # Stream Name
-        if not isinstance(self.stream_name, str):
-            raise TypeError('stream_name must be a string if. Type provided: '
-                            + str(type(self.stream_name)))
-        if self.stream_name == '' or self.stream_name == 'stream_name_here':
+        if not isinstance(self._stream_name, str):
+            raise TypeError(f"stream_name must be a string. Type provided: {str(type(self._stream_name))}")
+        if self._stream_name == '' or self._stream_name == 'stream_name_here':
             raise ValueError('config-kinesis_scraper.yaml: A stream name must be set.')
 
         # Shard IDs
-        Client.validate_shard_ids(self.shardIds)
+        ClientConfig.validate_shard_ids(self._shard_ids)
 
         # Starting position iterator Type/Timestamp
-        Client.validate_iterator_types(self.starting_position)
-        if self.starting_position.upper() == 'AT_TIMESTAMP':
-            validate_datetime(self.timestamp)
+        ClientConfig.validate_iterator_types(self._starting_position)
+        if self._starting_position.upper() == 'AT_TIMESTAMP':
+            common.validate_datetime(self._timestamp)
 
         # Sequence Number
-        self.is_valid_sequence_number()
+        self.validate_sequence_number(self._shard_ids, self._starting_position, self._sequence_number)
 
         # Batch Size
         try:
-            common.validate_numeric(self.poll_batch_size)
+            common.validate_numeric(self._poll_batch_size)
         except (TypeError, ValueError) as e:
             raise ValueError(
                 f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be either a numeric "
-                f"string, or an integer.\nValue provided: {repr(type(self.poll_batch_size))} "
+                f"string, or an integer.\nValue provided: {repr(type(self._poll_batch_size))} "
             ) from e
-        if int(self.poll_batch_size) > 500:
+        if int(self._poll_batch_size) > 500:
             raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
 
         # Max Empty Record Polls
         try:
-            common.validate_numeric(self.max_empty_record_polls)
+            common.validate_numeric(self._max_empty_record_polls)
         except (TypeError, ValueError) as e:
             raise ValueError(
                 f"If config-kinesis_scraper.yaml: \"max_empty_record_polls\" must be either a numeric "
-                f"string, or an integer.\nValue provided: {repr(type(self.max_empty_record_polls))} "
+                f"string, or an integer.\nValue provided: {repr(type(self._max_empty_record_polls))} "
             ) from e
-        if int(self.max_empty_record_polls) > 1000:
+        if int(self._max_empty_record_polls) > 1000:
             raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 1000')
 
-    def is_valid_sequence_number(self):
-        if self.starting_position.upper() in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
+    def _post_init_processing(self):
+        self._starting_position = self._starting_position.upper()
+
+    @staticmethod
+    def validate_sequence_number(shard_ids: list, starting_position: str, sequence_number: [str, int]) -> None:
+        ClientConfig.validate_iterator_types(starting_position)
+        ClientConfig.validate_shard_ids(shard_ids)
+        if starting_position.upper() in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
             # A sequence number is only unique within a shard, so we cannot specify at/after sequence
             # unless a single and only a single shard is id specified
-            if len(self.shardIds) != 1:
+            if len(shard_ids) != 1:
                 raise ValueError(
                     f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
                     f"or AFTER_SEQUENCE_NUMBER, exactly 1 shard id must be specified as the sequence numbers "
-                    f"are unique per shard.\nValue provided: {repr(type(self.sequence_number))} "
+                    f"are unique per shard.\nValue provided: {repr(type(shard_ids))} "
                 )
             try:
-                common.validate_numeric(self.sequence_number)
+                common.validate_numeric(sequence_number)
             except (TypeError, ValueError) as e:
                 raise ValueError(
                     f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
                     f"or AFTER_SEQUENCE_NUMBER, the value must be either a numeric string, or an integer. "
-                    f"\nValue provided: {repr(type(self.sequence_number))} "
-                    f"{repr(self.sequence_number)}"
+                    f"\nValue provided: {repr(type(sequence_number))} "
                 ) from e
 
-    def _post_init_processing(self):
-        self.starting_position = self.starting_position.upper()
+    @staticmethod
+    def validate_iterator_types(iterator_type: str) -> str:
+        iterator_types = [
+            "AT_SEQUENCE_NUMBER",
+            "AFTER_SEQUENCE_NUMBER",
+            "TRIM_HORIZON",
+            "LATEST",
+            "AT_TIMESTAMP"
+        ]
+        if iterator_type not in iterator_types:
+            raise ValueError('iterator_type must be one of: ' + repr(iterator_types))
+        return iterator_type
+
+    @staticmethod
+    def validate_shard_ids(shard_ids: list = None) -> list:
+        # If we are dealing with a blank list of shard ids (None)
+        # we want to proceed as that indicates we will be processing all shards
+        if shard_ids is None:
+            return []
+        if not isinstance(shard_ids, list):
+            raise TypeError(f'shard_ids must be of type list if specified. Type provided: {str(type(shard_ids))}')
+        for shard_id in shard_ids:
+            ClientConfig.validate_shard_id(shard_id)
+        return shard_ids
+
+    @staticmethod
+    def validate_shard_id(shard_id: str = None):
+        if not isinstance(shard_id, str):
+            raise TypeError(f'Each shard_id must be a string. Value provided: {repr(type(shard_id))} {repr(shard_id)}')
+        return shard_id
 
 
 class ShardIteratorConfig:
@@ -115,7 +198,7 @@ class ShardIteratorConfig:
 
 
 class Client:
-    def __init__(self, config: ConfigClient):
+    def __init__(self, config: ClientConfig):
         self._client = kinesis_client
         self._stream_name = stream_name
         self._shard_ids = Client.validate_shard_ids(shard_ids)
@@ -142,49 +225,11 @@ class Client:
 
     def _get_shard_ids(self) -> list:
         response = self._client.describe_stream(StreamName=self._stream_name)
-        pvdd(response)
         shard_ids = []
         shard_details = response['StreamDescription']['Shards']
         for node in shard_details:
             shard_ids.append(node['ShardId'])
         return shard_ids
-
-    @staticmethod
-    def validate_iterator_types(iterator_type):
-        iterator_types = [
-            "AT_SEQUENCE_NUMBER",
-            "AFTER_SEQUENCE_NUMBER",
-            "TRIM_HORIZON",
-            "LATEST",
-            "AT_TIMESTAMP"
-        ]
-        if iterator_type not in iterator_types:
-            raise ValueError('iterator_type must be one of: ' + repr(iterator_types))
-        return iterator_type
-
-    @staticmethod
-    def validate_shard_ids(shard_ids: list = None):
-        # If we are dealing with a blank list of shard ids (None)
-        # we want to proceed as that indicates we will be processing all shards
-        if shard_ids is None:
-            return []
-
-        if not isinstance(shard_ids, list):
-            raise TypeError('shard_ids must be of type list if specified. Type provided: '
-                            + str(type(shard_ids)))
-
-        for shard_id in shard_ids:
-            Client.validate_shard_id(shard_id)
-        return shard_ids
-
-    @staticmethod
-    def validate_shard_id(shard_id: str = None):
-        if not isinstance(shard_id, str):
-            raise TypeError('Each shard_id must be a string. Value provided: '
-                            + repr(type(shard_id))
-                            + ' '
-                            + repr(shard_id))
-        return shard_id
 
 
 class ShardIterator:
