@@ -7,7 +7,7 @@ import datetime
 import includes.common as common
 import logging
 import botocore
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 
 # log.setLevel(logging.DEBUG)
@@ -248,10 +248,14 @@ class Client:
         return self._shard_iterator.get_iterator()
 
     def get_shard_ids(self) -> list:
+        log.debug('Getting shard ids...')
         response = self._client_config.boto_client.describe_stream(StreamName=self._client_config.stream_name)
+        log.debug(f"Stream name: {response['StreamDescription']['StreamName']}")
+        log.debug(f"Stream ARN: {response['StreamDescription']['StreamARN']}")
         shard_ids = []
         shard_details = response['StreamDescription']['Shards']
         for node in shard_details:
+            log.debug(f"Found shard id: {node['ShardId']}")
             shard_ids.append(node['ShardId'])
         return shard_ids
 
