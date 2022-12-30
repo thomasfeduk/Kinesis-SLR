@@ -6,9 +6,9 @@
 # Property: stream_name
 # ----------------------
 # Description: The name of the stream you want to scrape
-# Example value: user_activities
+# Example value: user-activities
 #
-stream_name: stream_name_here
+stream_name: user-activities
 
 # -------------------
 # Property: shardIds
@@ -24,7 +24,7 @@ stream_name: stream_name_here
 #  - shardId-000000000000
 #  - shardId-000000000001
 #
-shardIds: []
+shard_ids: []
 
 # ---------------------------
 # Property: starting_position
@@ -34,7 +34,9 @@ shardIds: []
 #
 # Note: TRIM_HORIZON = Start with the oldest record in the stream
 #
-#starting_position: TRIM_HORIZON
+# Note2: If set to AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER, sequence ids are unique per-shard
+# thus, "shardIds" must be populated with a single shard id
+#
 starting_position: AT_TIMESTAMP
 
 # ---------------------------

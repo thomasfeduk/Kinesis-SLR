@@ -44,14 +44,30 @@ def main():
     # print("Username is: " + username)
     # die()
 
-    config = kinesis.ConfigScraper(common.read_config('config-kinesis_scraper.example.yaml'))
-    pvdd(config)
+    kinesis_config = kinesis.ClientConfig(
+        common.read_config('config-kinesis_scraper.example.yaml'),
+        boto3.client('kinesis')
+    )
+
+    # iterator_config = kinesis.ShardIteratorConfig(kinesis_config, 'abc123')
+    kinesis_client = kinesis.Client(kinesis_config)
+    output = kinesis_client.get_shard_ids()
+    pvdd(output)
+
+
+
+    # pvdd(str(kinesis_config))
+
+    die('Here213213')
+
+    # kinesis_obj = kinesis.ConfigClient(common.read_config('config-kinesis_scraper.example.yaml'))
+    pvdd(type(kinesis_config))
 
     # stream_name = 'user-activities'
     # client = kinesis.Client(boto3.client('kinesis'), stream_name)
     # records = client.get_records('TRIM_HORIZON', 100)
     records = []
-    pvdd(records)
+    # pvdd(records.)
 
     # ------------------
     # Get the shard ID.
