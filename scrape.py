@@ -52,7 +52,8 @@ def main():
     # iterator_config = kinesis.ShardIteratorConfig(kinesis_config, 'abc123')
     kinesis_client = kinesis.Client(kinesis_config)
     output = kinesis_client.get_shard_ids()
-    pvdd(output)
+    iterator = kinesis_client.get_records()
+    pvdd(iterator)
 
 
 

@@ -102,7 +102,11 @@ class ClientConfig(common.ConfigSLR):
 
         # Starting position iterator Type/Timestamp
         ClientConfig.validate_iterator_types(self._starting_position)
-        if self._starting_position.upper() == 'AT_TIMESTAMP':
+        # If the starting position is not timestamp, clear the timestamp value so we don't have it set internally
+        # when we are never going to use it
+        if self._starting_position.upper() != 'AT_TIMESTAMP':
+            self._timestamp = None
+        else:
             try:
                 common.validate_datetime(self._timestamp)
             except ValueError as e:
@@ -219,6 +223,9 @@ class Client:
         self._client_config = client_config
         self._is_valid()
 
+        # Setup default attributes
+        self._current_shard_iterator = None
+
     def _is_valid(self):
         if not isinstance(self._client_config, ClientConfig):
             raise TypeError(f"client_config must be an instance of ClientConfig. Value provided: "
@@ -234,18 +241,42 @@ class Client:
         # # After finished scraping all messages from a shard, we record it as "done/processed" in this list
         # self._shard_ids_processed = []
 
-    def get_records(self, iterator_type: str, limit: int = 100, *, timestamp: str = None) -> str:
-        if self._shard_iterator is None:
-            self._shard_iterator = ShardIterator(
-                ShardIteratorConfig(
-                    kinesis_client=self._client,
-                    stream_name=self._stream_name,
-                    shard_id=self._shard_id_current,
-                    iterator_type=iterator_type,
-                    timestamp=timestamp
-                )
+    def get_records(self) -> str:
+        return self._shard_iterator('shardId-000000000005')
+
+    def _shard_iterator(self, shard_id: str) -> str:
+        if not isinstance(shard_id, str):
+            raise ValueError(f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
+
+        # If we don't have an existing shard iterator, we grab a new one, otherwise return the current one
+        if self._current_shard_iterator is not None:
+            return self._current_shard_iterator
+
+        return self.get_shard_iterator(shard_id)
+
+    def get_shard_iterator(self, shard_id: str) -> str:
+        if not isinstance(shard_id, str):
+            raise ValueError(f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
+
+        # If we have a timestamp specified, we call client.get_shard_iterator with the timestamp,
+        # otherwise call it without that argument
+        log.debug(f'Getting iterator for shard id: {shard_id}')
+        if self._client_config.timestamp is None:
+            response = self._client_config.boto_client.get_shard_iterator(
+                StreamName=self._client_config.stream_name,
+                ShardId=shard_id,
+                ShardIteratorType=self._client_config.starting_position,
             )
-        return self._shard_iterator.get_iterator()
+        else:
+            response = self._client_config.boto_client.get_shard_iterator(
+                StreamName=self._client_config.stream_name,
+                ShardId=shard_id,
+                ShardIteratorType=self._client_config.starting_position,
+                Timestamp=self._client_config.timestamp
+            )
+        iterator = response['ShardIterator']
+        log.debug('Returned Iterator: ' + iterator)
+        return iterator
 
     def get_shard_ids(self) -> list:
         log.debug('Getting shard ids...')
@@ -266,25 +297,7 @@ class ShardIterator:
         self._shard_iterator_config = shard_iterator_config
         self._shard_iterator = None
 
-    def get_iterator(self) -> str:
-        # If we have a timestamp specified, we call client.get_shard_iterator with the timestamp,
-        # otherwise call it without that argument
-        log.debug('Getting iterator for shard id: ' + self._shard_iterator_config.shard_id)
-        if self._shard_iterator_config.timestamp is None:
-            response = self._shard_iterator_config.client.get_shard_iterator(
-                StreamName=self._shard_iterator_config.stream_name,
-                ShardId=self._shard_iterator_config.shard_id,
-                ShardIteratorType=self._shard_iterator_config.iterator_type,
-            )
-        else:
-            response = self._shard_iterator_config.client.get_shard_iterator(
-                StreamName=self._shard_iterator_config.stream_name,
-                ShardId=self._shard_iterator_config.shard_id,
-                ShardIteratorType=self._shard_iterator_config.iterator_type,
-                Timestamp=self._shard_iterator_config.timestamp
-            )
-        iterator = response['ShardIterator']
-        log.debug('Returned Iterator: ' + iterator)
+        pvdd(iterator)
 
         i = 1
         next_iterator = iterator
