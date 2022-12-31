@@ -95,9 +95,10 @@ def read_config(filename: str) -> dict:
 def validate_numeric(check_value: [str, int, float]) -> float:
     if not isinstance(check_value, str) and not isinstance(check_value, int) and not isinstance(check_value, float):
         raise TypeError('Value must be a numeric string, float or int.')
-    if isinstance(check_value, str):
-        if not check_value.isnumeric():
-            raise ValueError('String value must be numeric.')
+    try:
+        float(check_value)
+    except ValueError:
+        raise ValueError('String value must be numeric.')
     return float(check_value)
 
 
