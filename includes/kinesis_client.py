@@ -7,6 +7,7 @@ import datetime
 import includes.common as common
 import logging
 import botocore
+
 log = logging.getLogger(__name__)
 
 
@@ -196,28 +197,6 @@ class ClientConfig(common.ConfigSLR):
         return shard_id
 
 
-class ShardIteratorConfig:
-    def __init__(self, client_config: ClientConfig, shard_id: str):
-        self._client_config = client_config
-        self._shard_id = shard_id
-
-        self._is_valid()
-
-    @property
-    def client_config(self) -> ClientConfig:
-        return self._client_config
-
-    @property
-    def shard_id(self) -> str:
-        return self._shard_id
-
-    def _is_valid(self):
-        if not isinstance(self._client_config, ClientConfig):
-            raise TypeError(f"client_config must be an instance of ClientConfig. Value provided: "
-                            f"{repr(type(self._client_config))} {repr(self._client_config)}")
-        ClientConfig.validate_shard_id(self._shard_id)
-
-
 class Client:
     def __init__(self, client_config: ClientConfig):
         self._client_config = client_config
@@ -225,6 +204,8 @@ class Client:
 
         # Setup default attributes
         self._current_shard_iterator = None
+        self._current_shard_id = None
+        self._current_fetched_event_count = 0
 
     def _is_valid(self):
         if not isinstance(self._client_config, ClientConfig):
@@ -242,7 +223,36 @@ class Client:
         # self._shard_ids_processed = []
 
     def get_records(self) -> str:
-        return self._shard_iterator('shardId-000000000005')
+        var = {
+            "_boto_client": None,
+            "_stream_name": "user-activities",
+            "_shard_ids": [],
+            "_starting_position": "AT_TIMESTAMP",
+            "_timestamp": "2022-12-01 00:00:0",
+            "_sequence_number": 4.963479396773268e+55,
+            "_max_total_records_per_shard": 0,
+            "_poll_batch_size": 100,
+            "_poll_delay": 0,
+            "_max_empty_record_polls": 100
+        }
+
+        i = 1
+        next_iterator = self._shard_iterator('shardId-000000000005')
+        while next_iterator:
+            log.debug('Loop count: ' + str(i))
+            response = self._client_config.boto_client.get_records(
+                ShardIterator=next_iterator,
+                Limit=100
+            )
+            # log.debug(response)
+            next_iterator = response['NextShardIterator']
+            log.debug(f'Next iterator: {next_iterator}')
+            self._current_shard_iterator = next_iterator
+            i += 1
+            if i > 101:
+                die('ended loop at 101')
+
+        return ''
 
     def _shard_iterator(self, shard_id: str) -> str:
         if not isinstance(shard_id, str):
@@ -278,7 +288,7 @@ class Client:
         log.debug('Returned Iterator: ' + iterator)
         return iterator
 
-    def get_shard_ids(self) -> list:
+    def get_shard_ids_of_stream(self) -> list:
         log.debug('Getting shard ids...')
         response = self._client_config.boto_client.describe_stream(StreamName=self._client_config.stream_name)
         log.debug(f"Stream name: {response['StreamDescription']['StreamName']}")
@@ -292,7 +302,7 @@ class Client:
 
 
 class ShardIterator:
-    def __init__(self, shard_iterator_config: ShardIteratorConfig):
+    def __init__(self, ):
         shard_iterator_config.is_valid()
         self._shard_iterator_config = shard_iterator_config
         self._shard_iterator = None
