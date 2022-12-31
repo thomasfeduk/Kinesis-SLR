@@ -1,6 +1,7 @@
 import boto3
 import logging
 import json
+import time
 from includes.debug import pvdd, pvd, die
 import random
 import datetime
@@ -9,8 +10,6 @@ import logging
 import botocore
 
 log = logging.getLogger(__name__)
-
-
 # log.setLevel(logging.DEBUG)
 
 
@@ -103,11 +102,7 @@ class ClientConfig(common.ConfigSLR):
 
         # Starting position iterator Type/Timestamp
         ClientConfig.validate_iterator_types(self._starting_position)
-        # If the starting position is not timestamp, clear the timestamp value so we don't have it set internally
-        # when we are never going to use it
-        if self._starting_position.upper() != 'AT_TIMESTAMP':
-            self._timestamp = None
-        else:
+        if self._starting_position.upper() == 'AT_TIMESTAMP':
             try:
                 common.validate_datetime(self._timestamp)
             except ValueError as e:
@@ -129,6 +124,18 @@ class ClientConfig(common.ConfigSLR):
         if int(self._poll_batch_size) > 500:
             raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
 
+        # Poll Delay
+        try:
+            common.validate_numeric(self.poll_delay)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"If config-kinesis_scraper.yaml: \"poll_delay\" must be either a numeric "
+                f"string, a float, or an integer.\nValue provided: "
+                f"{repr(type(self.poll_delay))} {repr(self.poll_delay)}"
+            ) from e
+        if float(self.poll_delay) < 0 or float(self.poll_delay) > 10:
+            raise ValueError('config-kinesis_scraper.yaml: poll_delay must be between 0-10')
+
         # Max Empty Record Polls
         try:
             common.validate_numeric(self._max_empty_record_polls)
@@ -141,7 +148,13 @@ class ClientConfig(common.ConfigSLR):
             raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 1000')
 
     def _post_init_processing(self):
+        # If the starting position is not timestamp, clear the timestamp value so we don't have it set internally
+        # when we are never going to use it
+        if self._starting_position.upper() != 'AT_TIMESTAMP':
+            self._timestamp = None
         self._starting_position = self._starting_position.upper()
+        if self._poll_delay is not None:
+            self._poll_delay = float(self._poll_delay)
 
     @staticmethod
     def validate_sequence_number(shard_ids: list, starting_position: str, sequence_number: [str, int]) -> None:
@@ -238,27 +251,44 @@ class Client:
 
         i = 1
         next_iterator = self._shard_iterator('shardId-000000000005')
+        count_response_no_records = 0
+        found_records = []
         while next_iterator:
-            log.debug('Loop count: ' + str(i))
+            log.debug('get_records() loop count: ' + str(i))
+            if self._client_config.poll_delay > 0:
+                log.debug(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
+                time.sleep(self._client_config.poll_delay)
             response = self._client_config.boto_client.get_records(
                 ShardIterator=next_iterator,
-                Limit=100
+                Limit=5
             )
             # log.debug(response)
             next_iterator = response['NextShardIterator']
-            log.debug(f'Next iterator: {next_iterator}')
+
+            if len(response["Records"]) > 0:
+                found_records.append(response["Records"])
+                count_response_no_records = 0
+                log.debug(f"\n\n{len(response['Records'])} records found in get_records() response.\n")
+            else:
+                count_response_no_records += 1
+                log.debug(f'No records found in loop. Currently at {count_response_no_records-1} empty'
+                          f' sequential calls.')
+
+            log.debug(f'Next iterator (last 10 chars): {next_iterator[-10:]}')
             self._current_shard_iterator = next_iterator
             i += 1
-            if i > 101:
-                die('ended loop at 101')
+            if i > 5:
+                pvd(found_records)
+                log.info('ended loop at X calls')
+                die()
 
         return ''
 
+    # If we don't have an existing/current shard iterator, we grab a new one, otherwise return the current one
     def _shard_iterator(self, shard_id: str) -> str:
         if not isinstance(shard_id, str):
             raise ValueError(f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
 
-        # If we don't have an existing shard iterator, we grab a new one, otherwise return the current one
         if self._current_shard_iterator is not None:
             return self._current_shard_iterator
 

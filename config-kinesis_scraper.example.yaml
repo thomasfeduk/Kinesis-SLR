@@ -37,7 +37,7 @@ shard_ids: []
 # Note2: If set to AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER, sequence ids are unique per-shard
 # thus, "shardIds" must be populated with a single shard id
 #
-starting_position: AT_TIMESTAMP
+starting_position: TRIM_HORIZON
 
 # ---------------------------
 # Property: timestamp
@@ -97,7 +97,7 @@ poll_batch_size: 100 # Max 500
 # or 2MB/second, otherwise any pollers for the next 5 seconds will receive a
 # ProvisionedThroughputExceededException
 #
-poll_delay: 0
+poll_delay: ".75"
 
 # --------------------------------
 # Property: max_empty_record_polls

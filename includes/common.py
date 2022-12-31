@@ -92,17 +92,17 @@ def read_config(filename: str) -> dict:
     return yaml_data
 
 
-def validate_numeric(check_value: [str, int]) -> int:
-    if not isinstance(check_value, str) and not isinstance(check_value, int):
-        raise TypeError('Value must be a numeric string or int.')
+def validate_numeric(check_value: [str, int, float]) -> float:
+    if not isinstance(check_value, str) and not isinstance(check_value, int) and not isinstance(check_value, float):
+        raise TypeError('Value must be a numeric string, float or int.')
     if isinstance(check_value, str):
-        if check_value.isnumeric():
+        if not check_value.isnumeric():
             raise ValueError('String value must be numeric.')
-    return int(check_value)
+    return float(check_value)
 
 
 # If passed a number, it returns upto max, or the input if it's less, otherwise return max as the default
-def max_of(input_val: [int, str], max_val: [int, str]) -> int:
+def max_of(input_val: [int, str], max_val: [int, str]) -> float:
     input_val = validate_numeric(input_val)
     max_val = validate_numeric(max_val)
     if input_val <= max_val:
