@@ -74,6 +74,22 @@ class ConfigSLR(BaseSuperclass, ABC):
         pass
 
 
+def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int):
+    """
+    Appends upto X items in the from_list to the a_list
+    :param a_list: The list which we call the .append() method on
+    :param b_list: The list which we read and append the first X items onto a_list
+    :param upto_item_count: The number of items from the b_list that get added to the a_list in index order
+
+    No return value since we just update the mutable a_list that is passed by reference
+    """
+    i = 0
+    for item in b_list:
+        if i < 1:
+            a_list.append(item)
+    return a_list
+
+
 def validate_datetime(timestamp: str) -> str:
     try:
         datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')

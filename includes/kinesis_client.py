@@ -21,9 +21,9 @@ class ClientConfig(common.ConfigSLR):
         self._starting_position = None
         self._timestamp = None
         self._sequence_number = None
-        self._max_total_records_per_shard = None
         self._poll_batch_size = None
         self._poll_delay = None
+        self._max_total_records_per_shard = None
         self._max_empty_record_polls = None
 
         # Have to call parent after defining attributes other they are not populated
@@ -257,13 +257,12 @@ class Client:
         count_response_no_records = 0
         found_records = []
         while iterator:
-            log.info('get_records() loop count: ' + str(i))
-
             # Poll delay injection
             if self._client_config.poll_delay > 0:
                 log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
                 time.sleep(self._client_config.poll_delay)
 
+            log.info('get_records() loop count: ' + str(i))
             log.debug(f'Current iterator: {iterator}')
             # Make the boto3 call
             response = self._client_config.boto_client.get_records(
@@ -277,12 +276,20 @@ class Client:
             # Store records if found in temp list
             if len(response["Records"]) > 0:
                 for record in response["Records"]:
+                    pvd(found_records)
+                    log.info(f'\n\nfound_record count: {len(found_records)}\n')
+                    if len(found_records) > self._client_config.max_total_records_per_shard - 1:
+                        log.info(
+                            f'Reached {self._client_config.max_total_records_per_shard} max records per shard '
+                            f'limit for shard {shard_id}')
+                        break 2
                     found_records.append(record)
                 count_response_no_records = 0
                 log.info(f"\n\n{len(response['Records'])} records found in get_records() response.\n")
             else:
                 count_response_no_records += 1
-                log.info(f'No records found in loop. Currently at {count_response_no_records} empty calls.')
+                log.info(f'No records found in loop. Currently at {count_response_no_records} empty calls, '
+                         f'MillisBehindLatest: {response["MillisBehindLatest"]}.')
 
             # log.debug(f'Next iterator (last 10 chars): {next_iterator[-10:]}')
 
@@ -290,11 +297,6 @@ class Client:
                 log.info(f'Reached {self._client_config.max_empty_record_polls} empty polls for shard {shard_id} and '
                          f'found a total of {len(found_records)} records, '
                          f'current iterator: {iterator}\nAborting further reads for current shard.')
-                break
-
-            if len(found_records) > self._client_config.max_total_records_per_shard - 1:
-                log.info(f'Reached {self._client_config.max_total_records_per_shard} max records per shard limit for '
-                         f'shard {shard_id}')
                 break
 
             # Update  iterator to next_iterator for subsequent loop
