@@ -218,7 +218,9 @@ class Client:
         # Setup default attributes
         self._current_shard_iterator = None
         self._current_shard_id = None
-        self._current_fetched_event_count = 0
+        # How many events were fetched for the current shard
+        # Uses Param: max_total_records_per_shard
+        self._current_shard_fetched_events = 0
 
     def _is_valid(self):
         if not isinstance(self._client_config, ClientConfig):
@@ -236,6 +238,7 @@ class Client:
         # self._shard_ids_processed = []
 
     def get_records(self) -> str:
+        shard_id = 'shardId-000000000005'
         var = {
             "_boto_client": None,
             "_stream_name": "user-activities",
@@ -250,40 +253,55 @@ class Client:
         }
 
         i = 1
-        next_iterator = self._shard_iterator('shardId-000000000005')
+        iterator = self._shard_iterator(shard_id)
         count_response_no_records = 0
         found_records = []
-        while next_iterator:
+        while iterator:
             log.info('get_records() loop count: ' + str(i))
+
+            # Poll delay injection
             if self._client_config.poll_delay > 0:
                 log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
                 time.sleep(self._client_config.poll_delay)
+
+            log.debug(f'Current iterator: {iterator}')
+            # Make the boto3 call
             response = self._client_config.boto_client.get_records(
-                ShardIterator=next_iterator,
-                Limit=5
+                ShardIterator=iterator,
+                Limit=self._client_config.poll_batch_size
             )
-            # log.debug(response)
+
+            # Store next iterator for subsequent loops
             next_iterator = response['NextShardIterator']
 
+            # Store records if found in temp list
             if len(response["Records"]) > 0:
-                found_records.append(response["Records"])
+                for record in response["Records"]:
+                    found_records.append(record)
                 count_response_no_records = 0
                 log.info(f"\n\n{len(response['Records'])} records found in get_records() response.\n")
             else:
                 count_response_no_records += 1
-                log.info(f'No records found in loop. Currently at {count_response_no_records - 1} empty'
-                         f' sequential calls.')
+                log.info(f'No records found in loop. Currently at {count_response_no_records} empty calls.')
 
             # log.debug(f'Next iterator (last 10 chars): {next_iterator[-10:]}')
-            log.debug(f'Next iterator: {next_iterator}')
-            self._current_shard_iterator = next_iterator
-            i += 1
-            if i > 5:
-                pvd(found_records)
-                log.info('ended loop at X calls')
-                die()
 
-        return ''
+            if count_response_no_records > self._client_config.max_empty_record_polls - 1:
+                log.info(f'Reached {self._client_config.max_empty_record_polls} empty polls for shard {shard_id} and '
+                         f'found a total of {len(found_records)} records, '
+                         f'current iterator: {iterator}\nAborting further reads for current shard.')
+                break
+
+            if len(found_records) > self._client_config.max_total_records_per_shard - 1:
+                log.info(f'Reached {self._client_config.max_total_records_per_shard} max records per shard limit for '
+                         f'shard {shard_id}')
+                break
+
+            # Update  iterator to next_iterator for subsequent loop
+            iterator = next_iterator
+            i += 1
+
+        return found_records
 
     # If we don't have an existing/current shard iterator, we grab a new one, otherwise return the current one
     def _shard_iterator(self, shard_id: str) -> str:
