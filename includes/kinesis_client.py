@@ -10,7 +10,7 @@ import logging
 import botocore
 
 log = logging.getLogger(__name__)
-# log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 class ClientConfig(common.ConfigSLR):
@@ -254,9 +254,9 @@ class Client:
         count_response_no_records = 0
         found_records = []
         while next_iterator:
-            log.debug('get_records() loop count: ' + str(i))
+            log.info('get_records() loop count: ' + str(i))
             if self._client_config.poll_delay > 0:
-                log.debug(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
+                log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
                 time.sleep(self._client_config.poll_delay)
             response = self._client_config.boto_client.get_records(
                 ShardIterator=next_iterator,
@@ -268,13 +268,14 @@ class Client:
             if len(response["Records"]) > 0:
                 found_records.append(response["Records"])
                 count_response_no_records = 0
-                log.debug(f"\n\n{len(response['Records'])} records found in get_records() response.\n")
+                log.info(f"\n\n{len(response['Records'])} records found in get_records() response.\n")
             else:
                 count_response_no_records += 1
-                log.debug(f'No records found in loop. Currently at {count_response_no_records-1} empty'
-                          f' sequential calls.')
+                log.info(f'No records found in loop. Currently at {count_response_no_records - 1} empty'
+                         f' sequential calls.')
 
-            log.debug(f'Next iterator (last 10 chars): {next_iterator[-10:]}')
+            # log.debug(f'Next iterator (last 10 chars): {next_iterator[-10:]}')
+            log.debug(f'Next iterator: {next_iterator}')
             self._current_shard_iterator = next_iterator
             i += 1
             if i > 5:
@@ -300,7 +301,7 @@ class Client:
 
         # If we have a timestamp specified, we call client.get_shard_iterator with the timestamp,
         # otherwise call it without that argument
-        log.debug(f'Getting iterator for shard id: {shard_id}')
+        log.info(f'Getting iterator for shard id: {shard_id}')
         if self._client_config.timestamp is None:
             response = self._client_config.boto_client.get_shard_iterator(
                 StreamName=self._client_config.stream_name,
@@ -319,14 +320,14 @@ class Client:
         return iterator
 
     def get_shard_ids_of_stream(self) -> list:
-        log.debug('Getting shard ids...')
+        log.info('Getting shard ids...')
         response = self._client_config.boto_client.describe_stream(StreamName=self._client_config.stream_name)
-        log.debug(f"Stream name: {response['StreamDescription']['StreamName']}")
-        log.debug(f"Stream ARN: {response['StreamDescription']['StreamARN']}")
+        log.info(f"Stream name: {response['StreamDescription']['StreamName']}")
+        log.info(f"Stream ARN: {response['StreamDescription']['StreamARN']}")
         shard_ids = []
         shard_details = response['StreamDescription']['Shards']
         for node in shard_details:
-            log.debug(f"Found shard id: {node['ShardId']}")
+            log.info(f"Found shard id: {node['ShardId']}")
             shard_ids.append(node['ShardId'])
         return shard_ids
 

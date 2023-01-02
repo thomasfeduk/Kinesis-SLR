@@ -97,7 +97,7 @@ poll_batch_size: 100 # Max 500
 # or 2MB/second, otherwise any pollers for the next 5 seconds will receive a
 # ProvisionedThroughputExceededException
 #
-poll_delay: ".75"
+poll_delay: "0.0"
 
 # --------------------------------
 # Property: max_empty_record_polls

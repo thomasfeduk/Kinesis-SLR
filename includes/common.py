@@ -24,7 +24,7 @@ class BaseSuperclass(ABC):
     # as a mapping attribute, we set that attribute to the value of the key
     # This allows us to define the known attributes ahead of time on a per-class basis, then just throw
     # data at it, and it smartly populates the attributes if they exist without having to do it manually.
-    def _load_base_superclass_data(self, passed_data):
+    def _load_base_superclass_data(self, passed_data: [dict, str]):
         if passed_data is None:
             return
         try:
@@ -74,7 +74,7 @@ class ConfigSLR(BaseSuperclass, ABC):
         pass
 
 
-def validate_datetime(timestamp) -> str:
+def validate_datetime(timestamp: str) -> str:
     try:
         datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
     except ValueError:
@@ -103,7 +103,7 @@ def validate_numeric(check_value: [str, int, float]) -> float:
 
 
 # If passed a number, it returns upto max, or the input if it's less, otherwise return max as the default
-def max_of(input_val: [int, str], max_val: [int, str]) -> float:
+def max_of(input_val: [int, str, float], max_val: [int, str, float]) -> float:
     input_val = validate_numeric(input_val)
     max_val = validate_numeric(max_val)
     if input_val <= max_val:
