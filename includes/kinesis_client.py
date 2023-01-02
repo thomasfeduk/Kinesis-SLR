@@ -115,10 +115,10 @@ class ClientConfig(common.ConfigSLR):
 
         # Batch Size
         try:
-            common.validate_numeric(self._poll_batch_size)
+            common.validate_numeric_pos(self._poll_batch_size)
         except (TypeError, ValueError) as e:
             raise ValueError(
-                f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be either a numeric "
+                f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be a positive numeric "
                 f"string, or an integer.\nValue provided: {repr(type(self._poll_batch_size))} "
             ) from e
         if int(self._poll_batch_size) > 500:
@@ -126,7 +126,7 @@ class ClientConfig(common.ConfigSLR):
 
         # Poll Delay
         try:
-            common.validate_numeric(self.poll_delay)
+            common.validate_numeric_pos(self.poll_delay)
         except (TypeError, ValueError) as e:
             raise ValueError(
                 f"If config-kinesis_scraper.yaml: \"poll_delay\" must be either a numeric "
@@ -136,16 +136,26 @@ class ClientConfig(common.ConfigSLR):
         if float(self.poll_delay) < 0 or float(self.poll_delay) > 10:
             raise ValueError('config-kinesis_scraper.yaml: poll_delay must be between 0-10')
 
-        # Max Empty Record Polls
+        # max_total_records_per_shard
         try:
-            common.validate_numeric(self._max_empty_record_polls)
+            common.validate_numeric_pos(self._max_total_records_per_shard)
         except (TypeError, ValueError) as e:
             raise ValueError(
-                f"If config-kinesis_scraper.yaml: \"max_empty_record_polls\" must be either a numeric "
+                f"If config-kinesis_scraper.yaml: \"max_total_records_per_shard\" must be a positive numeric "
+                f"string, or an integer.\nValue provided: {repr(type(self._max_total_records_per_shard))}:"
+                f" {repr(self._max_total_records_per_shard)}"
+            ) from e
+
+        # Max Empty Record Polls
+        try:
+            common.validate_numeric_pos(self._max_empty_record_polls)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"If config-kinesis_scraper.yaml: \"max_empty_record_polls\" must be a positive numeric "
                 f"string, or an integer.\nValue provided: {repr(type(self._max_empty_record_polls))} "
             ) from e
-        if int(self._max_empty_record_polls) > 1000:
-            raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 1000')
+        if int(self._max_empty_record_polls) > 2000:
+            raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 2000')
 
     def _post_init_processing(self):
         # If the starting position is not timestamp, clear the timestamp value so we don't have it set internally
@@ -170,11 +180,11 @@ class ClientConfig(common.ConfigSLR):
                     f"are unique per shard.\nValue provided: {repr(type(shard_ids))} "
                 )
             try:
-                common.validate_numeric(sequence_number)
+                common.validate_numeric_pos(sequence_number)
             except (TypeError, ValueError) as e:
                 raise ValueError(
                     f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
-                    f"or AFTER_SEQUENCE_NUMBER, the value must be either a numeric string, or an integer. "
+                    f"or AFTER_SEQUENCE_NUMBER, the value must be a positive numeric string, float or an integer. "
                     f"\nValue provided: {repr(type(sequence_number))} "
                 ) from e
 
@@ -237,21 +247,9 @@ class Client:
         # # After finished scraping all messages from a shard, we record it as "done/processed" in this list
         # self._shard_ids_processed = []
 
-    def get_records(self) -> str:
+    @property
+    def get_records(self) -> list:
         shard_id = 'shardId-000000000005'
-        var = {
-            "_boto_client": None,
-            "_stream_name": "user-activities",
-            "_shard_ids": [],
-            "_starting_position": "AT_TIMESTAMP",
-            "_timestamp": "2022-12-01 00:00:0",
-            "_sequence_number": 4.963479396773268e+55,
-            "_max_total_records_per_shard": 0,
-            "_poll_batch_size": 100,
-            "_poll_delay": 0,
-            "_max_empty_record_polls": 100
-        }
-
         i = 1
         iterator = self._shard_iterator(shard_id)
         count_response_no_records = 0
@@ -262,42 +260,55 @@ class Client:
                 log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
                 time.sleep(self._client_config.poll_delay)
 
-            log.info('get_records() loop count: ' + str(i))
+            log.info(f'get_records() loop count: {str(i)} for shard: {shard_id}')
             log.debug(f'Current iterator: {iterator}')
             # Make the boto3 call
-            response = self._client_config.boto_client.get_records(
-                ShardIterator=iterator,
-                Limit=self._client_config.poll_batch_size
-            )
 
-            # Store next iterator for subsequent loops
-            next_iterator = response['NextShardIterator']
+            try:
+                records = self._client_config.boto_client.get_records(
+                    ShardIterator=iterator,
+                    Limit=self._client_config.poll_batch_size
+                )
+                response = records
+            except Exception as ex:
+                log.error(f'Received an error calling boto3 kinesis get_records()')
+                log.error(ex)
+                raise ex
+            try:
+                # Store next iterator for subsequent loops
+                next_iterator = response['NextShardIterator']
+            except KeyError as ex:
+                log.error(f'received an unexpected response from boto3 kinesis get_records(): {repr(ex)}')
+                log.debug(f'Response value:')
+                log.debug(response)
+                raise ex
 
             # Store records if found in temp list
             if len(response["Records"]) > 0:
-                for record in response["Records"]:
-                    pvd(found_records)
-                    log.info(f'\n\nfound_record count: {len(found_records)}\n')
-                    if len(found_records) > self._client_config.max_total_records_per_shard - 1:
-                        log.info(
-                            f'Reached {self._client_config.max_total_records_per_shard} max records per shard '
-                            f'limit for shard {shard_id}')
-                        break 2
-                    found_records.append(record)
-                count_response_no_records = 0
                 log.info(f"\n\n{len(response['Records'])} records found in get_records() response.\n")
+                log.debug(response)
+                count_response_no_records = 0
+
+                # Append the records to found_records (upto N records, so we don't exceed max_total_records_per_shard)
+                records_count_upto_to_add = self._client_config.max_total_records_per_shard - len(found_records)
+                common.list_append_upto_n_items(found_records, response["Records"], records_count_upto_to_add)
+
+                if 1 <= self._client_config.max_total_records_per_shard <= len(found_records):
+                    log.info(
+                        f'Reached {self._client_config.max_total_records_per_shard} max records per shard '
+                        f'limit for shard {shard_id}')
+                    break
             else:
+                log.debug(response)
                 count_response_no_records += 1
                 log.info(f'No records found in loop. Currently at {count_response_no_records} empty calls, '
                          f'MillisBehindLatest: {response["MillisBehindLatest"]}.')
 
-            # log.debug(f'Next iterator (last 10 chars): {next_iterator[-10:]}')
-
-            if count_response_no_records > self._client_config.max_empty_record_polls - 1:
-                log.info(f'Reached {self._client_config.max_empty_record_polls} empty polls for shard {shard_id} and '
-                         f'found a total of {len(found_records)} records, '
-                         f'current iterator: {iterator}\nAborting further reads for current shard.')
-                break
+                if count_response_no_records > self._client_config.max_empty_record_polls - 1:
+                    log.info(f'Reached {self._client_config.max_empty_record_polls} empty polls for shard {shard_id} '
+                             f'and found a total of {len(found_records)} records, '
+                             f'current iterator: {iterator}\nAborting further reads for current shard.')
+                    break
 
             # Update  iterator to next_iterator for subsequent loop
             iterator = next_iterator
@@ -351,34 +362,3 @@ class Client:
             shard_ids.append(node['ShardId'])
         return shard_ids
 
-
-class ShardIterator:
-    def __init__(self, ):
-        shard_iterator_config.is_valid()
-        self._shard_iterator_config = shard_iterator_config
-        self._shard_iterator = None
-
-        pvdd(iterator)
-
-        i = 1
-        next_iterator = iterator
-        while next_iterator:
-            next_iterator = None
-            log.debug('Loop count: ' + str(i))
-            response = self._shard_iterator_config.client.get_records(
-                ShardIterator=iterator,
-                Limit=100
-            )
-            log.debug(response)
-            next_iterator = response['NextShardIterator']
-            i += 1
-            if i > 101:
-                die('ended loop at 101')
-
-        response = self._shard_iterator_config.client.get_records(
-            ShardIterator=iterator,
-            Limit=10
-        )
-        pvdd(response)
-
-        return response['ShardIterator']

@@ -36,16 +36,10 @@ var_dump(shard_iterator)
 # var_dump(my_shard_iterator)
 
 
-record_response = client.get_records(
-     ShardIterator=my_shard_iterator,
-     Limit=100
-)
+record_response = client.get_records
 while 'NextShardIterator' in record_response:
     # read up to 100 records at a time from the shard number
-    record_response = client.get_records(
-       ShardIterator=record_response['NextShardIterator'],
-       Limit=100
-    )
+    record_response = client.get_records
     var_dump(record_response)
     exit(0)
     # # Print only if we have something

@@ -85,8 +85,9 @@ def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int):
     """
     i = 0
     for item in b_list:
-        if i < 1:
+        if i < upto_item_count:
             a_list.append(item)
+        i += 1
     return a_list
 
 
@@ -108,20 +109,23 @@ def read_config(filename: str) -> dict:
     return yaml_data
 
 
-def validate_numeric(check_value: [str, int, float]) -> float:
+def validate_numeric_pos(check_value: [str, int, float]) -> float:
     if not isinstance(check_value, str) and not isinstance(check_value, int) and not isinstance(check_value, float):
         raise TypeError('Value must be a numeric string, float or int.')
     try:
         float(check_value)
     except ValueError:
         raise ValueError('String value must be numeric.')
+
+    if float(check_value) < 0:
+        raise ValueError('Value must be 0 or greater.')
     return float(check_value)
 
 
 # If passed a number, it returns upto max, or the input if it's less, otherwise return max as the default
-def max_of(input_val: [int, str, float], max_val: [int, str, float]) -> float:
-    input_val = validate_numeric(input_val)
-    max_val = validate_numeric(max_val)
+def get_max_of(input_val: [int, str, float], max_val: [int, str, float]) -> float:
+    input_val = validate_numeric_pos(input_val)
+    max_val = validate_numeric_pos(max_val)
     if input_val <= max_val:
         return input_val
     return max_val
