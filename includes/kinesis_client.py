@@ -291,9 +291,13 @@ class Client:
 
                 # Append the records to found_records (upto N records, so we don't exceed max_total_records_per_shard)
                 records_count_upto_to_add = self._client_config.max_total_records_per_shard - len(found_records)
+                # If max_total_records_per_shard if 0, we include all records by passing none as the upto argument
+                if self._client_config.max_total_records_per_shard == 0:
+                    records_count_upto_to_add = None
                 common.list_append_upto_n_items(found_records, response["Records"], records_count_upto_to_add)
 
-                if 1 <= self._client_config.max_total_records_per_shard <= len(found_records):
+                if self._client_config.max_total_records_per_shard > 0 and \
+                        0 <= self._client_config.max_total_records_per_shard <= len(found_records):
                     log.info(
                         f'Reached {self._client_config.max_total_records_per_shard} max records per shard '
                         f'limit for shard {shard_id}')
