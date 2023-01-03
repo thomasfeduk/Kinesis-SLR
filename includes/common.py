@@ -74,7 +74,7 @@ class ConfigSLR(BaseSuperclass, ABC):
         pass
 
 
-def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: [int, bool] = None):
+def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int = 0):
     """
     Appends upto X items in the from_list to the a_list
     :param a_list: The list which we call the .append() method on
@@ -85,7 +85,7 @@ def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: [int, 
     """
     i = 0
     for item in b_list:
-        if upto_item_count is None or i < upto_item_count:
+        if upto_item_count == 0 or i < upto_item_count:
             a_list.append(item)
         i += 1
     return a_list
