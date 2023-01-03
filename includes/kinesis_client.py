@@ -1,13 +1,14 @@
 import boto3
-import logging
 import json
 import time
+import re
 from includes.debug import pvdd, pvd, die
 import random
 import datetime
 import includes.common as common
 import logging
 import botocore
+import os
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -227,29 +228,15 @@ class Client:
 
         # Setup default attributes
         self._current_shard_iterator = None
-        self._current_shard_id = None
         # How many events were fetched for the current shard
-        # Uses Param: max_total_records_per_shard
-        self._current_shard_fetched_events = 0
+        self._total_ = 0
 
     def _is_valid(self):
         if not isinstance(self._client_config, ClientConfig):
             raise TypeError(f"client_config must be an instance of ClientConfig. Value provided: "
                             f"{repr(type(self._client_config))} {repr(self._client_config)}")
-        # self._client = kinesis_client
-        # self._stream_name = stream_name
-        # self._shard_ids = Client.validate_shard_ids(shard_ids)
-        # if self._shard_ids is None:
-        #     self._shard_ids = self._get_shard_ids()
-        # self._shard_id_current = None
-        # self._shard_id_current = self._shard_ids[0]
-        # self._shard_iterator = None
-        # # After finished scraping all messages from a shard, we record it as "done/processed" in this list
-        # self._shard_ids_processed = []
 
-    @property
-    def get_records(self) -> list:
-        shard_id = 'shardId-000000000005'
+    def _scrape_records_for_shard(self, shard_id: str) -> list:
         i = 1
         iterator = self._shard_iterator(shard_id)
         count_response_no_records = 0
@@ -285,8 +272,12 @@ class Client:
 
             # Store records if found in temp list
             if len(response["Records"]) > 0:
-                log.info(f"\n\n{len(response['Records'])} records found in current get_records() response for shard: {shard_id}. "
-                         f"Total found records: {len(found_records) + len(response['Records'])}\n")
+                pvdd(records)
+                # print(json.dumps(response, indent=4, default=str))
+                die()
+                log.info(
+                    f"\n\n{len(response['Records'])} records found in current get_records() response for shard: {shard_id}. "
+                    f"Total found records: {len(found_records) + len(response['Records'])}\n")
                 log.debug(response)
                 count_response_no_records = 0
 
@@ -366,4 +357,24 @@ class Client:
             log.info(f"Found shard id: {node['ShardId']}")
             shard_ids.append(node['ShardId'])
         return shard_ids
+    
+    @staticmethod
+    def _process_records(shard_id: str, records: list):
+        shard_id = re.sub(r'[^A-Za-z0-9]', '', shard_id)
+        path = f'scraped_events/{shard_id}'
 
+        f = open(f"{path}/message.json", "w")
+        f.write("Now the file has more content!")
+        f.close()
+
+
+class Scraper:
+
+    def start(self):
+        pass
+
+    def _scrape_records_for_shard(self, shard_id):
+        pass
+
+    def _process_records(self, records):
+        pass
