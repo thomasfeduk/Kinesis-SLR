@@ -285,7 +285,8 @@ class Client:
 
             # Store records if found in temp list
             if len(response["Records"]) > 0:
-                log.info(f"\n\n{len(response['Records'])} records found in get_records() response.\n")
+                log.info(f"\n\n{len(response['Records'])} records found in current get_records() response for shard: {shard_id}. "
+                         f"Total found records: {len(found_records) + len(response['Records'])}\n")
                 log.debug(response)
                 count_response_no_records = 0
 
