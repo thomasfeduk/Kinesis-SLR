@@ -229,7 +229,7 @@ class Client:
         # Setup default attributes
         self._current_shard_iterator = None
         # How many events were fetched for the current shard
-        self._total_ = 0
+        self._total_records_fetched = 0
 
     def _is_valid(self):
         if not isinstance(self._client_config, ClientConfig):
@@ -242,6 +242,8 @@ class Client:
         count_response_no_records = 0
         found_records = []
         while iterator:
+            # TODO:  Add separate "Total found records" and "Total found records per shard" log info
+
             # Poll delay injection
             if self._client_config.poll_delay > 0:
                 log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
@@ -272,12 +274,10 @@ class Client:
 
             # Store records if found in temp list
             if len(response["Records"]) > 0:
-                pvdd(records)
-                # print(json.dumps(response, indent=4, default=str))
-                die()
+                self._total_records_fetched += 1
                 log.info(
-                    f"\n\n{len(response['Records'])} records found in current get_records() response for shard: {shard_id}. "
-                    f"Total found records: {len(found_records) + len(response['Records'])}\n")
+                    f"\n\n{len(response['Records'])} records found in current get_records() response for shard:"
+                    f" {shard_id}. Total found records: {len(found_records) + len(response['Records'])}\n")
                 log.debug(response)
                 count_response_no_records = 0
 
@@ -357,24 +357,19 @@ class Client:
             log.info(f"Found shard id: {node['ShardId']}")
             shard_ids.append(node['ShardId'])
         return shard_ids
-    
+
     @staticmethod
     def _process_records(shard_id: str, records: list):
         shard_id = re.sub(r'[^A-Za-z0-9]', '', shard_id)
         path = f'scraped_events/{shard_id}'
 
-        f = open(f"{path}/message.json", "w")
-        f.write("Now the file has more content!")
-        f.close()
+        i = 0
+        for record in records:
+            i += 1
+            timestamp = re.sub(r'[^A-Za-z0-9-:]', '', record["ApproximateArrivalTimestamp"].strftime('%Y-%m-%d %H:%M:%S'))
+            f = open(f"{path}/{i}-{timestamp.replace(':', ';')}.json", "w")
+            f.write(json.dumps(record, default=str, indent=4))
+            f.close()
 
 
-class Scraper:
 
-    def start(self):
-        pass
-
-    def _scrape_records_for_shard(self, shard_id):
-        pass
-
-    def _process_records(self, records):
-        pass
