@@ -37,7 +37,7 @@ shard_ids: []
 # Note2: If set to AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER, sequence ids are unique per-shard
 # thus, "shardIds" must be populated with a single shard id
 #
-starting_position: AT_TIMESTAMP
+starting_position: TRIM_HORIZON
 
 # ---------------------------
 # Property: timestamp
@@ -57,17 +57,6 @@ sequence_number: 49634793967732681113891714384157638505909056619063279650
 #####################################
 ## Stream Processing Configuration ##
 #####################################
-
-# -------------------------------------
-# Property: max_total_records_per_shard
-# -------------------------------------
-# Description: The maximum amount of records to retrieve per shard. If all/unlimited, set to 0
-#
-# Note: In some cases the amount of records fetched per shard may exceed the amount specified below,
-# but only upto the poll_batch_size+max_records_per_shard due to record fetches always being called
-# in batches as specified by the poll_batch_size
-#
-max_total_records_per_shard: 0
 
 # -------------------------
 # Property: poll_batch_size
@@ -97,7 +86,20 @@ poll_batch_size: 100 # Max 500
 # or 2MB/second, otherwise any pollers for the next 5 seconds will receive a
 # ProvisionedThroughputExceededException
 #
-poll_delay: 0
+poll_delay: "0.0"
+
+# -------------------------------------
+# Property: max_total_records_per_shard
+# -------------------------------------
+# Description: The maximum amount of records to retrieve per shard. If all/unlimited, set to 0
+#
+# Note: In some cases the amount of records fetched per shard may exceed the amount specified below,
+# but only upto the poll_batch_size+max_records_per_shard due to record fetches always being called
+# in batches as specified by the poll_batch_size
+# (e.g, if max_total_records_per_shard is 4, but the poll_batch_size is 3 and there are 100 records,
+# the returned amount would be 6 since we reach in batches of 3)
+#
+max_total_records_per_shard: 0
 
 # --------------------------------
 # Property: max_empty_record_polls
@@ -117,6 +119,7 @@ poll_delay: 0
 # Once the number of polls that returned empty records matches the max_empty_record_polls value, the
 # Kinesis-SLP will consider the shard to be fully read and stop scraping messages. A rule of thumb is
 # 2 empty polls per every 500 contiguous seconds of "empty time" that could exist between messages anywhere
-# in the stream from the oldest message until now.
+# in the stream from the oldest message until now. From my testing, a 24 hour gap between messages resulted
+# in an average of 86-104 empty polls
 #
-max_empty_record_polls: 100 # Max 1000
+max_empty_record_polls: 250 # Max 5000

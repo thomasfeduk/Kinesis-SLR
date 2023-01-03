@@ -40,9 +40,9 @@ class ClientConfig(unittest.TestCase):
             'stream_name',
             'shard_ids',
             'starting_position',
-            'max_total_records_per_shard',
             'poll_batch_size',
             'poll_delay',
+            'max_total_records_per_shard',
             'max_empty_record_polls',
         ]
         config_input = {}
@@ -66,9 +66,9 @@ class ClientConfig(unittest.TestCase):
             "stream_name": 5,
             "shard_ids": 5,
             "starting_position": 5,
-            "max_total_records_per_shard": 5,
             "poll_batch_size": 5,
             "poll_delay": 5,
+            "max_total_records_per_shard": 5,
             "max_empty_record_polls": 5,
         }
         # Wrong type
@@ -97,9 +97,9 @@ class ClientConfig(unittest.TestCase):
             "stream_name": "kinesis_slr",
             "shard_ids": 5,
             "starting_position": 5,
-            "max_total_records_per_shard": 5,
             "poll_batch_size": 5,
             "poll_delay": 5,
+            "max_total_records_per_shard": 5,
             "max_empty_record_polls": 5,
         }
         # Wrong type on dict value
@@ -114,9 +114,9 @@ class ClientConfig(unittest.TestCase):
             "stream_name": "kinesis_slr",
             "shard_ids": [7],
             "starting_position": 5,
-            "max_total_records_per_shard": 5,
             "poll_batch_size": 5,
             "poll_delay": 5,
+            "max_total_records_per_shard": 5,
             "max_empty_record_polls": 5,
         }
         with self.assertRaises(TypeError) as ex:

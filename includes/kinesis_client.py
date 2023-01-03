@@ -1,16 +1,16 @@
 import boto3
 import logging
 import json
+import time
 from includes.debug import pvdd, pvd, die
 import random
 import datetime
 import includes.common as common
 import logging
 import botocore
-log = logging.getLogger()
 
-
-# log.setLevel(logging.DEBUG)
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 
 class ClientConfig(common.ConfigSLR):
@@ -21,9 +21,9 @@ class ClientConfig(common.ConfigSLR):
         self._starting_position = None
         self._timestamp = None
         self._sequence_number = None
-        self._max_total_records_per_shard = None
         self._poll_batch_size = None
         self._poll_delay = None
+        self._max_total_records_per_shard = None
         self._max_empty_record_polls = None
 
         # Have to call parent after defining attributes other they are not populated
@@ -115,28 +115,56 @@ class ClientConfig(common.ConfigSLR):
 
         # Batch Size
         try:
-            common.validate_numeric(self._poll_batch_size)
+            common.validate_numeric_pos(self._poll_batch_size)
         except (TypeError, ValueError) as e:
             raise ValueError(
-                f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be either a numeric "
+                f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be a positive numeric "
                 f"string, or an integer.\nValue provided: {repr(type(self._poll_batch_size))} "
             ) from e
         if int(self._poll_batch_size) > 500:
             raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
 
-        # Max Empty Record Polls
+        # Poll Delay
         try:
-            common.validate_numeric(self._max_empty_record_polls)
+            common.validate_numeric_pos(self.poll_delay)
         except (TypeError, ValueError) as e:
             raise ValueError(
-                f"If config-kinesis_scraper.yaml: \"max_empty_record_polls\" must be either a numeric "
+                f"If config-kinesis_scraper.yaml: \"poll_delay\" must be either a numeric "
+                f"string, a float, or an integer.\nValue provided: "
+                f"{repr(type(self.poll_delay))} {repr(self.poll_delay)}"
+            ) from e
+        if float(self.poll_delay) < 0 or float(self.poll_delay) > 10:
+            raise ValueError('config-kinesis_scraper.yaml: poll_delay must be between 0-10')
+
+        # max_total_records_per_shard
+        try:
+            common.validate_numeric_pos(self._max_total_records_per_shard)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"If config-kinesis_scraper.yaml: \"max_total_records_per_shard\" must be a positive numeric "
+                f"string, or an integer.\nValue provided: {repr(type(self._max_total_records_per_shard))}:"
+                f" {repr(self._max_total_records_per_shard)}"
+            ) from e
+
+        # Max Empty Record Polls
+        try:
+            common.validate_numeric_pos(self._max_empty_record_polls)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"If config-kinesis_scraper.yaml: \"max_empty_record_polls\" must be a positive numeric "
                 f"string, or an integer.\nValue provided: {repr(type(self._max_empty_record_polls))} "
             ) from e
-        if int(self._max_empty_record_polls) > 1000:
-            raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 1000')
+        if int(self._max_empty_record_polls) > 2000:
+            raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 2000')
 
     def _post_init_processing(self):
+        # If the starting position is not timestamp, clear the timestamp value so we don't have it set internally
+        # when we are never going to use it
+        if self._starting_position.upper() != 'AT_TIMESTAMP':
+            self._timestamp = None
         self._starting_position = self._starting_position.upper()
+        if self._poll_delay is not None:
+            self._poll_delay = float(self._poll_delay)
 
     @staticmethod
     def validate_sequence_number(shard_ids: list, starting_position: str, sequence_number: [str, int]) -> None:
@@ -152,11 +180,11 @@ class ClientConfig(common.ConfigSLR):
                     f"are unique per shard.\nValue provided: {repr(type(shard_ids))} "
                 )
             try:
-                common.validate_numeric(sequence_number)
+                common.validate_numeric_pos(sequence_number)
             except (TypeError, ValueError) as e:
                 raise ValueError(
                     f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
-                    f"or AFTER_SEQUENCE_NUMBER, the value must be either a numeric string, or an integer. "
+                    f"or AFTER_SEQUENCE_NUMBER, the value must be a positive numeric string, float or an integer. "
                     f"\nValue provided: {repr(type(sequence_number))} "
                 ) from e
 
@@ -192,32 +220,17 @@ class ClientConfig(common.ConfigSLR):
         return shard_id
 
 
-class ShardIteratorConfig:
-    def __init__(self, client_config: ClientConfig, shard_id: str):
-        self._client_config = client_config
-        self._shard_id = shard_id
-
-        self._is_valid()
-
-    @property
-    def client_config(self) -> ClientConfig:
-        return self._client_config
-
-    @property
-    def shard_id(self) -> str:
-        return self._shard_id
-
-    def _is_valid(self):
-        if not isinstance(self._client_config, ClientConfig):
-            raise TypeError(f"client_config must be an instance of ClientConfig. Value provided: "
-                            f"{repr(type(self._client_config))} {repr(self._client_config)}")
-        ClientConfig.validate_shard_id(self._shard_id)
-
-
 class Client:
     def __init__(self, client_config: ClientConfig):
         self._client_config = client_config
         self._is_valid()
+
+        # Setup default attributes
+        self._current_shard_iterator = None
+        self._current_shard_id = None
+        # How many events were fetched for the current shard
+        # Uses Param: max_total_records_per_shard
+        self._current_shard_fetched_events = 0
 
     def _is_valid(self):
         if not isinstance(self._client_config, ClientConfig):
@@ -234,73 +247,123 @@ class Client:
         # # After finished scraping all messages from a shard, we record it as "done/processed" in this list
         # self._shard_ids_processed = []
 
-    def get_records(self, iterator_type: str, limit: int = 100, *, timestamp: str = None) -> str:
-        if self._shard_iterator is None:
-            self._shard_iterator = ShardIterator(
-                ShardIteratorConfig(
-                    kinesis_client=self._client,
-                    stream_name=self._stream_name,
-                    shard_id=self._shard_id_current,
-                    iterator_type=iterator_type,
-                    timestamp=timestamp
+    @property
+    def get_records(self) -> list:
+        shard_id = 'shardId-000000000005'
+        i = 1
+        iterator = self._shard_iterator(shard_id)
+        count_response_no_records = 0
+        found_records = []
+        while iterator:
+            # Poll delay injection
+            if self._client_config.poll_delay > 0:
+                log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
+                time.sleep(self._client_config.poll_delay)
+
+            log.info(f'get_records() loop count: {str(i)} for shard: {shard_id}')
+            log.debug(f'Current iterator: {iterator}')
+            # Make the boto3 call
+
+            try:
+                records = self._client_config.boto_client.get_records(
+                    ShardIterator=iterator,
+                    Limit=self._client_config.poll_batch_size
                 )
-            )
-        return self._shard_iterator.get_iterator()
+                response = records
+            except Exception as ex:
+                log.error(f'Received an error calling boto3 kinesis get_records()')
+                log.error(ex)
+                raise ex
+            try:
+                # Store next iterator for subsequent loops
+                next_iterator = response['NextShardIterator']
+            except KeyError as ex:
+                log.error(f'received an unexpected response from boto3 kinesis get_records(): {repr(ex)}')
+                log.debug(f'Response value:')
+                log.debug(response)
+                raise ex
 
-    def get_shard_ids(self) -> list:
-        response = self._client_config.boto_client.describe_stream(StreamName=self._client_config.stream_name)
-        shard_ids = []
-        shard_details = response['StreamDescription']['Shards']
-        for node in shard_details:
-            shard_ids.append(node['ShardId'])
-        return shard_ids
+            # Store records if found in temp list
+            if len(response["Records"]) > 0:
+                log.info(f"\n\n{len(response['Records'])} records found in current get_records() response for shard: {shard_id}. "
+                         f"Total found records: {len(found_records) + len(response['Records'])}\n")
+                log.debug(response)
+                count_response_no_records = 0
 
+                # Append the records to found_records (upto N records, so we don't exceed max_total_records_per_shard)
+                records_count_upto_to_add = self._client_config.max_total_records_per_shard - len(found_records)
+                # If max_total_records_per_shard if 0, we include all records by passing 0 as the upto argument
+                if self._client_config.max_total_records_per_shard == 0:
+                    records_count_upto_to_add = 0
+                common.list_append_upto_n_items(found_records, response["Records"], records_count_upto_to_add)
 
-class ShardIterator:
-    def __init__(self, shard_iterator_config: ShardIteratorConfig):
-        shard_iterator_config.is_valid()
-        self._shard_iterator_config = shard_iterator_config
-        self._shard_iterator = None
+                if self._client_config.max_total_records_per_shard > 0 and \
+                        0 <= self._client_config.max_total_records_per_shard <= len(found_records):
+                    log.info(
+                        f'Reached {self._client_config.max_total_records_per_shard} max records per shard '
+                        f'limit for shard {shard_id}')
+                    break
+            else:
+                log.debug(response)
+                count_response_no_records += 1
+                log.info(f'No records found in loop. Currently at {count_response_no_records} empty calls, '
+                         f'MillisBehindLatest: {response["MillisBehindLatest"]}.')
 
-    def get_iterator(self) -> str:
+                if count_response_no_records > self._client_config.max_empty_record_polls - 1:
+                    log.info(f'Reached {self._client_config.max_empty_record_polls} empty polls for shard {shard_id} '
+                             f'and found a total of {len(found_records)} records, '
+                             f'current iterator: {iterator}\nAborting further reads for current shard.')
+                    break
+
+            # Update  iterator to next_iterator for subsequent loop
+            iterator = next_iterator
+            i += 1
+
+        return found_records
+
+    # If we don't have an existing/current shard iterator, we grab a new one, otherwise return the current one
+    def _shard_iterator(self, shard_id: str) -> str:
+        if not isinstance(shard_id, str):
+            raise ValueError(f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
+
+        if self._current_shard_iterator is not None:
+            return self._current_shard_iterator
+
+        return self.get_shard_iterator(shard_id)
+
+    def get_shard_iterator(self, shard_id: str) -> str:
+        if not isinstance(shard_id, str):
+            raise ValueError(f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
+
         # If we have a timestamp specified, we call client.get_shard_iterator with the timestamp,
         # otherwise call it without that argument
-        log.debug('Getting iterator for shard id: ' + self._shard_iterator_config.shard_id)
-        if self._shard_iterator_config.timestamp is None:
-            response = self._shard_iterator_config.client.get_shard_iterator(
-                StreamName=self._shard_iterator_config.stream_name,
-                ShardId=self._shard_iterator_config.shard_id,
-                ShardIteratorType=self._shard_iterator_config.iterator_type,
+        log.info(f'Getting iterator for shard id: {shard_id}')
+        if self._client_config.timestamp is None:
+            response = self._client_config.boto_client.get_shard_iterator(
+                StreamName=self._client_config.stream_name,
+                ShardId=shard_id,
+                ShardIteratorType=self._client_config.starting_position,
             )
         else:
-            response = self._shard_iterator_config.client.get_shard_iterator(
-                StreamName=self._shard_iterator_config.stream_name,
-                ShardId=self._shard_iterator_config.shard_id,
-                ShardIteratorType=self._shard_iterator_config.iterator_type,
-                Timestamp=self._shard_iterator_config.timestamp
+            response = self._client_config.boto_client.get_shard_iterator(
+                StreamName=self._client_config.stream_name,
+                ShardId=shard_id,
+                ShardIteratorType=self._client_config.starting_position,
+                Timestamp=self._client_config.timestamp
             )
         iterator = response['ShardIterator']
         log.debug('Returned Iterator: ' + iterator)
+        return iterator
 
-        i = 1
-        next_iterator = iterator
-        while next_iterator:
-            next_iterator = None
-            log.debug('Loop count: ' + str(i))
-            response = self._shard_iterator_config.client.get_records(
-                ShardIterator=iterator,
-                Limit=100
-            )
-            log.debug(response)
-            next_iterator = response['NextShardIterator']
-            i += 1
-            if i > 101:
-                die('ended loop at 101')
+    def get_shard_ids_of_stream(self) -> list:
+        log.info('Getting shard ids...')
+        response = self._client_config.boto_client.describe_stream(StreamName=self._client_config.stream_name)
+        log.info(f"Stream name: {response['StreamDescription']['StreamName']}")
+        log.info(f"Stream ARN: {response['StreamDescription']['StreamARN']}")
+        shard_ids = []
+        shard_details = response['StreamDescription']['Shards']
+        for node in shard_details:
+            log.info(f"Found shard id: {node['ShardId']}")
+            shard_ids.append(node['ShardId'])
+        return shard_ids
 
-        response = self._shard_iterator_config.client.get_records(
-            ShardIterator=iterator,
-            Limit=10
-        )
-        pvdd(response)
-
-        return response['ShardIterator']

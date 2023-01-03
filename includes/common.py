@@ -24,7 +24,7 @@ class BaseSuperclass(ABC):
     # as a mapping attribute, we set that attribute to the value of the key
     # This allows us to define the known attributes ahead of time on a per-class basis, then just throw
     # data at it, and it smartly populates the attributes if they exist without having to do it manually.
-    def _load_base_superclass_data(self, passed_data):
+    def _load_base_superclass_data(self, passed_data: [dict, str]):
         if passed_data is None:
             return
         try:
@@ -74,7 +74,24 @@ class ConfigSLR(BaseSuperclass, ABC):
         pass
 
 
-def validate_datetime(timestamp) -> str:
+def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int = 0):
+    """
+    Appends upto X items in the from_list to the a_list
+    :param a_list: The list which we call the .append() method on
+    :param b_list: The list which we read and append the first X items onto a_list
+    :param upto_item_count: The number of items from the b_list that get added to the a_list in index order
+
+    No return value since we just update the mutable a_list that is passed by reference
+    """
+    i = 0
+    for item in b_list:
+        if upto_item_count == 0 or i < upto_item_count:
+            a_list.append(item)
+        i += 1
+    return a_list
+
+
+def validate_datetime(timestamp: str) -> str:
     try:
         datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
     except ValueError:
@@ -92,19 +109,23 @@ def read_config(filename: str) -> dict:
     return yaml_data
 
 
-def validate_numeric(check_value: [str, int]) -> int:
-    if not isinstance(check_value, str) and not isinstance(check_value, int):
-        raise TypeError('Value must be a numeric string or int.')
-    if isinstance(check_value, str):
-        if check_value.isnumeric():
-            raise ValueError('String value must be numeric.')
-    return int(check_value)
+def validate_numeric_pos(check_value: [str, int, float]) -> float:
+    if not isinstance(check_value, str) and not isinstance(check_value, int) and not isinstance(check_value, float):
+        raise TypeError('Value must be a numeric string, float or int.')
+    try:
+        float(check_value)
+    except ValueError:
+        raise ValueError('String value must be numeric.')
+
+    if float(check_value) < 0:
+        raise ValueError('Value must be 0 or greater.')
+    return float(check_value)
 
 
 # If passed a number, it returns upto max, or the input if it's less, otherwise return max as the default
-def max_of(input_val: [int, str], max_val: [int, str]) -> int:
-    input_val = validate_numeric(input_val)
-    max_val = validate_numeric(max_val)
+def get_max_of(input_val: [int, str, float], max_val: [int, str, float]) -> float:
+    input_val = validate_numeric_pos(input_val)
+    max_val = validate_numeric_pos(max_val)
     if input_val <= max_val:
         return input_val
     return max_val
