@@ -274,6 +274,9 @@ class Client:
 
             # Store records if found in temp list
             if len(response["Records"]) > 0:
+                # Write the found records before any breaks occur
+                self._process_records(shard_id, response["Records"])
+
                 self._total_records_fetched += 1
                 log.info(
                     f"\n\n{len(response['Records'])} records found in current get_records() response for shard:"
@@ -361,15 +364,23 @@ class Client:
     @staticmethod
     def _process_records(shard_id: str, records: list):
         shard_id = re.sub(r'[^A-Za-z0-9]', '', shard_id)
-        path = f'scraped_events/{shard_id}'
+        dir_path = f'scraped_events/{shard_id}'
+        log.debug(f'Processing records for batch')
+        log.debug(f'mkdirs path: {dir_path}')
 
-        i = 0
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+        prefix = common.count_files_in_dir(dir_path)
+        log.debug(f'Initial prefix is: {prefix}')
         for record in records:
-            i += 1
+            prefix += 1
             timestamp = re.sub(r'[^A-Za-z0-9-:]', '', record["ApproximateArrivalTimestamp"].strftime('%Y-%m-%d %H:%M:%S'))
-            f = open(f"{path}/{i}-{timestamp.replace(':', ';')}.json", "w")
-            f.write(json.dumps(record, default=str, indent=4))
+            log.debug(f'timestamp: {timestamp}')
+            filename = f"{dir_path}/{prefix}-{timestamp.replace(':', ';')}.json"
+            log.debug(f'Filename: {filename}')
+            f = open(filename, "w")
+            output = f.write(json.dumps(record, default=str, indent=4))
+            log.debug(f'Written return val: {output}')
             f.close()
-
-
-
+        pvdd('here')

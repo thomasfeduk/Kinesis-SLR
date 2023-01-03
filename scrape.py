@@ -16,7 +16,7 @@ logging.basicConfig()
 
 # Set kinesis to debug log level
 kinesis_logger = logging.getLogger('includes.kinesis_client')
-# kinesis_logger.setLevel(logging.DEBUG)
+kinesis_logger.setLevel(logging.DEBUG)
 lambda_client_logger = logging.getLogger('includes.lambda_client')
 # lambda_client_logger.setLevel(logging.DEBUG)
 
@@ -61,7 +61,7 @@ def main():
     )
 
     kinesis_client = kinesis.Client(kinesis_config)
-    # output = kinesis_client._scrape_records_for_shard('shardId-000000000005')
-    output = kinesis_client._process_records('shard-01', records["Records"])
+    output = kinesis_client._scrape_records_for_shard('shardId-000000000005')
+    # output = kinesis_client._process_records('shard-01', records["Records"])
     # pvdd('end')
     pvdd(output)
