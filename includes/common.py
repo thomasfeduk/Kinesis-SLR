@@ -1,3 +1,4 @@
+import os
 from os import path
 import json
 import logging
@@ -89,6 +90,15 @@ def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int = 
             a_list.append(item)
         i += 1
     return a_list
+
+
+def count_files_in_dir(dir_path=str) -> int:
+    file_count = 0
+    files = os.scandir(dir_path)
+    for file in files:
+        if file.is_file():
+            file_count += 1
+    return file_count
 
 
 def validate_datetime(timestamp: str) -> str:

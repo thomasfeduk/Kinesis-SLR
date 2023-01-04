@@ -1,13 +1,14 @@
 import boto3
-import logging
 import json
 import time
+import re
 from includes.debug import pvdd, pvd, die
 import random
 import datetime
 import includes.common as common
 import logging
 import botocore
+import os
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -227,34 +228,22 @@ class Client:
 
         # Setup default attributes
         self._current_shard_iterator = None
-        self._current_shard_id = None
         # How many events were fetched for the current shard
-        # Uses Param: max_total_records_per_shard
-        self._current_shard_fetched_events = 0
+        self._total_records_fetched = 0
 
     def _is_valid(self):
         if not isinstance(self._client_config, ClientConfig):
             raise TypeError(f"client_config must be an instance of ClientConfig. Value provided: "
                             f"{repr(type(self._client_config))} {repr(self._client_config)}")
-        # self._client = kinesis_client
-        # self._stream_name = stream_name
-        # self._shard_ids = Client.validate_shard_ids(shard_ids)
-        # if self._shard_ids is None:
-        #     self._shard_ids = self._get_shard_ids()
-        # self._shard_id_current = None
-        # self._shard_id_current = self._shard_ids[0]
-        # self._shard_iterator = None
-        # # After finished scraping all messages from a shard, we record it as "done/processed" in this list
-        # self._shard_ids_processed = []
 
-    @property
-    def get_records(self) -> list:
-        shard_id = 'shardId-000000000005'
+    def _scrape_records_for_shard(self, shard_id: str) -> list:
         i = 1
         iterator = self._shard_iterator(shard_id)
         count_response_no_records = 0
         found_records = []
         while iterator:
+            # TODO:  Add separate "Total found records" and "Total found records per shard" log info
+
             # Poll delay injection
             if self._client_config.poll_delay > 0:
                 log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
@@ -285,8 +274,13 @@ class Client:
 
             # Store records if found in temp list
             if len(response["Records"]) > 0:
-                log.info(f"\n\n{len(response['Records'])} records found in current get_records() response for shard: {shard_id}. "
-                         f"Total found records: {len(found_records) + len(response['Records'])}\n")
+                # Write the found records before any breaks occur
+                self._process_records(shard_id, response["Records"])
+
+                self._total_records_fetched += 1
+                log.info(
+                    f"\n\n{len(response['Records'])} records found in current get_records() response for shard:"
+                    f" {shard_id}. Total found records: {len(found_records) + len(response['Records'])}\n")
                 log.debug(response)
                 count_response_no_records = 0
 
@@ -299,9 +293,8 @@ class Client:
 
                 if self._client_config.max_total_records_per_shard > 0 and \
                         0 <= self._client_config.max_total_records_per_shard <= len(found_records):
-                    log.info(
-                        f'Reached {self._client_config.max_total_records_per_shard} max records per shard '
-                        f'limit for shard {shard_id}')
+                    log.info(f'Reached {self._client_config.max_total_records_per_shard} max records per shard '
+                        f'limit for shard {shard_id}\n')
                     break
             else:
                 log.debug(response)
@@ -310,7 +303,7 @@ class Client:
                          f'MillisBehindLatest: {response["MillisBehindLatest"]}.')
 
                 if count_response_no_records > self._client_config.max_empty_record_polls - 1:
-                    log.info(f'Reached {self._client_config.max_empty_record_polls} empty polls for shard {shard_id} '
+                    log.info(f'\n\nReached {self._client_config.max_empty_record_polls} empty polls for shard {shard_id} '
                              f'and found a total of {len(found_records)} records, '
                              f'current iterator: {iterator}\nAborting further reads for current shard.')
                     break
@@ -367,3 +360,31 @@ class Client:
             shard_ids.append(node['ShardId'])
         return shard_ids
 
+    @staticmethod
+    def _process_records(shard_id: str, records: list):
+        shard_id = re.sub(r'[^A-Za-z0-9]', '', shard_id)
+        dir_path = f'scraped_events/{shard_id}'
+        log.debug(f'Processing records for batch')
+        log.debug(f'mkdirs path: {dir_path}')
+
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+        prefix = common.count_files_in_dir(dir_path)
+        log.debug(f'Initial prefix is: {prefix}')
+        for record in records:
+            prefix += 1
+            timestamp = re.sub(r'[^A-Za-z0-9-:_]', '',
+                               record["ApproximateArrivalTimestamp"].strftime('%Y-%m-%d_%H:%M:%S'))
+            log.debug(f'timestamp: {timestamp}')
+            filename_uri = f"{dir_path}/{prefix}-{timestamp.replace(':', ';')}.json"
+            log.debug(f'Filename: {filename_uri}')
+
+            try:
+                f = open(filename_uri, "x")
+            except FileExistsError as ex:
+                raise FileExistsError(f'The file "{filename_uri}" already exists when trying to create an event '
+                                      f'record file. Be sure scraping is not being run with a populated '
+                                      f'scraped_events/{shard_id} directory.') from ex
+            f.write(json.dumps(record, default=str, indent=4))
+            f.close()
