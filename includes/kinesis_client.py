@@ -17,6 +17,7 @@ log.setLevel(logging.INFO)
 class ClientConfig(common.ConfigSLR):
     def __init__(self, passed_data: [dict, str], boto_client: botocore.client.BaseClient):
         self._boto_client = boto_client
+        self._debug_level = None
         self._stream_name = None
         self._shard_ids = None
         self._starting_position = None
@@ -33,6 +34,10 @@ class ClientConfig(common.ConfigSLR):
     @property
     def boto_client(self):
         return self._boto_client
+
+    @property
+    def debug_level(self):
+        return self._debug_level
 
     @property
     def stream_name(self):
@@ -78,6 +83,7 @@ class ClientConfig(common.ConfigSLR):
 
         # Confirm minimum needed passed_data values exist
         required_configs = [
+            'debug_level',
             'stream_name',
             'shard_ids',
             'starting_position',
@@ -97,6 +103,16 @@ class ClientConfig(common.ConfigSLR):
             raise TypeError(f"stream_name must be a string. Type provided: {str(type(self._stream_name))}")
         if self._stream_name == '' or self._stream_name == 'stream_name_here':
             raise ValueError('config-kinesis_scraper.yaml: A stream name must be set.')
+
+        # Debug Level
+        debug_levels = [
+            "DEBUG",
+            "INFO",
+            "WARNING",
+            "ERROR",
+        ]
+        if self.debug_level not in debug_levels:
+            raise ValueError('debug_level must be one of: ' + repr(debug_levels))
 
         # Shard IDs
         ClientConfig.validate_shard_ids(self._shard_ids)
@@ -159,11 +175,13 @@ class ClientConfig(common.ConfigSLR):
             raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 2000')
 
     def _post_init_processing(self):
-        # If the starting position is not timestamp, clear the timestamp value so we don't have it set internally
+        # Setup logging
+        log.setLevel(self._debug_level)
+
+        # If the starting position is not timestamp, clear the timestamp value, so we don't have it set internally
         # when we are never going to use it
         if self._starting_position.upper() != 'AT_TIMESTAMP':
             self._timestamp = None
-        self._starting_position = self._starting_position.upper()
         if self._poll_delay is not None:
             self._poll_delay = float(self._poll_delay)
 
@@ -171,7 +189,7 @@ class ClientConfig(common.ConfigSLR):
     def validate_sequence_number(shard_ids: list, starting_position: str, sequence_number: [str, int]) -> None:
         ClientConfig.validate_iterator_types(starting_position)
         ClientConfig.validate_shard_ids(shard_ids)
-        if starting_position.upper() in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
+        if starting_position in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
             # A sequence number is only unique within a shard, so we cannot specify at/after sequence
             # unless a single and only a single shard is id specified
             if len(shard_ids) != 1:

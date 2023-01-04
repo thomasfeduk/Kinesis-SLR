@@ -3,6 +3,14 @@
 ###################################
 
 # ----------------------
+# Property: debug_level
+# ----------------------
+# Description: The debug output level. INFO is the default and provides general status logging
+# Possible values: DEBUG|INFO|WARNING|ERROR
+#
+debug_level: INFO
+
+# ----------------------
 # Property: stream_name
 # ----------------------
 # Description: The name of the stream you want to scrape
