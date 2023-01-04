@@ -379,11 +379,6 @@ class Client:
             log.debug(f'timestamp: {timestamp}')
             filename_uri = f"{dir_path}/{prefix}-{timestamp.replace(':', ';')}.json"
             log.debug(f'Filename: {filename_uri}')
-            if os.path.exists(filename_uri):
-                log.error(f'The file {filename_uri} already exists. Aborting.')
-                raise FileExistsError(f'The file {filename_uri} already exists when trying to create an event '
-                                      f'record file. Be sure scraping is not being run with a populated '
-                                      f'scraped_events/{shard_id} directory.')
             f = open(filename_uri, "x")
             f.write(json.dumps(record, default=str, indent=4))
             f.close()
