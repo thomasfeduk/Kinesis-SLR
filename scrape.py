@@ -16,7 +16,7 @@ logging.basicConfig()
 
 # Set kinesis to debug log level
 kinesis_logger = logging.getLogger('includes.kinesis_client')
-kinesis_logger.setLevel(logging.DEBUG)
+# kinesis_logger.setLevel(logging.DEBUG)
 lambda_client_logger = logging.getLogger('includes.lambda_client')
 # lambda_client_logger.setLevel(logging.DEBUG)
 
