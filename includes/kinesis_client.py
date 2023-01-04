@@ -11,7 +11,6 @@ import botocore
 import os
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
 
 
 class ClientConfig(common.BaseCommonClass):
@@ -76,12 +75,61 @@ class ClientConfig(common.BaseCommonClass):
         return self._max_empty_polls
 
     def _is_valid(self):
-        # Confirm we have received a real boto client object instance
+        self._validate_boto_client()
+        self._validate_required_configs()
+        self._validate_stream_name()
+        self._validate_debug_level()
+        ClientConfig.validate_shard_ids(self._shard_ids)
+        self._validate_iterator_types()
+        self.validate_sequence_number(self._shard_ids, self._starting_position, self._sequence_number)
+        self._validate_batch_size()
+        self._validate_poll_delay()
+        self._validate_max_total_records_per_shard()
+        self._validate_max_empty_polls()
+
+    def _validate_boto_client(self):
         if not isinstance(self.boto_client, botocore.client.BaseClient):
             raise TypeError(f"A boto3 Kinesis client object is required. Example: \"boto3.client('kinesis')\". "
                             f"Value provided: {str(type(self.boto_client))} {repr(self.boto_client)}")
 
-        # Confirm minimum needed passed_data values exist
+    def _validate_batch_size(self):
+        try:
+            common.validate_numeric_pos(self._poll_batch_size)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be a positive numeric "
+                f"string, or an integer.\nValue provided: {repr(type(self._poll_batch_size))} "
+            ) from e
+        if int(self._poll_batch_size) > 500:
+            raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
+
+    def _validate_iterator_types(self):
+        ClientConfig.validate_iterator_types(self._starting_position)
+        if self._starting_position.upper() == 'AT_TIMESTAMP':
+            try:
+                common.validate_datetime(self._timestamp)
+            except ValueError as e:
+                raise ValueError(f"config-kinesis_scraper.yaml: Invalid format for config parameter \"timestamp\". "
+                                 f"Format should be YYYY-MM-DD HH:MM:SS.\nValue provided: "
+                                 f"{str(type(self._timestamp))} {repr(self._timestamp)}") from e
+
+    def _validate_debug_level(self):
+        debug_levels = [
+            "DEBUG",
+            "INFO",
+            "WARNING",
+            "ERROR",
+        ]
+        if self.debug_level not in debug_levels:
+            raise ValueError('debug_level must be one of: ' + repr(debug_levels))
+
+    def _validate_stream_name(self):
+        if not isinstance(self._stream_name, str):
+            raise TypeError(f"stream_name must be a string. Type provided: {str(type(self._stream_name))}")
+        if self._stream_name == '' or self._stream_name == 'stream_name_here':
+            raise ValueError('config-kinesis_scraper.yaml: A stream name must be set.')
+
+    def _validate_required_configs(self):
         required_configs = [
             'debug_level',
             'stream_name',
@@ -94,61 +142,9 @@ class ClientConfig(common.BaseCommonClass):
             'poll_delay',
             'max_empty_polls',
         ]
-
         for req_conf in required_configs:
             if getattr(self, req_conf) is None:
                 raise ValueError(f"config-kinesis_scraper.yaml: Missing config parameter: {req_conf}")
-        # Stream Name
-        if not isinstance(self._stream_name, str):
-            raise TypeError(f"stream_name must be a string. Type provided: {str(type(self._stream_name))}")
-        if self._stream_name == '' or self._stream_name == 'stream_name_here':
-            raise ValueError('config-kinesis_scraper.yaml: A stream name must be set.')
-
-        # Debug Level
-        debug_levels = [
-            "DEBUG",
-            "INFO",
-            "WARNING",
-            "ERROR",
-        ]
-        if self.debug_level not in debug_levels:
-            raise ValueError('debug_level must be one of: ' + repr(debug_levels))
-
-        # Shard IDs
-        ClientConfig.validate_shard_ids(self._shard_ids)
-
-        # Starting position iterator Type/Timestamp
-        ClientConfig.validate_iterator_types(self._starting_position)
-        if self._starting_position.upper() == 'AT_TIMESTAMP':
-            try:
-                common.validate_datetime(self._timestamp)
-            except ValueError as e:
-                raise ValueError(f"config-kinesis_scraper.yaml: Invalid format for config parameter \"timestamp\". "
-                                 f"Format should be YYYY-MM-DD HH:MM:SS.\nValue provided: "
-                                 f"{str(type(self._timestamp))} {repr(self._timestamp)}") from e
-
-        # Sequence Number
-        self.validate_sequence_number(self._shard_ids, self._starting_position, self._sequence_number)
-
-        # Batch Size
-        try:
-            common.validate_numeric_pos(self._poll_batch_size)
-        except (TypeError, ValueError) as e:
-            raise ValueError(
-                f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be a positive numeric "
-                f"string, or an integer.\nValue provided: {repr(type(self._poll_batch_size))} "
-            ) from e
-        if int(self._poll_batch_size) > 500:
-            raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
-
-        # Poll Delay
-        self._validate_poll_delay()
-
-        # max_total_records_per_shard
-        self._validate_max_total_records_per_shard()
-
-        # Max Empty Polls
-        self._validate_max_empty_polls()
 
     def _validate_max_empty_polls(self):
         try:
@@ -245,6 +241,9 @@ class ClientConfig(common.BaseCommonClass):
     def validate_shard_id(shard_id: str = None) -> str:
         if not isinstance(shard_id, str):
             raise TypeError(f'Each shard_id must be a string. Value provided: {repr(type(shard_id))} {repr(shard_id)}')
+
+        if shard_id.strip() == '':
+            raise TypeError(f'Each shard_id must be a populated string. Value provided: {repr(shard_id)}')
         return shard_id
 
 
