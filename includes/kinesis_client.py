@@ -262,6 +262,26 @@ class Client:
             raise TypeError(f"client_config must be an instance of ClientConfig. Value provided: "
                             f"{repr(type(self._client_config))} {repr(self._client_config)}")
 
+    def _confirm_shards_exist(self, shard_ids=None):
+        # Because we may want to check the auto-detected shards, or a list of user-supplied shards
+        # this method must be passed an explicit list as it could be called for either case
+        if shard_ids is None:
+            shard_ids = []
+
+        for shard_id in shard_ids:
+            iterator = self._get_new_shard_iterator(shard_id)
+            pvd(iterator)
+        pvdd('got here')
+
+    def begin_scraping(self):
+        shard_ids = self._get_shard_ids_of_stream()
+        self._confirm_shards_exist(shard_ids)
+
+    def _scrape_shards(self):
+        shard_id = "1"
+        # TODO Add a diretory exists check exception here before calling scrape shard method
+        self._scrape_records_for_shard(shard_id)
+
     def _scrape_records_for_shard(self, shard_id: str) -> list:
         i = 1
         iterator = self._shard_iterator(shard_id)
@@ -320,7 +340,7 @@ class Client:
                 if self._client_config.max_total_records_per_shard > 0 and \
                         0 <= self._client_config.max_total_records_per_shard <= len(found_records):
                     log.info(f'Reached {self._client_config.max_total_records_per_shard} max records per shard '
-                        f'limit for shard {shard_id}\n')
+                             f'limit for shard {shard_id}\n')
                     break
             else:
                 log.debug(response)
@@ -348,9 +368,9 @@ class Client:
         if self._current_shard_iterator is not None:
             return self._current_shard_iterator
 
-        return self.get_shard_iterator(shard_id)
+        return self._get_new_shard_iterator(shard_id)
 
-    def get_shard_iterator(self, shard_id: str) -> str:
+    def _get_new_shard_iterator(self, shard_id: str) -> str:
         if not isinstance(shard_id, str):
             raise ValueError(f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
 
@@ -370,24 +390,38 @@ class Client:
                 ShardIteratorType=self._client_config.starting_position,
                 Timestamp=self._client_config.timestamp
             )
-        iterator = response['ShardIterator']
+
+        try:
+            iterator = response['ShardIterator']
+        except KeyError as ex:
+            log.error(f'received an unexpected response from boto3 kinesis get_shard_iterator(): {repr(ex)}')
+            log.debug(f'Response value:')
+            log.debug(response)
+            raise ex
         log.debug('Returned Iterator: ' + iterator)
         return iterator
 
-    def get_shard_ids_of_stream(self) -> list:
-        log.info('Getting shard ids...')
+    def _get_shard_ids_of_stream(self) -> list:
+        log.info('Getting shard ids from AWS...')
         response = self._client_config.boto_client.describe_stream(StreamName=self._client_config.stream_name)
         log.info(f"Stream name: {response['StreamDescription']['StreamName']}")
         log.info(f"Stream ARN: {response['StreamDescription']['StreamARN']}")
         shard_ids = []
         shard_details = response['StreamDescription']['Shards']
         for node in shard_details:
-            log.info(f"Found shard id: {node['ShardId']}")
-            shard_ids.append(node['ShardId'])
+            try:
+                log.info(f"Found shard id: {node['ShardId']}")
+                shard_ids.append(node['ShardId'])
+            except KeyError as ex:
+                log.error(f'received an unexpected response from boto3 kinesis describe_stream(): {repr(ex)}')
+                log.debug(f'Response value:')
+                log.debug(response)
+                raise ex
         return shard_ids
 
     @staticmethod
     def _process_records(shard_id: str, records: list):
+        # Safety: We strip all but safe characters before creating any files/dirs
         shard_id = re.sub(r'[^A-Za-z0-9]', '', shard_id)
         dir_path = f'scraped_events/{shard_id}'
         log.debug(f'Processing records for batch')
@@ -400,6 +434,7 @@ class Client:
         log.debug(f'Initial prefix is: {prefix}')
         for record in records:
             prefix += 1
+            # Safety: We strip all but safe characters before creating any files/dirs
             timestamp = re.sub(r'[^A-Za-z0-9-:_]', '',
                                record["ApproximateArrivalTimestamp"].strftime('%Y-%m-%d_%H:%M:%S'))
             log.debug(f'timestamp: {timestamp}')

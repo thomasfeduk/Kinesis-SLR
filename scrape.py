@@ -21,8 +21,10 @@ def main():
         boto3.client('kinesis')
     )
 
+    output = None
     kinesis_client = kinesis.Client(kinesis_config)
-    output = kinesis_client._scrape_records_for_shard('shardId-000000000005')
+    output = kinesis_client.begin_scraping()
+    # kinesis_client._scrape_records_for_shard('shardId-000000000005')
     # output = kinesis_client._process_records('shard-01', records["Records"])
     # pvdd('end')
     pvdd(output)
