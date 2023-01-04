@@ -110,7 +110,7 @@ poll_delay: "0.0"
 max_total_records_per_shard: 0
 
 # --------------------------------
-# Property: max_empty_record_polls
+# Property: max_empty_polls
 # --------------------------------
 # Description: Kinesis will often return a blank set of records on a poll depending on how much time has
 # elapsed in the stream between messages being published and how sparsely the stream is populated.
@@ -124,10 +124,10 @@ max_total_records_per_shard: 0
 #
 # It is important to note, that relying on "MillisBehindLatest" has proven to be unreliable.
 #
-# Once the number of polls that returned empty records matches the max_empty_record_polls value, the
+# Once the number of polls that returned empty records matches the max_empty_polls value, the
 # Kinesis-SLP will consider the shard to be fully read and stop scraping messages. A rule of thumb is
 # 2 empty polls per every 500 contiguous seconds of "empty time" that could exist between messages anywhere
 # in the stream from the oldest message until now. From my testing, a 24 hour gap between messages resulted
 # in an average of 86-104 empty polls
 #
-max_empty_record_polls: 250 # Max 5000
+max_empty_polls: 250 # Max 5000
