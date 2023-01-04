@@ -293,9 +293,8 @@ class Client:
 
                 if self._client_config.max_total_records_per_shard > 0 and \
                         0 <= self._client_config.max_total_records_per_shard <= len(found_records):
-                    log.info(
-                        f'Reached {self._client_config.max_total_records_per_shard} max records per shard '
-                        f'limit for shard {shard_id}')
+                    log.info(f'Reached {self._client_config.max_total_records_per_shard} max records per shard '
+                        f'limit for shard {shard_id}\n')
                     break
             else:
                 log.debug(response)
@@ -304,7 +303,7 @@ class Client:
                          f'MillisBehindLatest: {response["MillisBehindLatest"]}.')
 
                 if count_response_no_records > self._client_config.max_empty_record_polls - 1:
-                    log.info(f'Reached {self._client_config.max_empty_record_polls} empty polls for shard {shard_id} '
+                    log.info(f'\n\nReached {self._client_config.max_empty_record_polls} empty polls for shard {shard_id} '
                              f'and found a total of {len(found_records)} records, '
                              f'current iterator: {iterator}\nAborting further reads for current shard.')
                     break
@@ -375,10 +374,17 @@ class Client:
         log.debug(f'Initial prefix is: {prefix}')
         for record in records:
             prefix += 1
-            timestamp = re.sub(r'[^A-Za-z0-9-:]', '', record["ApproximateArrivalTimestamp"].strftime('%Y-%m-%d %H:%M:%S'))
+            timestamp = re.sub(r'[^A-Za-z0-9-:_]', '',
+                               record["ApproximateArrivalTimestamp"].strftime('%Y-%m-%d_%H:%M:%S'))
             log.debug(f'timestamp: {timestamp}')
             filename_uri = f"{dir_path}/{prefix}-{timestamp.replace(':', ';')}.json"
             log.debug(f'Filename: {filename_uri}')
-            f = open(filename_uri, "x")
+
+            try:
+                f = open(filename_uri, "x")
+            except FileExistsError as ex:
+                raise FileExistsError(f'The file "{filename_uri}" already exists when trying to create an event '
+                                      f'record file. Be sure scraping is not being run with a populated '
+                                      f'scraped_events/{shard_id} directory.') from ex
             f.write(json.dumps(record, default=str, indent=4))
             f.close()
