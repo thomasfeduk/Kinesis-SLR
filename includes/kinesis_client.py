@@ -26,7 +26,7 @@ class ClientConfig(common.BaseCommonClass):
         self._poll_batch_size = None
         self._poll_delay = None
         self._max_total_records_per_shard = None
-        self._max_empty_record_polls = None
+        self._max_empty_polls = None
 
         # Have to call parent after defining attributes other they are not populated
         super().__init__(passed_data)
@@ -72,8 +72,8 @@ class ClientConfig(common.BaseCommonClass):
         return self._poll_delay
 
     @property
-    def max_empty_record_polls(self):
-        return self._max_empty_record_polls
+    def max_empty_polls(self):
+        return self._max_empty_polls
 
     def _is_valid(self):
         # Confirm we have received a real boto client object instance
@@ -92,7 +92,7 @@ class ClientConfig(common.BaseCommonClass):
             'max_total_records_per_shard',
             'poll_batch_size',
             'poll_delay',
-            'max_empty_record_polls',
+            'max_empty_polls',
         ]
 
         for req_conf in required_configs:
@@ -142,6 +142,36 @@ class ClientConfig(common.BaseCommonClass):
             raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
 
         # Poll Delay
+        self._validate_poll_delay()
+
+        # max_total_records_per_shard
+        self._validate_max_total_records_per_shard()
+
+        # Max Empty Polls
+        self._validate_max_empty_polls()
+
+    def _validate_max_empty_polls(self):
+        try:
+            common.validate_numeric_pos(self._max_empty_polls)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"If config-kinesis_scraper.yaml: \"max_empty_polls\" must be a positive numeric "
+                f"string, or an integer.\nValue provided: {repr(type(self._max_empty_polls))} "
+            ) from e
+        if int(self._max_empty_polls) > 2000:
+            raise ValueError('config-kinesis_scraper.yaml: max_empty_polls cannot exceed 2000')
+
+    def _validate_max_total_records_per_shard(self):
+        try:
+            common.validate_numeric_pos(self._max_total_records_per_shard)
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"If config-kinesis_scraper.yaml: \"max_total_records_per_shard\" must be a positive numeric "
+                f"string, or an integer.\nValue provided: {repr(type(self._max_total_records_per_shard))}:"
+                f" {repr(self._max_total_records_per_shard)}"
+            ) from e
+
+    def _validate_poll_delay(self):
         try:
             common.validate_numeric_pos(self.poll_delay)
         except (TypeError, ValueError) as e:
@@ -152,27 +182,6 @@ class ClientConfig(common.BaseCommonClass):
             ) from e
         if float(self.poll_delay) < 0 or float(self.poll_delay) > 10:
             raise ValueError('config-kinesis_scraper.yaml: poll_delay must be between 0-10')
-
-        # max_total_records_per_shard
-        try:
-            common.validate_numeric_pos(self._max_total_records_per_shard)
-        except (TypeError, ValueError) as e:
-            raise ValueError(
-                f"If config-kinesis_scraper.yaml: \"max_total_records_per_shard\" must be a positive numeric "
-                f"string, or an integer.\nValue provided: {repr(type(self._max_total_records_per_shard))}:"
-                f" {repr(self._max_total_records_per_shard)}"
-            ) from e
-
-        # Max Empty Record Polls
-        try:
-            common.validate_numeric_pos(self._max_empty_record_polls)
-        except (TypeError, ValueError) as e:
-            raise ValueError(
-                f"If config-kinesis_scraper.yaml: \"max_empty_record_polls\" must be a positive numeric "
-                f"string, or an integer.\nValue provided: {repr(type(self._max_empty_record_polls))} "
-            ) from e
-        if int(self._max_empty_record_polls) > 2000:
-            raise ValueError('config-kinesis_scraper.yaml: max_empty_record_polls cannot exceed 2000')
 
     def _post_init_processing(self):
         # Setup logging
@@ -320,8 +329,8 @@ class Client:
                 log.info(f'No records found in loop. Currently at {count_response_no_records} empty calls, '
                          f'MillisBehindLatest: {response["MillisBehindLatest"]}.')
 
-                if count_response_no_records > self._client_config.max_empty_record_polls - 1:
-                    log.info(f'\n\nReached {self._client_config.max_empty_record_polls} empty polls for shard {shard_id} '
+                if count_response_no_records > self._client_config.max_empty_polls - 1:
+                    log.info(f'\n\nReached {self._client_config.max_empty_polls} empty polls for shard {shard_id} '
                              f'and found a total of {len(found_records)} records, '
                              f'current iterator: {iterator}\nAborting further reads for current shard.')
                     break

@@ -43,7 +43,7 @@ class ClientConfig(unittest.TestCase):
             'poll_batch_size',
             'poll_delay',
             'max_total_records_per_shard',
-            'max_empty_record_polls',
+            'max_empty_polls',
         ]
         config_input = {}
         i = 0
@@ -69,7 +69,7 @@ class ClientConfig(unittest.TestCase):
             "poll_batch_size": 5,
             "poll_delay": 5,
             "max_total_records_per_shard": 5,
-            "max_empty_record_polls": 5,
+            "max_empty_polls": 5,
         }
         # Wrong type
         with self.assertRaises(TypeError) as ex:
@@ -100,7 +100,7 @@ class ClientConfig(unittest.TestCase):
             "poll_batch_size": 5,
             "poll_delay": 5,
             "max_total_records_per_shard": 5,
-            "max_empty_record_polls": 5,
+            "max_empty_polls": 5,
         }
         # Wrong type on dict value
         with self.assertRaises(TypeError) as ex:
@@ -117,7 +117,7 @@ class ClientConfig(unittest.TestCase):
             "poll_batch_size": 5,
             "poll_delay": 5,
             "max_total_records_per_shard": 5,
-            "max_empty_record_polls": 5,
+            "max_empty_polls": 5,
         }
         with self.assertRaises(TypeError) as ex:
             kinesis.ClientConfig(config_input)
