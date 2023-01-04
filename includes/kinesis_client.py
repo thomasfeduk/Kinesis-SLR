@@ -273,10 +273,11 @@ class Client:
         self._confirm_shards_exist(shard_ids_detected)
 
         # Pre-check: Confirm we are not trying to scrape any shards that already have been written to disk
+        log.debug('Checking for exiting shard directories before beginning scraping')
         for shard_id in shard_ids_detected:
             dir_path = f'scraped_events/{shard_id}'
-            pvd(dir_path)
-            pvd(f'Dir exists: {os.path.exists(dir_path)}')
+            log.debug(dir_path)
+            log.debug(f'Dir exists: {os.path.exists(dir_path)}')
             if os.path.exists(dir_path):
                 raise FileExistsError(f'Scrapped shard directory {dir_path} currently exists. To prevent '
                                       f'conflicts/overwriting existing data, please move any previously scrapped '
