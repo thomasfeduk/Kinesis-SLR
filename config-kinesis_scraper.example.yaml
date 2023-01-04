@@ -8,7 +8,7 @@
 # Description: The debug output level. INFO is the default and provides general status logging
 # Possible values: DEBUG|INFO|WARNING|ERROR
 #
-debug_level: DEBUG
+debug_level: INFO
 
 # ----------------------
 # Property: stream_name
@@ -128,6 +128,6 @@ max_total_records_per_shard: 0
 # Kinesis-SLP will consider the shard to be fully read and stop scraping messages. A rule of thumb is
 # 2 empty polls per every 500 contiguous seconds of "empty time" that could exist between messages anywhere
 # in the stream from the oldest message until now. From my testing, a 24 hour gap between messages resulted
-# in an average of 86-104 empty polls
+# in upto 104 empty polls
 #
 max_empty_polls: 250 # Max 5000

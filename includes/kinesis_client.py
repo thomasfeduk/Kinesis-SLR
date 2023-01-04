@@ -262,25 +262,35 @@ class Client:
             raise TypeError(f"client_config must be an instance of ClientConfig. Value provided: "
                             f"{repr(type(self._client_config))} {repr(self._client_config)}")
 
-    def _confirm_shards_exist(self, shard_ids=None):
-        # Because we may want to check the auto-detected shards, or a list of user-supplied shards
-        # this method must be passed an explicit list as it could be called for either case
+    def _confirm_shards_exist(self, shard_ids_detected: list):
+        for shard_id in self._client_config.shard_ids:
+            if shard_id not in shard_ids_detected:
+                raise ValueError(f'Specified shard_id "{shard_id}" does not exist in stream '
+                                 f'"{self._client_config.stream_name}". Detected shards: {repr(shard_ids_detected)}')
+
+    def begin_scraping(self):
+        shard_ids_detected = self._get_shard_ids_of_stream()
+        self._confirm_shards_exist(shard_ids_detected)
+
+        # Pre-check: Confirm we are not trying to scrape any shards that already have been written to disk
+        for shard_id in shard_ids_detected:
+            dir_path = f'scraped_events/{shard_id}'
+            pvd(dir_path)
+            pvd(f'Dir exists: {os.path.exists(dir_path)}')
+            if os.path.exists(dir_path):
+                raise FileExistsError(f'Scrapped shard directory {dir_path} currently exists. To prevent '
+                                      f'conflicts/overwriting existing data, please move any previously scrapped '
+                                      f'messages and their shard id directory elsewhere and re-run this tool. ')
+
+        # # Passed all checks, now we iterate through each shard id
+        self._scrape_shards(shard_ids_detected)
+
+    def _scrape_shards(self, shard_ids=None):
         if shard_ids is None:
             shard_ids = []
 
         for shard_id in shard_ids:
-            iterator = self._get_new_shard_iterator(shard_id)
-            pvd(iterator)
-        pvdd('got here')
-
-    def begin_scraping(self):
-        shard_ids = self._get_shard_ids_of_stream()
-        self._confirm_shards_exist(shard_ids)
-
-    def _scrape_shards(self):
-        shard_id = "1"
-        # TODO Add a diretory exists check exception here before calling scrape shard method
-        self._scrape_records_for_shard(shard_id)
+            self._scrape_records_for_shard(shard_id)
 
     def _scrape_records_for_shard(self, shard_id: str) -> list:
         i = 1
@@ -297,18 +307,13 @@ class Client:
 
             log.info(f'get_records() loop count: {str(i)} for shard: {shard_id}')
             log.debug(f'Current iterator: {iterator}')
-            # Make the boto3 call
 
-            try:
-                records = self._client_config.boto_client.get_records(
-                    ShardIterator=iterator,
-                    Limit=self._client_config.poll_batch_size
-                )
-                response = records
-            except Exception as ex:
-                log.error(f'Received an error calling boto3 kinesis get_records()')
-                log.error(ex)
-                raise ex
+            # Make the boto3 call
+            response = self._client_config.boto_client.get_records(
+                ShardIterator=iterator,
+                Limit=self._client_config.poll_batch_size
+            )
+
             try:
                 # Store next iterator for subsequent loops
                 next_iterator = response['NextShardIterator']
@@ -422,7 +427,7 @@ class Client:
     @staticmethod
     def _process_records(shard_id: str, records: list):
         # Safety: We strip all but safe characters before creating any files/dirs
-        shard_id = re.sub(r'[^A-Za-z0-9]', '', shard_id)
+        shard_id = re.sub(r'[^A-Za-z0-9-_]', '', shard_id)
         dir_path = f'scraped_events/{shard_id}'
         log.debug(f'Processing records for batch')
         log.debug(f'mkdirs path: {dir_path}')
