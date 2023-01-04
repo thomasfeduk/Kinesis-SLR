@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 
-class ClientConfig(common.ConfigSLR):
+class ClientConfig(common.BaseCommonClass):
     def __init__(self, passed_data: [dict, str], boto_client: botocore.client.BaseClient):
         self._boto_client = boto_client
         self._debug_level = None

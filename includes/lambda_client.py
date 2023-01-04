@@ -12,7 +12,7 @@ log = logging.getLogger()
 # log.setLevel(logging.DEBUG)
 
 
-class ConfigLambda(common.ConfigSLR, ABC):
+class ConfigLambda(common.BaseCommonClass, ABC):
     def __init__(self, passed_data: [dict, str] = None):
         self.function_name = None
         self.batch_size = None

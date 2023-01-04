@@ -56,7 +56,7 @@ class BaseSuperclass(ABC):
         return dict_dump
 
 
-class ConfigSLR(BaseSuperclass, ABC):
+class BaseCommonClass(BaseSuperclass, ABC):
     @abstractmethod
     def __init__(self, passed_data: [dict, str] = None):
         # Have to call parent after defining attributes to populate them
