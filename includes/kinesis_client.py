@@ -96,10 +96,12 @@ class ClientConfig(common.BaseCommonClass):
         self._validate_stream_name()
         self._validate_debug_level()
         ClientConfig.validate_shard_ids(self._shard_ids)
-        self._validate_starting_position()
+        self._validate_starting_ending_position('starting')
         self._validate_sequence_number('starting')
-        self._validate_ending_position()
+        self._validate_timestamp_usage('starting')
+        self._validate_starting_ending_position('ending')
         self._validate_sequence_number('ending')
+        self._validate_timestamp_usage('ending')
         self._validate_batch_size()
         self._validate_poll_delay()
         self._validate_max_total_records_per_shard()
@@ -212,8 +214,6 @@ class ClientConfig(common.BaseCommonClass):
         if getattr(self, f"{position_type}_position") in [
             'AT_SEQUENCE_NUMBER',
             'AFTER_SEQUENCE_NUMBER',
-            'AT_SEQUENCE_NUMBER',
-            'AFTER_SEQUENCE_NUMBER',
             'BEFORE_SEQUENCE_NUMBER',
         ]:
             # A sequence number is only unique within a shard, so we cannot specify at/after/before sequence
@@ -230,51 +230,53 @@ class ClientConfig(common.BaseCommonClass):
             except (TypeError, ValueError) as e:
                 value_provided = repr(type(getattr(self, f"{position_type}_sequence_number")))
                 raise ValueError(
-                    f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
-                    f"or AFTER_SEQUENCE_NUMBER, the value must be a positive numeric string, float or an integer. "
+                    f"If config-kinesis_scraper.yaml: \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
+                    f"the value must be a positive numeric string, float or an integer. "
                     f"\nValue provided: {value_provided} "
                 ) from e
-
-    def _validate_starting_position(self):
-        valid_positions = [
-            "AT_SEQUENCE_NUMBER",
-            "AFTER_SEQUENCE_NUMBER",
-            "TRIM_HORIZON",
-            "LATEST",
-            "AT_TIMESTAMP"
-        ]
-        if self._starting_position not in valid_positions:
-            raise ValueError('config-kinesis_scraper.yaml: starting_position must be one of: ' + repr(valid_positions))
-
-        if self._starting_position.upper() == 'AT_TIMESTAMP':
-            try:
-                common.validate_datetime(self._timestamp)
-            except ValueError as e:
-                raise ValueError(f"config-kinesis_scraper.yaml: Invalid format for config parameter "
-                                 f"\"starting_timestamp\". Format should be YYYY-MM-DD HH:MM:SS.\nValue provided: "
-                                 f"{str(type(self._timestamp))} {repr(self._timestamp)}") from e
-
-    def _validate_ending_position(self):
-        valid_positions = [
-            'TOTAL_RECORDS_PER_SHARD',
-            'AT_SEQUENCE_NUMBER',
-            'AFTER_SEQUENCE_NUMBER',
-            'BEFORE_SEQUENCE_NUMBER',
+            
+    def _validate_timestamp_usage(self, position_type: str) -> None:
+        # If any of these are set for the {starting/ending}_positions, a valid timestamp is required
+        if getattr(self, f"{position_type}_position") in [
             'AT_TIMESTAMP',
-            'BEFORE_TIMESTAMP',
             'AFTER_TIMESTAMP',
-            'LATEST',
-        ]
-        if self._ending_position not in valid_positions:
-            raise ValueError('config-kinesis_scraper.yaml: ending_position must be one of: ' + repr(valid_positions))
+            'BEFORE_TIMESTAMP',
+        ]:
 
-        if self._ending_position.upper() in ['AT_TIMESTAMP', 'BEFORE_TIMESTAMP', 'AFTER_TIMESTAMP']:
+            timestamp = getattr(self, f"{position_type}_position")
             try:
-                common.validate_datetime(self._timestamp)
+                common.validate_datetime(timestamp)
             except ValueError as e:
                 raise ValueError(f"config-kinesis_scraper.yaml: Invalid format for config parameter "
-                                 f"\"ending_timestamp\". Format should be YYYY-MM-DD HH:MM:SS.\nValue provided: "
-                                 f"{str(type(self._timestamp))} {repr(self._timestamp)}") from e
+                                 f"\"{position_type}_timestamp\". Format should be YYYY-MM-DD HH:MM:SS.\nValue "
+                                 f"provided: {str(type(timestamp))} {repr(timestamp)}") from e
+
+    def _validate_starting_ending_position(self, position_type: str):
+        positions = {
+            "starting": [
+                "AT_SEQUENCE_NUMBER",
+                "AFTER_SEQUENCE_NUMBER",
+                "TRIM_HORIZON",
+                "LATEST",
+                "AT_TIMESTAMP"
+            ],
+            "ending": [
+                'TOTAL_RECORDS_PER_SHARD',
+                'AT_SEQUENCE_NUMBER',
+                'AFTER_SEQUENCE_NUMBER',
+                'BEFORE_SEQUENCE_NUMBER',
+                'AT_TIMESTAMP',
+                'BEFORE_TIMESTAMP',
+                'AFTER_TIMESTAMP',
+                'LATEST',
+            ]
+        }
+
+        valid_positions = positions[position_type]
+
+        if getattr(self, f"{position_type}_position") not in valid_positions:
+            raise ValueError(f'config-kinesis_scraper.yaml: {position_type}_position" must be one of: '
+                             f'{repr(valid_positions)}')
 
     @staticmethod
     def validate_shard_ids(shard_ids: list = None) -> list:
@@ -434,18 +436,25 @@ class Client:
         # If we have a timestamp specified, we call client.get_shard_iterator with the timestamp,
         # otherwise call it without that argument
         log.info(f'Getting iterator for shard id: {shard_id}')
-        if self._client_config.timestamp is None:
+        if self._client_config.starting_timestamp is not None:
             response = self._client_config.boto_client.get_shard_iterator(
                 StreamName=self._client_config.stream_name,
                 ShardId=shard_id,
                 ShardIteratorType=self._client_config.starting_position,
+                Timestamp=self._client_config.starting_timestamp
+            )
+        elif self._client_config.starting_sequence_number is not None:
+            response = self._client_config.boto_client.get_shard_iterator(
+                StreamName=self._client_config.stream_name,
+                ShardId=shard_id,
+                ShardIteratorType=self._client_config.starting_position,
+                StartingSequenceNumber=self._client_config.starting_sequence_number,
             )
         else:
             response = self._client_config.boto_client.get_shard_iterator(
                 StreamName=self._client_config.stream_name,
                 ShardId=shard_id,
                 ShardIteratorType=self._client_config.starting_position,
-                Timestamp=self._client_config.timestamp
             )
 
         try:
