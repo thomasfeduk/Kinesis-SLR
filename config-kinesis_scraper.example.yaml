@@ -32,8 +32,7 @@ stream_name: user-activities
 #  - shardId-000000000000
 #  - shardId-000000000001
 #
-#shard_ids: []
-shard_ids: ['shardId-000000000005']
+shard_ids: []
 
 ###################################
 ## Section: Stream Scrape Range  ##
@@ -52,8 +51,8 @@ shard_ids: ['shardId-000000000005']
 # Note2: If set to AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER, "shardIds" must be populated with a single shard id
 # as sequence ids are unique per-shard
 #
-#starting_position: TRIM_HORIZON
-starting_position: "AT_SEQUENCE_NUMBER"
+#starting_position: "AT_SEQUENCE_NUMBER"
+starting_position: TRIM_HORIZON
 
 # ---------------------------
 # Property: timestamp
@@ -68,7 +67,7 @@ starting_timestamp: "2022-12-01 00:00:0"
 # ---------------------------
 # Description: Only used if starting_position = AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER
 #
-starting_sequence_number: "49634793967732681113891714384157638505909056619063279650"
+starting_sequence_number: 49634793967732681113891714384157638505909056619063279650
 
 # ---------------------------
 # Property: ending_position
@@ -129,7 +128,7 @@ ending_sequence_number: 49634793967732681113891714384157638505909056619063279650
 # Description: Only used if ending_position = TOTAL_RECORDS_PER_SHARD
 #
 #
-ending_total_records_per_shard: 1
+total_records_per_shard: 4
 
 #####################################
 ## Stream Processing Configuration ##

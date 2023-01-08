@@ -25,10 +25,9 @@ class ClientConfig(common.BaseCommonClass):
         self._ending_position = None
         self._ending_timestamp = None
         self._ending_sequence_number = None
-        self._ending_total_records_per_shard = None
+        self._total_records_per_shard = None
         self._poll_batch_size = None
         self._poll_delay = None
-        self._total_records_per_shard = None
         self._max_empty_polls = None
 
         # Have to call parent after defining attributes other they are not populated
@@ -75,8 +74,8 @@ class ClientConfig(common.BaseCommonClass):
         return self._ending_sequence_number
 
     @property
-    def ending_total_records_per_shard(self):
-        return self._ending_total_records_per_shard
+    def total_records_per_shard(self):
+        return self._total_records_per_shard
 
     @property
     def poll_batch_size(self):
@@ -397,19 +396,18 @@ class Client:
                 log.info(
                     f"\n\n{len(response['Records'])} records found in current get_records() response for shard:"
                     f" {shard_id}. Total found records: {len(found_records) + len(response['Records'])}\n")
-                log.debug(response)
                 count_response_no_records = 0
 
-                # Append the records to found_records (upto N records, so we don't exceed max_total_records_per_shard)
-                records_count_upto_to_add = self._client_config.max_total_records_per_shard - len(found_records)
-                # If max_total_records_per_shard if 0, we include all records by passing 0 as the upto argument
-                if self._client_config.max_total_records_per_shard == 0:
+                # Append the records to found_records (upto N records, so we don't exceed total_records_per_shard)
+                records_count_upto_to_add = self._client_config.total_records_per_shard - len(found_records)
+                # If total_records_per_shard if 0, we include all records by passing 0 as the upto argument
+                if self._client_config.total_records_per_shard == 0:
                     records_count_upto_to_add = 0
                 common.list_append_upto_n_items(found_records, response["Records"], records_count_upto_to_add)
 
-                if self._client_config.max_total_records_per_shard > 0 and \
-                        0 <= self._client_config.max_total_records_per_shard <= len(found_records):
-                    log.info(f'Reached {self._client_config.max_total_records_per_shard} max records per shard '
+                if self._client_config.total_records_per_shard > 0 and \
+                        0 <= self._client_config.total_records_per_shard <= len(found_records):
+                    log.info(f'Reached {self._client_config.total_records_per_shard} max records per shard '
                              f'limit for shard {shard_id}\n')
                     break
             else:
@@ -461,8 +459,6 @@ class Client:
                 Timestamp=self._client_config.starting_timestamp
             )
         elif self._client_config.starting_sequence_number is not None:
-            # del self._client_config._boto_client
-            # pvdd(self)
             log.debug(f'Calling get_shard_iterator() with: '
                       f'StreamName={self._client_config.stream_name} '
                       f'ShardId={shard_id} '
