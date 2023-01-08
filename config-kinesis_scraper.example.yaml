@@ -8,7 +8,7 @@
 # Description: The debug output level. INFO is the default and provides general status logging
 # Possible values: DEBUG|INFO|WARNING|ERROR
 #
-debug_level: INFO
+debug_level: DEBUG
 
 # ----------------------
 # Property: stream_name
@@ -32,7 +32,8 @@ stream_name: user-activities
 #  - shardId-000000000000
 #  - shardId-000000000001
 #
-shard_ids: []
+#shard_ids: []
+shard_ids: ['shardId-000000000005']
 
 ###################################
 ## Section: Stream Scrape Range  ##
@@ -51,7 +52,8 @@ shard_ids: []
 # Note2: If set to AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER, "shardIds" must be populated with a single shard id
 # as sequence ids are unique per-shard
 #
-starting_position: TRIM_HORIZON
+#starting_position: TRIM_HORIZON
+starting_position: "AT_SEQUENCE_NUMBER"
 
 # ---------------------------
 # Property: timestamp
@@ -66,7 +68,7 @@ starting_timestamp: "2022-12-01 00:00:0"
 # ---------------------------
 # Description: Only used if starting_position = AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER
 #
-starting_sequence_number: 49634793967732681113891714384157638505909056619063279650
+starting_sequence_number: "49634793967732681113891714384157638505909056619063279650"
 
 # ---------------------------
 # Property: ending_position
@@ -157,7 +159,8 @@ poll_batch_size: 100 # Max 500
 #
 # Note: All calls are handled in a liner fashion, no parallelism/multi-threading is used. If it takes 1 second for
 # each boto3 API call to complete, that will result in a throughput of 1 call-per-second. This parameter simply adds a
-# time.sleep(poll_delay) call in-between each boto3 get_records() call with the value specified in poll_delay
+# time.sleep(poll_delay) call in-between each boto3 get_records() call with the value specified in poll_delay.
+# set debug_level above to DEBUG to see the elapsed time for each get_records() call
 #
 # AWS Quota Note: This value must be considered carefully from an engineering perspective and engineers
 # must take into account the total number of consumers making polls to a shard, as well as the

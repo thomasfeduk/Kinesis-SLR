@@ -220,20 +220,22 @@ class ClientConfig(common.BaseCommonClass):
             # A sequence number is only unique within a shard, so we cannot specify at/after/before sequence
             # unless a single and only a single shard is id specified
             if len(self._shard_ids) != 1:
-                value_provided = repr(type(self._shard_ids))
+                value_provided_type = repr(type(self._shard_ids))
+                value_provided = repr(self._shard_ids)
                 raise ValueError(
                     f"If config-kinesis_scraper.yaml: \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
                     f"exactly 1 shard_id must be specified as the sequence numbers are unique per shard."
-                    f"\nValue provided: {value_provided} "
+                    f"\nValue provided: {value_provided_type} {value_provided}"
                 )
             try:
                 common.validate_numeric_pos(getattr(self, f"{position_type}_sequence_number"))
             except (TypeError, ValueError) as e:
-                value_provided = repr(type(getattr(self, f"{position_type}_sequence_number")))
+                value_provided_type = repr(type(getattr(self, f"{position_type}_sequence_number")))
+                value_provided = repr(getattr(self, f"{position_type}_sequence_number"))
                 raise ValueError(
                     f"If config-kinesis_scraper.yaml: \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
                     f"the value must be a positive numeric string, float or an integer. "
-                    f"\nValue provided: {value_provided} "
+                    f"\nValue provided: {value_provided_type} {value_provided}"
                 ) from e
             
     def _validate_timestamp_usage(self, position_type: str) -> None:
@@ -331,18 +333,23 @@ class Client:
         for shard_id in shard_ids_detected:
             dir_path = f'scraped_events/{shard_id}'
             log.debug(dir_path)
-            log.debug(f'Dir exists: {os.path.exists(dir_path)}')
+            log.debug(f'Checking if shard dir exists {dir_path}: {os.path.exists(dir_path)}')
             if os.path.exists(dir_path):
                 raise FileExistsError(f'Scrapped shard directory {dir_path} currently exists. To prevent '
                                       f'conflicts/overwriting existing data, please move any previously scrapped '
                                       f'messages and their shard id directory elsewhere and re-run this tool. ')
 
-        # # Passed all checks, now we iterate through each shard id
-        self._scrape_shards(shard_ids_detected)
+        # Passed all checks, now we iterate through each shard id specified by the config (or all if not specified)
+        shard_ids_to_scrape = shard_ids_detected
+        if len(self._client_config.shard_ids) > 0:
+            shard_ids_to_scrape = self._client_config.shard_ids
+
+        log.debug(f'Shard ids to scrape: {repr(shard_ids_to_scrape)}')
+        self._scrape_shards(shard_ids_to_scrape)
 
     def _scrape_shards(self, shard_ids=None):
         if shard_ids is None:
-            shard_ids = []
+            raise ValueError('_scrape_shards called with None.')
 
         for shard_id in shard_ids:
             self._scrape_records_for_shard(shard_id)
@@ -364,10 +371,13 @@ class Client:
             log.debug(f'Current iterator: {iterator}')
 
             # Make the boto3 call
+            timer_start = time.time()
             response = self._client_config.boto_client.get_records(
                 ShardIterator=iterator,
                 Limit=self._client_config.poll_batch_size
             )
+            timer_end = time.time()
+            log.debug(f'get_records() completed in {timer_end - timer_start} seconds.')
 
             try:
                 # Store next iterator for subsequent loops
@@ -438,6 +448,12 @@ class Client:
         # otherwise call it without that argument
         log.info(f'Getting iterator for shard id: {shard_id}')
         if self._client_config.starting_timestamp is not None:
+            log.debug(f'Calling get_shard_iterator() with: '
+                      f'StreamName={self._client_config.stream_name} '
+                      f'ShardId={shard_id} '
+                      f'ShardIteratorType={self._client_config.starting_position} '
+                      f'Timestamp={self._client_config.starting_timestamp}'
+                      )
             response = self._client_config.boto_client.get_shard_iterator(
                 StreamName=self._client_config.stream_name,
                 ShardId=shard_id,
@@ -445,6 +461,14 @@ class Client:
                 Timestamp=self._client_config.starting_timestamp
             )
         elif self._client_config.starting_sequence_number is not None:
+            # del self._client_config._boto_client
+            # pvdd(self)
+            log.debug(f'Calling get_shard_iterator() with: '
+                      f'StreamName={self._client_config.stream_name} '
+                      f'ShardId={shard_id} '
+                      f'ShardIteratorType={self._client_config.starting_position} '
+                      f'StartingSequenceNumber={self._client_config.starting_sequence_number}'
+                      )
             response = self._client_config.boto_client.get_shard_iterator(
                 StreamName=self._client_config.stream_name,
                 ShardId=shard_id,
@@ -452,6 +476,11 @@ class Client:
                 StartingSequenceNumber=self._client_config.starting_sequence_number,
             )
         else:
+            log.debug(f'Calling get_shard_iterator() with: '
+                      f'StreamName={self._client_config.stream_name} '
+                      f'ShardId={shard_id} '
+                      f'ShardIteratorType={self._client_config.starting_position}'
+                      )
             response = self._client_config.boto_client.get_shard_iterator(
                 StreamName=self._client_config.stream_name,
                 ShardId=shard_id,
@@ -475,9 +504,10 @@ class Client:
         log.info(f"Stream ARN: {response['StreamDescription']['StreamARN']}")
         shard_ids = []
         shard_details = response['StreamDescription']['Shards']
+        log.debug(f'Detecting shard ids that exist for stream: {self._client_config.stream_name}')
         for node in shard_details:
             try:
-                log.info(f"Found shard id: {node['ShardId']}")
+                log.info(f"Detected shard id: {node['ShardId']}")
                 shard_ids.append(node['ShardId'])
             except KeyError as ex:
                 log.error(f'received an unexpected response from boto3 kinesis describe_stream(): {repr(ex)}')
