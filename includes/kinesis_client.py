@@ -20,12 +20,12 @@ class ClientConfig(common.BaseCommonClass):
         self._stream_name = None
         self._shard_ids = None
         self._starting_position = None
-        self.starting_timestamp = None
-        self.starting_sequence_number = None
-        self.ending_position = None
-        self.ending_timestamp = None
-        self.ending_sequence_number = None
-        self.ending_total_records_per_shard = None
+        self._starting_timestamp = None
+        self._starting_sequence_number = None
+        self._ending_position = None
+        self._ending_timestamp = None
+        self._ending_sequence_number = None
+        self._ending_total_records_per_shard = None
         self._poll_batch_size = None
         self._poll_delay = None
         self._max_total_records_per_shard = None
@@ -55,16 +55,28 @@ class ClientConfig(common.BaseCommonClass):
         return self._starting_position
 
     @property
-    def timestamp(self):
-        return self._timestamp
+    def starting_timestamp(self):
+        return self._starting_timestamp
 
     @property
-    def sequence_number(self):
-        return self._sequence_number
+    def starting_sequence_number(self):
+        return self._starting_sequence_number
 
     @property
-    def max_total_records_per_shard(self):
-        return self._max_total_records_per_shard
+    def ending_position(self):
+        return self._ending_position
+
+    @property
+    def ending_timestamp(self):
+        return self._ending_timestamp
+
+    @property
+    def ending_sequence_number(self):
+        return self._ending_sequence_number
+
+    @property
+    def ending_total_records_per_shard(self):
+        return self._ending_total_records_per_shard
 
     @property
     def poll_batch_size(self):
@@ -85,8 +97,9 @@ class ClientConfig(common.BaseCommonClass):
         self._validate_debug_level()
         ClientConfig.validate_shard_ids(self._shard_ids)
         self._validate_starting_position()
-        self.validate_ending_position_types()
-        self.validate_sequence_number(self._shard_ids, self._starting_position, self._sequence_number)
+        self._validate_sequence_number('starting')
+        self._validate_ending_position()
+        self._validate_sequence_number('ending')
         self._validate_batch_size()
         self._validate_poll_delay()
         self._validate_max_total_records_per_shard()
@@ -182,32 +195,44 @@ class ClientConfig(common.BaseCommonClass):
         log.setLevel(self._debug_level)
 
         # If the starting position is not timestamp, clear the timestamp value, so we don't have it set internally
-        # when we are never going to use it
-        if self._starting_position.upper() != 'AT_TIMESTAMP':
-            self._timestamp = None
+        # when we are never going to use it. Same for sequence number
+        if self._starting_position != 'AT_TIMESTAMP':
+            self._starting_timestamp = None
+        if self._starting_position not in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
+            self._starting_sequence_number = None
+        if self._ending_position not in ['AT_TIMESTAMP', 'BEFORE_TIMESTAMP', 'AFTER_TIMESTAMP']:
+            self._ending_timestamp = None
+        if self._ending_position not in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER', 'BEFORE_SEQUENCE_NUMBER']:
+            self._ending_sequence_number = None
         if self._poll_delay is not None:
             self._poll_delay = float(self._poll_delay)
 
-    @staticmethod
-    def validate_sequence_number(shard_ids: list, starting_position: str, sequence_number: [str, int]) -> None:
-        ClientConfig.validate_iterator_types(starting_position)
-        ClientConfig.validate_shard_ids(shard_ids)
-        if starting_position in ['AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER']:
-            # A sequence number is only unique within a shard, so we cannot specify at/after sequence
+    def _validate_sequence_number(self, position_type: str) -> None:
+        # If any of these are set for the {starting/ending}_positions, the shard_id must have exactly 1 value
+        if getattr(self, f"{position_type}_position") in [
+            'AT_SEQUENCE_NUMBER',
+            'AFTER_SEQUENCE_NUMBER',
+            'AT_SEQUENCE_NUMBER',
+            'AFTER_SEQUENCE_NUMBER',
+            'BEFORE_SEQUENCE_NUMBER',
+        ]:
+            # A sequence number is only unique within a shard, so we cannot specify at/after/before sequence
             # unless a single and only a single shard is id specified
-            if len(shard_ids) != 1:
+            if len(self._shard_ids) != 1:
+                value_provided = repr(type(self._shard_ids))
                 raise ValueError(
-                    f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
-                    f"or AFTER_SEQUENCE_NUMBER, exactly 1 shard id must be specified as the sequence numbers "
-                    f"are unique per shard.\nValue provided: {repr(type(shard_ids))} "
+                    f"If config-kinesis_scraper.yaml: \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
+                    f"exactly 1 shard_id must be specified as the sequence numbers are unique per shard."
+                    f"\nValue provided: {value_provided} "
                 )
             try:
-                common.validate_numeric_pos(sequence_number)
+                common.validate_numeric_pos(getattr(self, f"{position_type}_sequence_number"))
             except (TypeError, ValueError) as e:
+                value_provided = repr(type(getattr(self, f"{position_type}_sequence_number")))
                 raise ValueError(
                     f"If config-kinesis_scraper.yaml: \"starting_position\" is AT_SEQUENCE_NUMBER "
                     f"or AFTER_SEQUENCE_NUMBER, the value must be a positive numeric string, float or an integer. "
-                    f"\nValue provided: {repr(type(sequence_number))} "
+                    f"\nValue provided: {value_provided} "
                 ) from e
 
     def _validate_starting_position(self):
