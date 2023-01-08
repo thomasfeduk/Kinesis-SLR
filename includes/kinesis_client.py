@@ -404,8 +404,6 @@ class Client:
             # Store records if found in temp list
             if len(response["Records"]) > 0:
                 log.debug(f'Found {len(response["Records"])} in batch.')
-                # Write the found records before any breaks occur
-                self._process_records(shard_id, response["Records"])
 
                 self._total_records_fetched += 1
                 log.info(
@@ -418,13 +416,21 @@ class Client:
                 # If total_records_per_shard if 0, we include all records by passing 0 as the upto argument
                 if self._client_config.total_records_per_shard == 0:
                     records_count_upto_to_add = 0
-                common.list_append_upto_n_items(found_records, response["Records"], records_count_upto_to_add)
 
+                # Write the found records before any breaks occur
+                self._process_records(shard_id, common.list_append_upto_n_items(
+                    found_records, response["Records"], records_count_upto_to_add))
+
+                # If we are at the total per shard, we terminate the loop
                 if self._client_config.total_records_per_shard > 0 and \
-                        0 <= self._client_config.total_records_per_shard <= len(found_records):
+                        0 < self._client_config.total_records_per_shard <= len(found_records):
                     log.info(f'Reached {self._client_config.total_records_per_shard} max records per shard '
                              f'limit for shard {shard_id}\n')
                     break
+                # Append the new records for this iteration to the found records var
+                found_records = common.list_append_upto_n_items(
+                    found_records, response["Records"], records_count_upto_to_add)
+
             else:
                 log.debug(response)
                 count_response_no_records += 1
@@ -440,7 +446,6 @@ class Client:
             # Update  iterator to next_iterator for subsequent loop
             iterator = next_iterator
             i += 1
-
         return found_records
 
     # If we don't have an existing/current shard iterator, we grab a new one, otherwise return the current one

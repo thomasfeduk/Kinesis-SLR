@@ -37,4 +37,5 @@ def main():
     # kinesis_client._scrape_records_for_shard('shardId-000000000005')
     # output = kinesis_client._process_records('shard-01', records["Records"])
     # pvdd('end')
+    pvd('scrape.py end')
     pvdd(output)

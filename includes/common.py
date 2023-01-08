@@ -84,6 +84,8 @@ def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int = 
 
     No return value since we just update the mutable a_list that is passed by reference
     """
+    # Fresh instance, so we can return a new instance and not update by reference the original a_list
+    a_list_new = a_list.copy()
     i = 0
     for item in b_list:
         if upto_item_count == 0 or i < upto_item_count:
