@@ -20,8 +20,12 @@ class ClientConfig(common.BaseCommonClass):
         self._stream_name = None
         self._shard_ids = None
         self._starting_position = None
-        self._timestamp = None
-        self._sequence_number = None
+        self.starting_timestamp = None
+        self.starting_sequence_number = None
+        self.ending_position = None
+        self.ending_timestamp = None
+        self.ending_sequence_number = None
+        self.ending_total_records_per_shard = None
         self._poll_batch_size = None
         self._poll_delay = None
         self._max_total_records_per_shard = None
@@ -80,7 +84,8 @@ class ClientConfig(common.BaseCommonClass):
         self._validate_stream_name()
         self._validate_debug_level()
         ClientConfig.validate_shard_ids(self._shard_ids)
-        self._validate_iterator_types()
+        self._validate_starting_position()
+        self.validate_ending_position_types()
         self.validate_sequence_number(self._shard_ids, self._starting_position, self._sequence_number)
         self._validate_batch_size()
         self._validate_poll_delay()
@@ -102,16 +107,6 @@ class ClientConfig(common.BaseCommonClass):
             ) from e
         if int(self._poll_batch_size) > 500:
             raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
-
-    def _validate_iterator_types(self):
-        ClientConfig.validate_iterator_types(self._starting_position)
-        if self._starting_position.upper() == 'AT_TIMESTAMP':
-            try:
-                common.validate_datetime(self._timestamp)
-            except ValueError as e:
-                raise ValueError(f"config-kinesis_scraper.yaml: Invalid format for config parameter \"timestamp\". "
-                                 f"Format should be YYYY-MM-DD HH:MM:SS.\nValue provided: "
-                                 f"{str(type(self._timestamp))} {repr(self._timestamp)}") from e
 
     def _validate_debug_level(self):
         debug_levels = [
@@ -135,9 +130,12 @@ class ClientConfig(common.BaseCommonClass):
             'stream_name',
             'shard_ids',
             'starting_position',
-            # 'timestamp', # Conditionally required
-            # 'sequence_number', # Conditionally required
-            'max_total_records_per_shard',
+            # 'starting_timestamp',  # Conditionally required
+            # 'starting_sequence_number',   # Conditionally required
+            'ending_position',
+            # 'ending_timestamp',  # Conditionally required
+            # 'ending_sequence_number',  # Conditionally required
+            # 'ending_total_records_per_shard',  # Conditionally required
             'poll_batch_size',
             'poll_delay',
             'max_empty_polls',
@@ -212,18 +210,46 @@ class ClientConfig(common.BaseCommonClass):
                     f"\nValue provided: {repr(type(sequence_number))} "
                 ) from e
 
-    @staticmethod
-    def validate_iterator_types(iterator_type: str) -> str:
-        iterator_types = [
+    def _validate_starting_position(self):
+        valid_positions = [
             "AT_SEQUENCE_NUMBER",
             "AFTER_SEQUENCE_NUMBER",
             "TRIM_HORIZON",
             "LATEST",
             "AT_TIMESTAMP"
         ]
-        if iterator_type not in iterator_types:
-            raise ValueError('iterator_type must be one of: ' + repr(iterator_types))
-        return iterator_type
+        if self._starting_position not in valid_positions:
+            raise ValueError('config-kinesis_scraper.yaml: starting_position must be one of: ' + repr(valid_positions))
+
+        if self._starting_position.upper() == 'AT_TIMESTAMP':
+            try:
+                common.validate_datetime(self._timestamp)
+            except ValueError as e:
+                raise ValueError(f"config-kinesis_scraper.yaml: Invalid format for config parameter "
+                                 f"\"starting_timestamp\". Format should be YYYY-MM-DD HH:MM:SS.\nValue provided: "
+                                 f"{str(type(self._timestamp))} {repr(self._timestamp)}") from e
+
+    def _validate_ending_position(self):
+        valid_positions = [
+            'TOTAL_RECORDS_PER_SHARD',
+            'AT_SEQUENCE_NUMBER',
+            'AFTER_SEQUENCE_NUMBER',
+            'BEFORE_SEQUENCE_NUMBER',
+            'AT_TIMESTAMP',
+            'BEFORE_TIMESTAMP',
+            'AFTER_TIMESTAMP',
+            'LATEST',
+        ]
+        if self._ending_position not in valid_positions:
+            raise ValueError('config-kinesis_scraper.yaml: ending_position must be one of: ' + repr(valid_positions))
+
+        if self._ending_position.upper() in ['AT_TIMESTAMP', 'BEFORE_TIMESTAMP', 'AFTER_TIMESTAMP']:
+            try:
+                common.validate_datetime(self._timestamp)
+            except ValueError as e:
+                raise ValueError(f"config-kinesis_scraper.yaml: Invalid format for config parameter "
+                                 f"\"ending_timestamp\". Format should be YYYY-MM-DD HH:MM:SS.\nValue provided: "
+                                 f"{str(type(self._timestamp))} {repr(self._timestamp)}") from e
 
     @staticmethod
     def validate_shard_ids(shard_ids: list = None) -> list:
