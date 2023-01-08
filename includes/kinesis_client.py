@@ -28,7 +28,7 @@ class ClientConfig(common.BaseCommonClass):
         self._ending_total_records_per_shard = None
         self._poll_batch_size = None
         self._poll_delay = None
-        self._max_total_records_per_shard = None
+        self._total_records_per_shard = None
         self._max_empty_polls = None
 
         # Have to call parent after defining attributes other they are not populated
@@ -104,7 +104,7 @@ class ClientConfig(common.BaseCommonClass):
         self._validate_timestamp_usage('ending')
         self._validate_batch_size()
         self._validate_poll_delay()
-        self._validate_max_total_records_per_shard()
+        self._validate_total_records_per_shard()
         self._validate_max_empty_polls()
 
     def _validate_boto_client(self):
@@ -170,15 +170,16 @@ class ClientConfig(common.BaseCommonClass):
         if int(self._max_empty_polls) > 2000:
             raise ValueError('config-kinesis_scraper.yaml: max_empty_polls cannot exceed 2000')
 
-    def _validate_max_total_records_per_shard(self):
-        try:
-            common.validate_numeric_pos(self._max_total_records_per_shard)
-        except (TypeError, ValueError) as e:
-            raise ValueError(
-                f"If config-kinesis_scraper.yaml: \"max_total_records_per_shard\" must be a positive numeric "
-                f"string, or an integer.\nValue provided: {repr(type(self._max_total_records_per_shard))}:"
-                f" {repr(self._max_total_records_per_shard)}"
-            ) from e
+    def _validate_total_records_per_shard(self):
+        if self.ending_position == 'TOTAL_RECORDS_PER_SHARD':
+            try:
+                common.validate_numeric_pos(self._total_records_per_shard)
+            except (TypeError, ValueError) as e:
+                raise ValueError(
+                    f"If config-kinesis_scraper.yaml: \"total_records_per_shard\" must be a positive numeric "
+                    f"string, or an integer.\nValue provided: {repr(type(self._total_records_per_shard))}:"
+                    f" {repr(self._total_records_per_shard)}"
+                ) from e
 
     def _validate_poll_delay(self):
         try:
