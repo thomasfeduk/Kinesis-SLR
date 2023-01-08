@@ -32,7 +32,7 @@ stream_name: user-activities
 #  - shardId-000000000000
 #  - shardId-000000000001
 #
-shard_ids: []
+shard_ids: ['shardId-000000000005']
 
 ###################################
 ## Section: Stream Scrape Range  ##
@@ -190,4 +190,4 @@ poll_delay: "0.0"
 # in the stream from the oldest message until now. From my testing, a 24 hour gap between messages resulted
 # in upto 104 empty polls
 #
-max_empty_polls: 250 # Max 5000
+max_empty_polls: 120 # Max 5000
