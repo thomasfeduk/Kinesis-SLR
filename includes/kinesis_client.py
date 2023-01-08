@@ -1,4 +1,5 @@
 import boto3
+import includes.exceptions as exceptions
 import json
 import time
 import re
@@ -108,19 +109,20 @@ class ClientConfig(common.BaseCommonClass):
 
     def _validate_boto_client(self):
         if not isinstance(self.boto_client, botocore.client.BaseClient):
-            raise TypeError(f"A boto3 Kinesis client object is required. Example: \"boto3.client('kinesis')\". "
-                            f"Value provided: {str(type(self.boto_client))} {repr(self.boto_client)}")
+            raise exceptions.InvalidArgumentException(
+                f"A boto3 Kinesis client object is required. Example: \"boto3.client('kinesis')\". "
+                f"Value provided: {str(type(self.boto_client))} {repr(self.boto_client)}")
 
     def _validate_batch_size(self):
         try:
             common.validate_numeric_pos(self._poll_batch_size)
         except (TypeError, ValueError) as e:
-            raise ValueError(
+            raise exceptions.ConfigValidationError(
                 f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be a positive numeric "
                 f"string, or an integer.\nValue provided: {repr(type(self._poll_batch_size))} "
             ) from e
         if int(self._poll_batch_size) > 500:
-            raise ValueError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
+            raise exceptions.ConfigValidationError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
 
     def _validate_debug_level(self):
         debug_levels = [
@@ -130,13 +132,14 @@ class ClientConfig(common.BaseCommonClass):
             "ERROR",
         ]
         if self.debug_level not in debug_levels:
-            raise ValueError('debug_level must be one of: ' + repr(debug_levels))
+            raise exceptions.ConfigValidationError('debug_level must be one of: ' + repr(debug_levels))
 
     def _validate_stream_name(self):
         if not isinstance(self._stream_name, str):
-            raise TypeError(f"stream_name must be a string. Type provided: {str(type(self._stream_name))}")
+            raise exceptions.ConfigValidationError(
+                f"stream_name must be a string. Type provided: {str(type(self._stream_name))}")
         if self._stream_name == '' or self._stream_name == 'stream_name_here':
-            raise ValueError('config-kinesis_scraper.yaml: A stream name must be set.')
+            raise exceptions.ConfigValidationError('config-kinesis_scraper.yaml: A stream name must be set.')
 
     def _validate_required_configs(self):
         required_configs = [
@@ -156,25 +159,26 @@ class ClientConfig(common.BaseCommonClass):
         ]
         for req_conf in required_configs:
             if getattr(self, req_conf) is None:
-                raise ValueError(f"config-kinesis_scraper.yaml: Missing config parameter: {req_conf}")
+                raise exceptions.ConfigValidationError(
+                    f"config-kinesis_scraper.yaml: Missing config parameter: {req_conf}")
 
     def _validate_max_empty_polls(self):
         try:
             common.validate_numeric_pos(self._max_empty_polls)
         except (TypeError, ValueError) as e:
-            raise ValueError(
+            raise exceptions.ConfigValidationError(
                 f"If config-kinesis_scraper.yaml: \"max_empty_polls\" must be a positive numeric "
                 f"string, or an integer.\nValue provided: {repr(type(self._max_empty_polls))} "
             ) from e
         if int(self._max_empty_polls) > 2000:
-            raise ValueError('config-kinesis_scraper.yaml: max_empty_polls cannot exceed 2000')
+            raise exceptions.ConfigValidationError('config-kinesis_scraper.yaml: max_empty_polls cannot exceed 2000')
 
     def _validate_total_records_per_shard(self):
         if self.ending_position == 'TOTAL_RECORDS_PER_SHARD':
             try:
                 common.validate_numeric_pos(self._total_records_per_shard)
             except (TypeError, ValueError) as e:
-                raise ValueError(
+                raise exceptions.ConfigValidationError(
                     f"If config-kinesis_scraper.yaml: \"total_records_per_shard\" must be a positive numeric "
                     f"string, or an integer.\nValue provided: {repr(type(self._total_records_per_shard))}:"
                     f" {repr(self._total_records_per_shard)}"
@@ -184,13 +188,13 @@ class ClientConfig(common.BaseCommonClass):
         try:
             common.validate_numeric_pos(self.poll_delay)
         except (TypeError, ValueError) as e:
-            raise ValueError(
+            raise exceptions.ConfigValidationError(
                 f"If config-kinesis_scraper.yaml: \"poll_delay\" must be either a numeric "
                 f"string, a float, or an integer.\nValue provided: "
                 f"{repr(type(self.poll_delay))} {repr(self.poll_delay)}"
             ) from e
         if float(self.poll_delay) < 0 or float(self.poll_delay) > 10:
-            raise ValueError('config-kinesis_scraper.yaml: poll_delay must be between 0-10')
+            raise exceptions.ConfigValidationError('config-kinesis_scraper.yaml: poll_delay must be between 0-10')
 
     def _post_init_processing(self):
         # Setup logging
@@ -221,7 +225,7 @@ class ClientConfig(common.BaseCommonClass):
             if len(self._shard_ids) != 1:
                 value_provided_type = repr(type(self._shard_ids))
                 value_provided = repr(self._shard_ids)
-                raise ValueError(
+                raise exceptions.ConfigValidationError(
                     f"If config-kinesis_scraper.yaml: \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
                     f"exactly 1 shard_id must be specified as the sequence numbers are unique per shard."
                     f"\nValue provided: {value_provided_type} {value_provided}"
@@ -231,12 +235,12 @@ class ClientConfig(common.BaseCommonClass):
             except (TypeError, ValueError) as e:
                 value_provided_type = repr(type(getattr(self, f"{position_type}_sequence_number")))
                 value_provided = repr(getattr(self, f"{position_type}_sequence_number"))
-                raise ValueError(
+                raise exceptions.ConfigValidationError(
                     f"If config-kinesis_scraper.yaml: \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
                     f"the value must be a positive numeric string, float or an integer. "
                     f"\nValue provided: {value_provided_type} {value_provided}"
                 ) from e
-            
+
     def _validate_timestamp_usage(self, position_type: str) -> None:
         # If any of these are set for the {starting/ending}_positions, a valid timestamp is required
         if getattr(self, f"{position_type}_position") in [
@@ -249,9 +253,10 @@ class ClientConfig(common.BaseCommonClass):
             try:
                 common.validate_datetime(timestamp)
             except ValueError as e:
-                raise ValueError(f"config-kinesis_scraper.yaml: Invalid format for config parameter "
-                                 f"\"{position_type}_timestamp\". Format should be YYYY-MM-DD HH:MM:SS.\nValue "
-                                 f"provided: {str(type(timestamp))} {repr(timestamp)}") from e
+                raise exceptions.ConfigValidationError(
+                    f"config-kinesis_scraper.yaml: Invalid format for config parameter \"{position_type}_timestamp\". "
+                    f"Format should be YYYY-MM-DD HH:MM:SS.\n"
+                    f"Value provided: {str(type(timestamp))} {repr(timestamp)}") from e
 
     def _validate_starting_ending_position(self, position_type: str):
         positions = {
@@ -277,8 +282,8 @@ class ClientConfig(common.BaseCommonClass):
         valid_positions = positions[position_type]
 
         if getattr(self, f"{position_type}_position") not in valid_positions:
-            raise ValueError(f'config-kinesis_scraper.yaml: {position_type}_position" must be one of: '
-                             f'{repr(valid_positions)}')
+            raise exceptions.ConfigValidationError(f'config-kinesis_scraper.yaml: {position_type}_position" '
+                                                   f'must be one of: {repr(valid_positions)}')
 
     @staticmethod
     def validate_shard_ids(shard_ids: list = None) -> list:
@@ -287,7 +292,8 @@ class ClientConfig(common.BaseCommonClass):
         if shard_ids is None:
             return []
         if not isinstance(shard_ids, list):
-            raise TypeError(f'shard_ids must be of type list if specified. Type provided: {str(type(shard_ids))}')
+            raise exceptions.ConfigValidationError(f'shard_ids must be of type list if specified. Type provided: '
+                                                   f'{str(type(shard_ids))}')
         for shard_id in shard_ids:
             ClientConfig.validate_shard_id(shard_id)
         return shard_ids
@@ -295,10 +301,12 @@ class ClientConfig(common.BaseCommonClass):
     @staticmethod
     def validate_shard_id(shard_id: str = None) -> str:
         if not isinstance(shard_id, str):
-            raise TypeError(f'Each shard_id must be a string. Value provided: {repr(type(shard_id))} {repr(shard_id)}')
+            raise exceptions.ConfigValidationError(f'Each shard_id must be a string. '
+                                                   f'Value provided: {repr(type(shard_id))} {repr(shard_id)}')
 
         if shard_id.strip() == '':
-            raise TypeError(f'Each shard_id must be a populated string. Value provided: {repr(shard_id)}')
+            raise exceptions.ConfigValidationError(f'Each shard_id must be a populated string. '
+                                                   f'Value provided: {repr(shard_id)}')
         return shard_id
 
 
@@ -314,14 +322,16 @@ class Client:
 
     def _is_valid(self):
         if not isinstance(self._client_config, ClientConfig):
-            raise TypeError(f"client_config must be an instance of ClientConfig. Value provided: "
-                            f"{repr(type(self._client_config))} {repr(self._client_config)}")
+            raise exceptions.ConfigValidationError(
+                f"client_config must be an instance of ClientConfig. "
+                f"Value provided: {repr(type(self._client_config))} {repr(self._client_config)}")
 
     def _confirm_shards_exist(self, shard_ids_detected: list):
         for shard_id in self._client_config.shard_ids:
             if shard_id not in shard_ids_detected:
-                raise ValueError(f'Specified shard_id "{shard_id}" does not exist in stream '
-                                 f'"{self._client_config.stream_name}". Detected shards: {repr(shard_ids_detected)}')
+                raise exceptions.ConfigValidationError(
+                    f'Specified shard_id "{shard_id}" does not exist in stream '
+                    f'"{self._client_config.stream_name}". Detected shards: {repr(shard_ids_detected)}')
 
     def begin_scraping(self):
         shard_ids_detected = self._get_shard_ids_of_stream()
@@ -348,7 +358,7 @@ class Client:
 
     def _scrape_shards(self, shard_ids=None):
         if shard_ids is None:
-            raise ValueError('_scrape_shards called with None.')
+            raise exceptions.InvalidArgumentException('_scrape_shards called with None.')
 
         for shard_id in shard_ids:
             self._scrape_records_for_shard(shard_id)
@@ -381,14 +391,19 @@ class Client:
             try:
                 # Store next iterator for subsequent loops
                 next_iterator = response['NextShardIterator']
-            except KeyError as ex:
-                log.error(f'received an unexpected response from boto3 kinesis get_records(): {repr(ex)}')
+                if not isinstance(response['Records'], list):
+                    raise exceptions.AwsUnexpectedResponse('Records key is not of type list.')
+            except Exception as ex:
+                error_msg = f'received an unexpected response from boto3 kinesis get_records(): {repr(ex)}'
+                log.error(error_msg)
                 log.debug(f'Response value:')
                 log.debug(response)
-                raise ex
+                raise exceptions.AwsUnexpectedResponse(
+                    f'received an unexpected response from boto3 kinesis get_records(): {repr(ex)}') from ex
 
             # Store records if found in temp list
             if len(response["Records"]) > 0:
+                log.debug(f'Found {len(response["Records"])} in batch.')
                 # Write the found records before any breaks occur
                 self._process_records(shard_id, response["Records"])
 
@@ -431,7 +446,8 @@ class Client:
     # If we don't have an existing/current shard iterator, we grab a new one, otherwise return the current one
     def _shard_iterator(self, shard_id: str) -> str:
         if not isinstance(shard_id, str):
-            raise ValueError(f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
+            raise exceptions.InvalidArgumentException(
+                f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
 
         if self._current_shard_iterator is not None:
             return self._current_shard_iterator
@@ -440,7 +456,8 @@ class Client:
 
     def _get_new_shard_iterator(self, shard_id: str) -> str:
         if not isinstance(shard_id, str):
-            raise ValueError(f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
+            raise exceptions.InvalidArgumentException(
+                f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
 
         # If we have a timestamp specified, we call client.get_shard_iterator with the timestamp,
         # otherwise call it without that argument
@@ -485,11 +502,12 @@ class Client:
 
         try:
             iterator = response['ShardIterator']
-        except KeyError as ex:
-            log.error(f'received an unexpected response from boto3 kinesis get_shard_iterator(): {repr(ex)}')
+        except Exception as ex:
+            error_msg = f'received an unexpected response from boto3 kinesis get_shard_iterator(): {repr(ex)}'
+            log.error(error_msg)
             log.debug(f'Response value:')
             log.debug(response)
-            raise ex
+            raise exceptions.AwsUnexpectedResponse(error_msg) from ex
         log.debug('Returned Iterator: ' + iterator)
         return iterator
 
@@ -505,11 +523,12 @@ class Client:
             try:
                 log.info(f"Detected shard id: {node['ShardId']}")
                 shard_ids.append(node['ShardId'])
-            except KeyError as ex:
-                log.error(f'received an unexpected response from boto3 kinesis describe_stream(): {repr(ex)}')
+            except Exception as ex:
+                error_msg = f'received an unexpected response from boto3 kinesis describe_stream(): {repr(ex)}'
+                log.error(error_msg)
                 log.debug(f'Response value:')
                 log.debug(response)
-                raise ex
+                raise exceptions.AwsUnexpectedResponse(error_msg) from ex
         return shard_ids
 
     @staticmethod
