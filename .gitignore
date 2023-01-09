@@ -3,4 +3,5 @@
 /includes/__pycache__
 /tests/__pycache__
 .coverage
-
+/scraped_events/*
+/scraped_events/!.gitkeep
