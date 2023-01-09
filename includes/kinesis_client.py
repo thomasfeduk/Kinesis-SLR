@@ -14,6 +14,94 @@ import os
 log = logging.getLogger(__name__)
 
 
+class GetRecordsIteratorInput:
+    def __init__(self, *,
+                 response_no_records: int,
+                 found_records: int,
+                 i: int,
+                 iterator: str,
+                 shard_id: str):
+        self._response_no_records = response_no_records
+        self._found_records = found_records
+        self._i = i
+        self._iterator = iterator
+        self._shard_id = shard_id
+
+        self._is_valid()
+
+    @property
+    def response_no_records(self):
+        return self._response_no_records
+
+    @property
+    def found_records(self):
+        return self._found_records
+
+    @property
+    def i(self):
+        return self._i
+
+    @property
+    def iterator(self):
+        return self._iterator
+
+    @property
+    def shard_id(self):
+        return self._shard_id
+
+    def _is_valid(self):
+        requirements = [
+            {"name": "response_no_records", "type":  int},
+            {"name": "int", "type":  int},
+            {"name": "i", "type": int},
+            {"name": "iterator", "type": str},
+            {"name": "shard_id", "type": str},
+        ]
+        for prop in requirements:
+            pvdd(prop["type"])
+            # pvdd(getattr(self, f'{prop["type"]}'))
+            # if not isinstance(, prop["type"]):
+            #     raise exceptions.InvalidArgumentException(
+            #         f'{prop["name"]} must be an {str(prop["type"])}. Received: {repr(self._response_no_records)}')
+
+
+
+class Boto3GetRecordsResponse(common.BaseCommonClass):
+    def __init__(self, passed_data: [dict]):
+        self._Records = None
+        self._NextShardIterator = None
+        self._MillisBehindLatest = None
+
+        # Have to call parent after defining attributes other they are not populated
+        super().__init__(passed_data)
+
+    @property
+    def records(self):
+        return self._Records
+
+    @property
+    def next_shard_iterator(self):
+        return self._NextShardIterator
+
+    @property
+    def millis_behind_latest(self):
+        return self._MillisBehindLatest
+
+    def _post_init_processing(self):
+        pass
+
+    def _is_valid(self):
+        received_log_msg = f'Received data: {repr(self._base_superclass_passed_data)}'
+        if not isinstance(self._base_superclass_passed_data, dict):
+            raise exceptions.AwsUnexpectedResponse(f'Receive data type dict. {received_log_msg}')
+        if not isinstance(self.records, list):
+            raise exceptions.AwsUnexpectedResponse(
+                f'Records key is not present or not of type list. {received_log_msg}')
+        if not isinstance(self.next_shard_iterator, str):
+            raise exceptions.AwsUnexpectedResponse(
+                f'NextShardIterator key is not present or not of type str. {received_log_msg}')
+
+
 class ClientConfig(common.BaseCommonClass):
     def __init__(self, passed_data: [dict, str], boto_client: botocore.client.BaseClient):
         self._boto_client = boto_client
@@ -367,86 +455,87 @@ class Client:
         i = 1
         iterator = self._shard_iterator(shard_id)
         count_response_no_records = 0
-        found_records = []
+        found_records = 0
         while iterator:
-            # TODO:  Add separate "Total found records" and "Total found records per shard" log info
-
-            # Poll delay injection
-            if self._client_config.poll_delay > 0:
-                log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
-                time.sleep(self._client_config.poll_delay)
-
-            log.info(f'get_records() loop count: {str(i)} for shard: {shard_id}')
-            log.debug(f'Current iterator: {iterator}')
-
-            # Make the boto3 call
-            timer_start = time.time()
-            response = self._client_config.boto_client.get_records(
-                ShardIterator=iterator,
-                Limit=self._client_config.poll_batch_size
+            found_records, count_response_no_records, iterator = self._scrape_records_for_shard_iterator(
+                count_response_no_records,
+                found_records,
+                i,
+                iterator,
+                shard_id
             )
-            timer_end = time.time()
-            log.debug(f'get_records() completed in {timer_end - timer_start} seconds.')
-
-            try:
-                # Store next iterator for subsequent loops
-                next_iterator = response['NextShardIterator']
-                if not isinstance(response['Records'], list):
-                    raise exceptions.AwsUnexpectedResponse('Records key is not of type list.')
-            except Exception as ex:
-                error_msg = f'received an unexpected response from boto3 kinesis get_records(): {repr(ex)}'
-                log.error(error_msg)
-                log.debug(f'Response value:')
-                log.debug(response)
-                raise exceptions.AwsUnexpectedResponse(
-                    f'received an unexpected response from boto3 kinesis get_records(): {repr(ex)}') from ex
-
-            # Store records if found in temp list
-            if len(response["Records"]) > 0:
-                log.debug(f'Found {len(response["Records"])} in batch.')
-
-                self._total_records_fetched += 1
-                log.info(
-                    f"\n\n{len(response['Records'])} records found in current get_records() response for shard:"
-                    f" {shard_id}. Total found records: {len(found_records) + len(response['Records'])}\n")
-                count_response_no_records = 0
-
-                # Append the records to found_records (upto N records, so we don't exceed total_records_per_shard)
-                records_count_upto_to_add = self._client_config.total_records_per_shard - len(found_records)
-                # If total_records_per_shard if 0, we include all records by passing 0 as the upto argument
-                if self._client_config.total_records_per_shard == 0:
-                    records_count_upto_to_add = 0
-
-                # Write the found records before any breaks occur
-                self._process_records(shard_id, common.list_append_upto_n_items(
-                    found_records, response["Records"], records_count_upto_to_add))
-
-                # If we are at the total per shard, we terminate the loop
-                if self._client_config.total_records_per_shard > 0 and \
-                        0 < self._client_config.total_records_per_shard <= len(found_records):
-                    log.info(f'Reached {self._client_config.total_records_per_shard} max records per shard '
-                             f'limit for shard {shard_id}\n')
-                    break
-                # Append the new records for this iteration to the found records var
-                found_records = common.list_append_upto_n_items(
-                    found_records, response["Records"], records_count_upto_to_add)
-
-            else:
-                log.debug(response)
-                count_response_no_records += 1
-                log.info(f'No records found in loop. Currently at {count_response_no_records} empty calls, '
-                         f'MillisBehindLatest: {response["MillisBehindLatest"]}.')
-
-                if count_response_no_records > self._client_config.max_empty_polls - 1:
-                    log.info(f'\n\nReached {self._client_config.max_empty_polls} empty polls for shard {shard_id} '
-                             f'and found a total of {len(found_records)} records, '
-                             f'current iterator: {iterator}\nAborting further reads for current shard.')
-                    break
-
-            # Update  iterator to next_iterator for subsequent loop
-            iterator = next_iterator
-            i += 1
         return found_records
+
+    def _scrape_records_for_shard_iterator(self, count_response_no_records: int, found_records: int, i: int,
+                                           iterator: str, shard_id: str):
+        # TODO:  Add separate "Total found records" and "Total found records per shard" log info
+        # Poll delay injection
+        self._scrape_records_for_shard_handle_poll_delay(i, iterator, shard_id)
+        # Make the boto3 call
+        response = self._get_records(iterator)
+        # Store records if found in temp list
+        if len(response.records) > 0:
+            log.debug(f'Found {len(response.records)} in batch.')
+
+            self._total_records_fetched += 1
+            log.info(
+                f"\n\n{len(response.records)} records found in current get_records() response for shard:"
+                f" {shard_id}. Total found records: {len(found_records) + len(response['Records'])}\n")
+            count_response_no_records = 0
+
+            # Append the records to found_records (upto N records, so we don't exceed total_records_per_shard)
+            records_count_upto_to_add = self._client_config.total_records_per_shard - len(found_records)
+            # If total_records_per_shard if 0, we include all records by passing 0 as the upto argument
+            if self._client_config.total_records_per_shard == 0:
+                records_count_upto_to_add = 0
+
+            # Write the found records before any breaks occur
+            self._process_records(shard_id, common.list_append_upto_n_items(
+                found_records, response["Records"], records_count_upto_to_add))
+
+            # If we are at the total per shard, we terminate the loop
+            if self._client_config.total_records_per_shard > 0 and \
+                    0 < self._client_config.total_records_per_shard <= len(found_records):
+                log.info(f'Reached {self._client_config.total_records_per_shard} max records per shard '
+                         f'limit for shard {shard_id}\n')
+                # break
+            # Append the new records for this iteration to the found records var
+            found_records = common.list_append_upto_n_items(
+                found_records, response["Records"], records_count_upto_to_add)
+
+        else:
+            log.debug(response)
+            count_response_no_records += 1
+            log.info(f'No records found in loop. Currently at {count_response_no_records} empty calls, '
+                     f'MillisBehindLatest: {response["MillisBehindLatest"]}.')
+
+            if count_response_no_records > self._client_config.max_empty_polls - 1:
+                log.info(f'\n\nReached {self._client_config.max_empty_polls} empty polls for shard {shard_id} '
+                         f'and found a total of {len(found_records)} records, '
+                         f'current iterator: {iterator}\nAborting further reads for current shard.')
+                # break
+        # Update  iterator to next_iterator for subsequent loop
+        iterator = next_iterator
+        i += 1
+        return found_records, count_response_no_records, iterator
+
+    def _scrape_records_for_shard_handle_poll_delay(self, i: int, iterator: str, shard_id: str):
+        if self._client_config.poll_delay > 0:
+            log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
+            time.sleep(self._client_config.poll_delay)
+        log.info(f'get_records() loop count: {str(i)} for shard: {shard_id}')
+        log.debug(f'Current iterator: {iterator}')
+
+    def _get_records(self, iterator) -> Boto3GetRecordsResponse:
+        timer_start = time.time()
+        response = self._client_config.boto_client.get_records(
+            ShardIterator=iterator,
+            Limit=self._client_config.poll_batch_size
+        )
+        timer_end = time.time()
+        log.debug(f'get_records() completed in {timer_end - timer_start} seconds.')
+
+        return Boto3GetRecordsResponse(response)
 
     # If we don't have an existing/current shard iterator, we grab a new one, otherwise return the current one
     def _shard_iterator(self, shard_id: str) -> str:

@@ -19,6 +19,18 @@ logging.basicConfig()
 
 def main():
 
+
+    obj = kinesis.GetRecordsIteratorInput(
+        response_no_records=5,
+        iterator='a',
+        i=5,
+        found_records='a',
+        shard_id=5,
+    )
+
+    pvdd(obj)
+
+
     # Delete any existing local files
     try:
         dir_path = 'scraped_events/shardId-000000000005'

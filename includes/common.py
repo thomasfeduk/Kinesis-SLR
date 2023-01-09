@@ -20,6 +20,7 @@ class BaseSuperclass(ABC):
 
         # Superclass only:
         self._load_base_superclass_data(passed_data)
+        self._base_superclass_passed_data = passed_data
 
     # This converts the passed data to a dict, then for each key that exists in the dic that is defined
     # as a mapping attribute, we set that attribute to the value of the key
