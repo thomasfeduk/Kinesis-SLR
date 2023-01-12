@@ -18,12 +18,10 @@ class GetRecordsIteratorInput:
     def __init__(self, *,
                  response_no_records: int,
                  found_records: int,
-                 i: int,
                  iterator: str,
                  shard_id: str):
         self._response_no_records = response_no_records
         self._found_records = found_records
-        self._i = i
         self._iterator = iterator
         self._shard_id = shard_id
 
@@ -38,10 +36,6 @@ class GetRecordsIteratorInput:
         return self._found_records
 
     @property
-    def i(self):
-        return self._i
-
-    @property
     def iterator(self):
         return self._iterator
 
@@ -53,16 +47,26 @@ class GetRecordsIteratorInput:
         requirements = [
             {"name": "response_no_records", "type":  int},
             {"name": "found_records", "type": int},
-            {"name": "i", "type": int},
             {"name": "iterator", "type": str},
             {"name": "shard_id", "type": str},
         ]
 
+        # Confirm proper types
         for prop in requirements:
-            if not isinstance(getattr(self, f'{prop["name"]}'), prop["type"]):
+            if not isinstance(getattr(self, prop["name"]), prop["type"]):
                 raise exceptions.InvalidArgumentException(
-                    f'{prop["name"]} must be an {str(prop["type"])}. '
+                    f'{prop["name"]} must be of type {str(prop["type"])}. '
                     f'Received: {repr(type(self._response_no_records))} {repr(self._response_no_records)}')
+
+        # Confirm porper numbers on ints
+        for attrib in ['response_no_records', 'found_records']:
+            try:
+                common.validate_numeric_pos(getattr(self, attrib))
+            except (TypeError, ValueError) as ex:
+                raise exceptions.InvalidArgumentException(
+                    f'{attrib} must be a positive numeric value. Received: '
+                    f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
+
 
 class Boto3GetRecordsResponse(common.BaseCommonClass):
     def __init__(self, passed_data: [dict]):
