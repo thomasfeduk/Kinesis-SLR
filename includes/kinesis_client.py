@@ -52,19 +52,17 @@ class GetRecordsIteratorInput:
     def _is_valid(self):
         requirements = [
             {"name": "response_no_records", "type":  int},
-            {"name": "int", "type":  int},
+            {"name": "found_records", "type": int},
             {"name": "i", "type": int},
             {"name": "iterator", "type": str},
             {"name": "shard_id", "type": str},
         ]
+
         for prop in requirements:
-            pvdd(prop["type"])
-            # pvdd(getattr(self, f'{prop["type"]}'))
-            # if not isinstance(, prop["type"]):
-            #     raise exceptions.InvalidArgumentException(
-            #         f'{prop["name"]} must be an {str(prop["type"])}. Received: {repr(self._response_no_records)}')
-
-
+            if not isinstance(getattr(self, f'{prop["name"]}'), prop["type"]):
+                raise exceptions.InvalidArgumentException(
+                    f'{prop["name"]} must be an {str(prop["type"])}. '
+                    f'Received: {repr(type(self._response_no_records))} {repr(self._response_no_records)}')
 
 class Boto3GetRecordsResponse(common.BaseCommonClass):
     def __init__(self, passed_data: [dict]):
