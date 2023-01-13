@@ -10,30 +10,61 @@ import includes.common as common
 import logging
 import botocore
 import os
+from abc import ABC, abstractmethod
 
 log = logging.getLogger(__name__)
 
+class GetRecordsIterator(ABC):
+    @abstractmethod
+    def __init__(self):
+        self._proptypes = []
 
-class GetRecordsIteratorInput:
+        self._is_valid()
+
+    @abstractmethod
+    def _is_valid(self):
+        for prop in self._proptypes:
+            if not isinstance(getattr(self, prop["name"]), prop["type"]):
+                raise exceptions.InvalidArgumentException(
+                    f'"{prop["name"]}" must be of type {str(prop["type"])}. '
+                    f'Received: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}')
+
+
+class GetRecordsIteratorInput(GetRecordsIterator):
     def __init__(self, *,
-                 response_no_records: int,
                  found_records: int,
+                 response_no_records: int,
+                 loop_count: int = 1,
                  iterator: str,
-                 shard_id: str):
-        self._response_no_records = response_no_records
+                 shard_id: str
+                 ):
         self._found_records = found_records
+        self._response_no_records = response_no_records
+        self._loop_count = loop_count
         self._iterator = iterator
         self._shard_id = shard_id
 
-        self._is_valid()
+        self._proptypes = [
+            {"name": "found_records", "type": int},
+            {"name": "response_no_records", "type": int},
+            {"name": "iterator", "type": str},
+            {"name": "loop_count", "type": int},
+            {"name": "shard_id", "type": str},
+        ]
+
+        super().__init__()
+
+    @property
+    def found_records(self):
+        return self._found_records
 
     @property
     def response_no_records(self):
         return self._response_no_records
 
     @property
-    def found_records(self):
-        return self._found_records
+    def loop_count(self):
+        return self._loop_count
 
     @property
     def iterator(self):
@@ -44,27 +75,71 @@ class GetRecordsIteratorInput:
         return self._shard_id
 
     def _is_valid(self):
-        proptypes = [
-            {"name": "response_no_records", "type":  int},
-            {"name": "found_records", "type": int},
-            {"name": "iterator", "type": str},
-            {"name": "shard_id", "type": str},
-        ]
-
-        # Confirm proper types
-        for prop in proptypes:
-            if not isinstance(getattr(self, prop["name"]), prop["type"]):
-                raise exceptions.InvalidArgumentException(
-                    f'"{prop["name"]}" must be of type {str(prop["type"])}. '
-                    f'Received: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}')
+        super()._is_valid()
 
         # Confirm porper numbers on ints
-        for attrib in ['response_no_records', 'found_records']:
+        for attrib in ['response_no_records', 'found_records', 'loop_count']:
             try:
                 common.validate_numeric_pos(getattr(self, attrib))
             except (TypeError, ValueError) as ex:
                 raise exceptions.InvalidArgumentException(
-                    f'{attrib} must be a positive numeric value. Received: '
+                    f'"{attrib}" must be a positive numeric value. Received: '
+                    f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
+
+
+class GetRecordsIteratorResponse(GetRecordsIterator):
+    def __init__(self, *,
+                 found_records: int,
+                 response_no_records: int,
+                 loop_count: int = 1,
+                 iterator: str,
+                 break_iteration: bool,
+                 ):
+        self._found_records = found_records
+        self._response_no_records = response_no_records
+        self._loop_count = loop_count
+        self._iterator = iterator
+        self._break_iteration = break_iteration
+
+        self._proptypes = [
+            {"name": "response_no_records", "type": int},
+            {"name": "found_records", "type": int},
+            {"name": "iterator", "type": str},
+            {"name": "loop_count", "type": int},
+            {"name": "shard_id", "type": str},
+        ]
+
+        super().__init__()
+
+    @property
+    def found_records(self):
+        return self._found_records
+
+    @property
+    def response_no_records(self):
+        return self._response_no_records
+
+    @property
+    def loop_count(self):
+        return self._loop_count
+
+    @property
+    def iterator(self):
+        return self._iterator
+
+    @property
+    def break_iteration(self):
+        return self._break_iteration
+
+    def _is_valid(self):
+        super()._is_valid()
+
+        for attrib in ['response_no_records', 'found_records', 'loop_count']:
+            try:
+                common.validate_numeric_pos(getattr(self, attrib))
+            except (TypeError, ValueError) as ex:
+                raise exceptions.InvalidArgumentException(
+                    f'"{attrib}" must be a positive numeric value. Received: '
                     f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
 
 
@@ -94,15 +169,15 @@ class Boto3GetRecordsResponse(common.BaseCommonClass):
 
     def _is_valid(self):
         proptypes = [
-            {"name": "Records", "type":  list},
+            {"name": "Records", "type": list},
             {"name": "NextShardIterator", "type": str},
             {"name": "MillisBehindLatest", "type": int},
         ]
-
         try:
             self._is_valid_proptypes(proptypes)
         except ValueError as ex:
             raise exceptions.InvalidArgumentException(ex) from ex
+
 
 class ClientConfig(common.BaseCommonClass):
     def __init__(self, passed_data: [dict, str], boto_client: botocore.client.BaseClient):
@@ -454,30 +529,40 @@ class Client:
             self._scrape_records_for_shard(shard_id)
 
     def _scrape_records_for_shard(self, shard_id: str) -> list:
-        i = 1
         iterator = self._shard_iterator(shard_id)
-        count_response_no_records = 0
-        found_records = 0
+
         while iterator:
-            found_records, count_response_no_records, iterator = self._scrape_records_for_shard_iterator(
-                count_response_no_records,
-                found_records,
-                i,
-                iterator,
-                shard_id
+            iterator_obj = self._scrape_records_for_shard_iterator(GetRecordsIteratorInput(
+                response_no_records=0,
+                found_records=0,
+                iterator=iterator,
+                loop_count=1,
+                shard_id=shard_id
+                )
             )
+
+            pvdd(iterator_obj)
+            # found_records, count_response_no_records, iterator = self._scrape_records_for_shard_iterator(
+            #     count_response_no_records,
+            #     found_records,
+            #     i,
+            #     iterator,
+            #     shard_id
+            # )
         return found_records
 
-    def _scrape_records_for_shard_iterator(self, count_response_no_records: int, found_records: int, i: int,
-                                           iterator: str, shard_id: str):
-        # TODO:  Add separate "Total found records" and "Total found records per shard" log info
+    def _scrape_records_for_shard_iterator(self, iterator_obj: GetRecordsIteratorInput)\
+            -> GetRecordsIteratorResponse:
         # Poll delay injection
-        self._scrape_records_for_shard_handle_poll_delay(i, iterator, shard_id)
+        self._scrape_records_for_shard_handle_poll_delay(
+            iterator_obj.loop_count, iterator_obj.iterator, iterator_obj.shard_id
+        )
         # Make the boto3 call
-        response = self._get_records(iterator)
+        response = self._get_records(iterator_obj.iterator)
+        pvdd(response)
         # Store records if found in temp list
-        if len(response.records) > 0:
-            log.debug(f'Found {len(response.records)} in batch.')
+        if len(response.Records) > 0:
+            log.debug(f'Found {len(response.Records)} in batch.')
 
             self._total_records_fetched += 1
             log.info(
@@ -521,14 +606,14 @@ class Client:
         i += 1
         return found_records, count_response_no_records, iterator
 
-    def _scrape_records_for_shard_handle_poll_delay(self, i: int, iterator: str, shard_id: str):
+    def _scrape_records_for_shard_handle_poll_delay(self, loop_count: int, iterator: str, shard_id: str) -> None:
         if self._client_config.poll_delay > 0:
             log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
             time.sleep(self._client_config.poll_delay)
-        log.info(f'get_records() loop count: {str(i)} for shard: {shard_id}')
+        log.info(f'get_records() loop count: {str(loop_count)} for shard: {shard_id}')
         log.debug(f'Current iterator: {iterator}')
 
-    def _get_records(self, iterator) -> Boto3GetRecordsResponse:
+    def _get_records(self, iterator: str) -> Boto3GetRecordsResponse:
         timer_start = time.time()
         response = self._client_config.boto_client.get_records(
             ShardIterator=iterator,
