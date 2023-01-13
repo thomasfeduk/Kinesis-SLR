@@ -44,7 +44,7 @@ class GetRecordsIteratorInput:
         return self._shard_id
 
     def _is_valid(self):
-        requirements = [
+        proptypes = [
             {"name": "response_no_records", "type":  int},
             {"name": "found_records", "type": int},
             {"name": "iterator", "type": str},
@@ -52,11 +52,11 @@ class GetRecordsIteratorInput:
         ]
 
         # Confirm proper types
-        for prop in requirements:
+        for prop in proptypes:
             if not isinstance(getattr(self, prop["name"]), prop["type"]):
                 raise exceptions.InvalidArgumentException(
-                    f'{prop["name"]} must be of type {str(prop["type"])}. '
-                    f'Received: {repr(type(self._response_no_records))} {repr(self._response_no_records)}')
+                    f'"{prop["name"]}" must be of type {str(prop["type"])}. '
+                    f'Received: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}')
 
         # Confirm porper numbers on ints
         for attrib in ['response_no_records', 'found_records']:
@@ -78,31 +78,31 @@ class Boto3GetRecordsResponse(common.BaseCommonClass):
         super().__init__(passed_data)
 
     @property
-    def records(self):
+    def Records(self):
         return self._Records
 
     @property
-    def next_shard_iterator(self):
+    def NextShardIterator(self):
         return self._NextShardIterator
 
     @property
-    def millis_behind_latest(self):
+    def MillisBehindLatest(self):
         return self._MillisBehindLatest
 
     def _post_init_processing(self):
         pass
 
     def _is_valid(self):
-        received_log_msg = f'Received data: {repr(self._base_superclass_passed_data)}'
-        if not isinstance(self._base_superclass_passed_data, dict):
-            raise exceptions.AwsUnexpectedResponse(f'Receive data type dict. {received_log_msg}')
-        if not isinstance(self.records, list):
-            raise exceptions.AwsUnexpectedResponse(
-                f'Records key is not present or not of type list. {received_log_msg}')
-        if not isinstance(self.next_shard_iterator, str):
-            raise exceptions.AwsUnexpectedResponse(
-                f'NextShardIterator key is not present or not of type str. {received_log_msg}')
+        proptypes = [
+            {"name": "Records", "type":  list},
+            {"name": "NextShardIterator", "type": str},
+            {"name": "MillisBehindLatest", "type": int},
+        ]
 
+        try:
+            self._is_valid_proptypes(proptypes)
+        except ValueError as ex:
+            raise exceptions.InvalidArgumentException(ex) from ex
 
 class ClientConfig(common.BaseCommonClass):
     def __init__(self, passed_data: [dict, str], boto_client: botocore.client.BaseClient):

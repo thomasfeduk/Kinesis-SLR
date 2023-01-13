@@ -45,6 +45,26 @@ class BaseSuperclass(ABC):
         except Exception as ex:
             raise ValueError(f"Could not convert passed_data to a dict. passed_data: {repr(passed_data)}") from ex
 
+    def _is_valid_proptypes(self, proptypes: list) -> None:
+        """
+        Accepts a list of name:type dictionaries and iterates through validating each self.name=type as defined
+
+        :param proptypes:
+        # Example:
+        [
+            {"name": "found_records", "type": int},
+            {"name": "iterator", "type": str},
+            {"name": "shard_id", "type": str},
+        ]
+        """
+
+        # Confirm proper types
+        for prop in proptypes:
+            if not isinstance(getattr(self, prop["name"]), prop["type"]):
+                raise ValueError(
+                    f'"{prop["name"]}" key name must exist and be of type {str(prop["type"])}. '
+                    f'Passed data: {repr(self._base_superclass_passed_data)}')
+
     # Returns a recursive dict of the entire object and any attributes that are also objects
     # Similar to .__dict__ but recursive
     def dict(self) -> dict:
