@@ -17,40 +17,55 @@ log = logging.getLogger(__name__)
 
 class GetRecordsIteratorInput(ABC):
     def __init__(self, *,
-                 found_records: int,
+                 total_found_records: int,
                  response_no_records: int,
                  loop_count: int,
                  shard_iterator: str,
                  shard_id: str
                  ):
-        self._found_records = found_records
+        self._total_found_records = total_found_records
         self._response_no_records = response_no_records
         self._loop_count = loop_count
         self._shard_iterator = shard_iterator
         self._shard_id = shard_id
 
         self._proptypes = [
-            {"name": "found_records", "type": int},
+            {"name": "total_found_records", "type": int},
             {"name": "response_no_records", "type": int},
             {"name": "shard_iterator", "type": str},
             {"name": "loop_count", "type": int},
             {"name": "shard_id", "type": str},
         ]
-        self._require_numeric_pos = ['response_no_records', 'found_records', 'loop_count']
+        self._require_numeric_pos = ['total_found_records', 'response_no_records', 'loop_count']
 
         self._is_valid()
 
     @property
-    def found_records(self):
-        return self._found_records
+    def total_found_records(self):
+        return self._total_found_records
+
+    @total_found_records.setter
+    def total_found_records(self, value):
+        self._total_found_records = value
+        self._is_valid()
 
     @property
     def response_no_records(self):
         return self._response_no_records
 
+    @response_no_records.setter
+    def response_no_records(self, value):
+        self._response_no_records = value
+        self._is_valid()
+
     @property
     def loop_count(self):
         return self._loop_count
+
+    @loop_count.setter
+    def loop_count(self, value):
+        self._loop_count = value
+        self._is_valid()
 
     @property
     def shard_iterator(self):
@@ -76,8 +91,9 @@ class GetRecordsIteratorInput(ABC):
                     f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
 
 
-class GetRecordsIteratorOutput(GetRecordsIteratorInput):
+class GetRecordsIteratorResponse(GetRecordsIteratorInput):
     def __init__(self, *,
+                 total_found_records: int,
                  found_records: int,
                  response_no_records: int,
                  loop_count: int,
@@ -85,20 +101,33 @@ class GetRecordsIteratorOutput(GetRecordsIteratorInput):
                  shard_id: str,
                  break_iteration: bool,
                  ):
+
+        self._break_iteration = break_iteration
+        self._found_records = found_records
+
         super().__init__(
-            found_records=found_records,
+            total_found_records=total_found_records,
             response_no_records=response_no_records,
             loop_count=loop_count,
             shard_iterator=shard_iterator,
             shard_id=shard_id
         )
 
-        self._break_iteration = break_iteration
         # Inject break_iteration proptype requirement into the parent class's list
         self._proptypes.append({"name": "break_iteration", "type": bool})
+        self._proptypes.append({"name": "found_records", "type": int})
+        self._require_numeric_pos.append('found_records')
 
         # Recall the validation that is called in super().__init__ again after appending the new proptype
         self._is_valid()
+
+    @property
+    def total_found_records(self):
+        return super().total_found_records
+
+    @property
+    def found_records(self):
+        return self._found_records
 
     @property
     def break_iteration(self):
@@ -514,14 +543,15 @@ class Client:
         return found_records
 
     def _scrape_records_for_shard_iterator(self, iterator_obj: GetRecordsIteratorInput)\
-            -> GetRecordsIteratorOutput:
+            -> GetRecordsIteratorResponse:
+
         # Poll delay injection
         self._scrape_records_for_shard_handle_poll_delay(
-            iterator_obj.loop_count, iterator_obj.iterator, iterator_obj.shard_id
+            iterator_obj.loop_count, iterator_obj.shard_iterator, iterator_obj.shard_id
         )
         # Make the boto3 call
-        response = self._get_records(iterator_obj.iterator)
-        pvdd(response)
+        response = self._get_records(iterator_obj.shard_iterator)
+
         # Store records if found in temp list
         if len(response.Records) > 0:
             log.debug(f'Found {len(response.Records)} in batch.')
@@ -530,7 +560,7 @@ class Client:
             log.info(
                 f"\n\n{len(response.Records)} records found in current get_records() response for shard:"
                 f" {shard_id}. Total found records: {len(found_records) + len(response['Records'])}\n")
-            count_response_no_records = 0
+            response_no_records = 0
 
             # Append the records to found_records (upto N records, so we don't exceed total_records_per_shard)
             records_count_upto_to_add = self._client_config.total_records_per_shard - len(found_records)
@@ -554,19 +584,26 @@ class Client:
 
         else:
             log.debug(response)
-            count_response_no_records += 1
-            log.info(f'No records found in loop. Currently at {count_response_no_records} empty calls, '
+            iterator_obj.response_no_records += 1
+            log.info(f'No records found in loop. Currently at {response_no_records} empty calls, '
                      f'MillisBehindLatest: {response["MillisBehindLatest"]}.')
 
-            if count_response_no_records > self._client_config.max_empty_polls - 1:
+            if response_no_records > self._client_config.max_empty_polls - 1:
                 log.info(f'\n\nReached {self._client_config.max_empty_polls} empty polls for shard {shard_id} '
                          f'and found a total of {len(found_records)} records, '
                          f'current iterator: {iterator}\nAborting further reads for current shard.')
                 # break
         # Update  iterator to next_iterator for subsequent loop
-        iterator = next_iterator
+        iterator = response.NextShardIterator
         i += 1
-        return found_records, count_response_no_records, iterator
+        return GetRecordsIteratorResponse(
+            found_records=iterator_obj.found_records,
+            response_no_records=iterator_obj.response_no_records,
+            shard_iterator=response.NextShardIterator,
+            loop_count=iterator_obj.loop_count,
+
+        )
+        # return found_records, response_no_records, iterator
 
     def _scrape_records_for_shard_handle_poll_delay(self, loop_count: int, iterator: str, shard_id: str) -> None:
         if self._client_config.poll_delay > 0:
