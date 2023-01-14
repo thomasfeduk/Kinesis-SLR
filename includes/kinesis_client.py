@@ -15,25 +15,24 @@ from abc import ABC, abstractmethod
 log = logging.getLogger(__name__)
 
 
-class GetRecordsIteratorInput(ABC):
+class GetRecordsIterator(ABC):
+
+    @abstractmethod
     def __init__(self, *,
                  total_found_records: int,
                  response_no_records: int,
                  loop_count: int,
-                 shard_iterator: str,
                  shard_id: str
                  ):
         self._total_found_records = total_found_records
         self._response_no_records = response_no_records
         self._loop_count = loop_count
-        self._shard_iterator = shard_iterator
         self._shard_id = shard_id
 
         self._proptypes = [
             {"name": "total_found_records", "type": int},
             {"name": "response_no_records", "type": int},
             {"name": "loop_count", "type": int},
-            {"name": "shard_iterator", "type": str},
             {"name": "shard_id", "type": str},
         ]
         self._require_numeric_pos = ['total_found_records', 'response_no_records', 'loop_count']
@@ -68,10 +67,6 @@ class GetRecordsIteratorInput(ABC):
         self._is_valid()
 
     @property
-    def shard_iterator(self):
-        return self._shard_iterator
-
-    @property
     def shard_id(self):
         return self._shard_id
 
@@ -91,7 +86,48 @@ class GetRecordsIteratorInput(ABC):
                     f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
 
 
-class GetRecordsIteratorResponse(GetRecordsIteratorInput):
+class GetRecordsIteratorInput(GetRecordsIterator):
+    def __init__(self, *,
+                 total_found_records: int,
+                 found_records: int,
+                 response_no_records: int,
+                 loop_count: int,
+                 shard_iterator: str,
+                 shard_id: str,
+                 ):
+
+        self._found_records = found_records
+        self._shard_iterator = shard_iterator
+
+        super().__init__(
+            total_found_records=total_found_records,
+            response_no_records=response_no_records,
+            loop_count=loop_count,
+            shard_id=shard_id
+        )
+
+        # Inject proptype requirement into the parent class's list
+        self._proptypes.append({"name": "found_records", "type": int})
+        self._proptypes.append({"name": "shard_iterator", "type": str})
+        self._require_numeric_pos.append('found_records')
+
+        # Recall the validation that is called in super().__init__ again after appending the new proptype
+        self._is_valid()
+
+    @property
+    def total_found_records(self):
+        return super().total_found_records
+
+    @property
+    def found_records(self):
+        return self._found_records
+
+    @property
+    def hard_iterator(self):
+        return self._shard_iterator
+
+
+class GetRecordsIteratorResponse(GetRecordsIterator):
     def __init__(self, *,
                  total_found_records: int,
                  found_records: int,
@@ -110,12 +146,8 @@ class GetRecordsIteratorResponse(GetRecordsIteratorInput):
             total_found_records=total_found_records,
             response_no_records=response_no_records,
             loop_count=loop_count,
-            shard_iterator=next_shard_iterator,
             shard_id=shard_id
         )
-
-        # Delete the original shard iterator property
-        del self._shard_iterator
 
         # Inject break_iteration proptype requirement into the parent class's list
         self._proptypes.append({"name": "break_iteration", "type": bool})
@@ -133,10 +165,6 @@ class GetRecordsIteratorResponse(GetRecordsIteratorInput):
     @property
     def found_records(self):
         return self._found_records
-
-    @property
-    def shard_iterator(self):
-        raise AttributeError('Nope')
 
     @property
     def next_shard_iterator(self):
@@ -545,7 +573,7 @@ class Client:
                 )
             )
 
-            next_shard_iterator = iterator_response_obj.shard_iterator
+            next_shard_iterator = iterator_response_obj.next_shard_iterator
             # Set the shard_iterator var for the next iteration
             # Break the iteration only if the iteration response states it is time to do so
             if iterator_response_obj.break_iteration:
