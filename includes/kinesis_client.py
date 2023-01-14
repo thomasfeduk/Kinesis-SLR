@@ -14,27 +14,12 @@ from abc import ABC, abstractmethod
 
 log = logging.getLogger(__name__)
 
-class GetRecordsIterator(ABC):
-    @abstractmethod
-    def __init__(self):
-        self._proptypes = []
 
-        self._is_valid()
-
-    @abstractmethod
-    def _is_valid(self):
-        for prop in self._proptypes:
-            if not isinstance(getattr(self, prop["name"]), prop["type"]):
-                raise exceptions.InvalidArgumentException(
-                    f'"{prop["name"]}" must be of type {str(prop["type"])}. '
-                    f'Received: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}')
-
-
-class GetRecordsIteratorInput(GetRecordsIterator):
+class GetRecordsIteratorInput(ABC):
     def __init__(self, *,
                  found_records: int,
                  response_no_records: int,
-                 loop_count: int = 1,
+                 loop_count: int,
                  iterator: str,
                  shard_id: str
                  ):
@@ -51,8 +36,9 @@ class GetRecordsIteratorInput(GetRecordsIterator):
             {"name": "loop_count", "type": int},
             {"name": "shard_id", "type": str},
         ]
+        self._require_numeric_pos = ['response_no_records', 'found_records', 'loop_count']
 
-        super().__init__()
+        self._is_valid()
 
     @property
     def found_records(self):
@@ -75,10 +61,13 @@ class GetRecordsIteratorInput(GetRecordsIterator):
         return self._shard_id
 
     def _is_valid(self):
-        super()._is_valid()
+        for prop in self._proptypes:
+            if not isinstance(getattr(self, prop["name"]), prop["type"]):
+                raise exceptions.InvalidArgumentException(
+                    f'"{prop["name"]}" must be of type {str(prop["type"])}. '
+                    f'Received: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}')
 
-        # Confirm porper numbers on ints
-        for attrib in ['response_no_records', 'found_records', 'loop_count']:
+        for attrib in self._require_numeric_pos:
             try:
                 common.validate_numeric_pos(getattr(self, attrib))
             except (TypeError, ValueError) as ex:
@@ -87,60 +76,30 @@ class GetRecordsIteratorInput(GetRecordsIterator):
                     f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
 
 
-class GetRecordsIteratorResponse(GetRecordsIterator):
+class GetRecordsIteratorOutput(GetRecordsIteratorInput):
     def __init__(self, *,
                  found_records: int,
                  response_no_records: int,
-                 loop_count: int = 1,
+                 loop_count: int,
                  iterator: str,
+                 shard_id: str,
                  break_iteration: bool,
                  ):
-        self._found_records = found_records
-        self._response_no_records = response_no_records
-        self._loop_count = loop_count
-        self._iterator = iterator
+
         self._break_iteration = break_iteration
+        self._proptypes.append({"name": "break_iteration", "type": bool})
 
-        self._proptypes = [
-            {"name": "response_no_records", "type": int},
-            {"name": "found_records", "type": int},
-            {"name": "iterator", "type": str},
-            {"name": "loop_count", "type": int},
-            {"name": "shard_id", "type": str},
-        ]
-
-        super().__init__()
-
-    @property
-    def found_records(self):
-        return self._found_records
-
-    @property
-    def response_no_records(self):
-        return self._response_no_records
-
-    @property
-    def loop_count(self):
-        return self._loop_count
-
-    @property
-    def iterator(self):
-        return self._iterator
+        super().__init__(
+            found_records=found_records,
+            response_no_records=response_no_records,
+            loop_count=loop_count,
+            iterator=iterator,
+            shard_id=shard_id
+        )
 
     @property
     def break_iteration(self):
         return self._break_iteration
-
-    def _is_valid(self):
-        super()._is_valid()
-
-        for attrib in ['response_no_records', 'found_records', 'loop_count']:
-            try:
-                common.validate_numeric_pos(getattr(self, attrib))
-            except (TypeError, ValueError) as ex:
-                raise exceptions.InvalidArgumentException(
-                    f'"{attrib}" must be a positive numeric value. Received: '
-                    f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
 
 
 class Boto3GetRecordsResponse(common.BaseCommonClass):
@@ -566,14 +525,14 @@ class Client:
 
             self._total_records_fetched += 1
             log.info(
-                f"\n\n{len(response.records)} records found in current get_records() response for shard:"
+                f"\n\n{len(response.Records)} records found in current get_records() response for shard:"
                 f" {shard_id}. Total found records: {len(found_records) + len(response['Records'])}\n")
             count_response_no_records = 0
 
             # Append the records to found_records (upto N records, so we don't exceed total_records_per_shard)
             records_count_upto_to_add = self._client_config.total_records_per_shard - len(found_records)
             # If total_records_per_shard if 0, we include all records by passing 0 as the upto argument
-            if self._client_config.total_records_per_shard == 0:
+        if self._client_config.total_records_per_shard == 0:
                 records_count_upto_to_add = 0
 
             # Write the found records before any breaks occur
