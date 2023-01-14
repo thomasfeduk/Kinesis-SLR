@@ -18,13 +18,24 @@ logging.basicConfig()
 
 
 def main():
-    obj = kinesis.GetRecordsIteratorInput(
-        response_no_records=5,
+    # obj = kinesis.GetRecordsIteratorInput(
+    #     found_records=5,
+    #     response_no_records=5,
+    #     loop_count=0,
+    #     shard_iterator="2",
+    #     shard_id="3",
+    # )
+    # pvdd(obj)
+
+    obj = kinesis.GetRecordsIteratorOutput(
         found_records=5,
-        iterator="2",
+        response_no_records=5,
+        loop_count=0,
+        shard_iterator="2",
         shard_id="3",
+        break_iteration=False
     )
-    pvdd(obj)
+    pvdd(obj.break_iteration)
 
     # Delete any existing local files
     try:

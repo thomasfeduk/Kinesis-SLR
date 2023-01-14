@@ -20,19 +20,19 @@ class GetRecordsIteratorInput(ABC):
                  found_records: int,
                  response_no_records: int,
                  loop_count: int,
-                 iterator: str,
+                 shard_iterator: str,
                  shard_id: str
                  ):
         self._found_records = found_records
         self._response_no_records = response_no_records
         self._loop_count = loop_count
-        self._iterator = iterator
+        self._shard_iterator = shard_iterator
         self._shard_id = shard_id
 
         self._proptypes = [
             {"name": "found_records", "type": int},
             {"name": "response_no_records", "type": int},
-            {"name": "iterator", "type": str},
+            {"name": "shard_iterator", "type": str},
             {"name": "loop_count", "type": int},
             {"name": "shard_id", "type": str},
         ]
@@ -53,8 +53,8 @@ class GetRecordsIteratorInput(ABC):
         return self._loop_count
 
     @property
-    def iterator(self):
-        return self._iterator
+    def shard_iterator(self):
+        return self._shard_iterator
 
     @property
     def shard_id(self):
@@ -81,21 +81,24 @@ class GetRecordsIteratorOutput(GetRecordsIteratorInput):
                  found_records: int,
                  response_no_records: int,
                  loop_count: int,
-                 iterator: str,
+                 shard_iterator: str,
                  shard_id: str,
                  break_iteration: bool,
                  ):
-
-        self._break_iteration = break_iteration
-        self._proptypes.append({"name": "break_iteration", "type": bool})
-
         super().__init__(
             found_records=found_records,
             response_no_records=response_no_records,
             loop_count=loop_count,
-            iterator=iterator,
+            shard_iterator=shard_iterator,
             shard_id=shard_id
         )
+
+        self._break_iteration = break_iteration
+        # Inject break_iteration proptype requirement into the parent class's list
+        self._proptypes.append({"name": "break_iteration", "type": bool})
+
+        # Recall the validation that is called in super().__init__ again after appending the new proptype
+        self._is_valid()
 
     @property
     def break_iteration(self):
@@ -494,7 +497,7 @@ class Client:
             iterator_obj = self._scrape_records_for_shard_iterator(GetRecordsIteratorInput(
                 response_no_records=0,
                 found_records=0,
-                iterator=iterator,
+                shard_iterator=iterator,
                 loop_count=1,
                 shard_id=shard_id
                 )
@@ -511,7 +514,7 @@ class Client:
         return found_records
 
     def _scrape_records_for_shard_iterator(self, iterator_obj: GetRecordsIteratorInput)\
-            -> GetRecordsIteratorResponse:
+            -> GetRecordsIteratorOutput:
         # Poll delay injection
         self._scrape_records_for_shard_handle_poll_delay(
             iterator_obj.loop_count, iterator_obj.iterator, iterator_obj.shard_id
@@ -533,11 +536,11 @@ class Client:
             records_count_upto_to_add = self._client_config.total_records_per_shard - len(found_records)
             # If total_records_per_shard if 0, we include all records by passing 0 as the upto argument
         if self._client_config.total_records_per_shard == 0:
-                records_count_upto_to_add = 0
+            records_count_upto_to_add = 0
 
             # Write the found records before any breaks occur
-            self._process_records(shard_id, common.list_append_upto_n_items(
-                found_records, response["Records"], records_count_upto_to_add))
+            # self._process_records(shard_id, common.list_append_upto_n_items(found_records, response["Records"], records_count_upto_to_add))
+            die('kinesis client line 540')
 
             # If we are at the total per shard, we terminate the loop
             if self._client_config.total_records_per_shard > 0 and \
