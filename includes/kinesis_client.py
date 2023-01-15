@@ -514,8 +514,6 @@ class Client:
 
         # Setup default attributes
         self._current_shard_iterator = None
-        # How many events were fetched for the current shard
-        self._total_records_fetched = 0
 
     def _is_valid(self):
         if not isinstance(self._client_config, ClientConfig):
