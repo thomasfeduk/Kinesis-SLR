@@ -61,8 +61,8 @@ def main():
     try:
         dir_path = 'scraped_events/shardId-000000000005'
         shutil.rmtree(dir_path)
-    except Exception as ex:
-        print(f'Could not delete old scraped events: {repr(ex)}')
+    except FileNotFoundError as ex:
+        print(f'No old scraped events to delete...: {repr(ex)}')
 
     kinesis_config = kinesis.ClientConfig(
         common.read_config('config-kinesis_scraper.example.yaml'),

@@ -217,12 +217,13 @@ class Record(common.BaseCommonClass):
 
 class RecordsCollection(common.RestrictedCollection):
     def __init__(self, iterable):
-        super().__init__(iterable)
+        super().__init__(self._validate_collection_item(item) for item in iterable)
 
     def _validate_collection_item(self, value):
-        if isinstance(value, type(self)):
+        expected_type = Record
+        if isinstance(value, expected_type):
             return value
-        raise TypeError(f"{type(self)} value expected. Received:  {type(value)} {repr(value)}")
+        raise TypeError(f"{type(expected_type)} value expected. Received:  {type(value)} {repr(value)}")
 
 
 class Boto3GetRecordsResponse(common.BaseCommonClass):
@@ -231,9 +232,9 @@ class Boto3GetRecordsResponse(common.BaseCommonClass):
         self._NextShardIterator = None
         self._MillisBehindLatest = None
 
-        # If Records exists in the passed data, we re-pack it as RecordCollection
+        # If Records exists in the passed data, we re-pack it as RecordCollection of Record items
         if 'Records' in passed_data.keys():
-            passed_data["Records"] = RecordsCollection(passed_data["Records"])
+            passed_data["Records"] = RecordsCollection([Record(i) for i in passed_data["Records"]])
 
         # Have to call parent after defining attributes other they are not populated
         super().__init__(passed_data)
@@ -651,8 +652,7 @@ class Client:
 
         # Store records if found in temp list
         if len(response.Records) > 0:
-            pvdd('line 657')
-            pvdd(response.Records)
+            pvdd(response)
             log.debug(f'Found {len(response.Records)} in batch.')
 
             iterator_obj.total_found_records += 1

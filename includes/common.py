@@ -120,9 +120,11 @@ class RestrictedCollection(list, ABC):
 
     @abstractmethod
     def _validate_collection_item(self, value):
-        if isinstance(value, type(self)):
+        expected_type = object  # Copy/paste this method into an over and replace this with your allowed object type
+        if isinstance(value, expected_type):
             return value
-        raise TypeError(f"{type(self)} value expected. Received:  {type(value)} {repr(value)}")
+        raise TypeError(f"{type(expected_type)} value expected. Received:  {type(value)} {repr(value)}")
+        pass
 
 
 def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int = 0):
