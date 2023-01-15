@@ -15,8 +15,61 @@ from abc import ABC, abstractmethod
 log = logging.getLogger(__name__)
 
 
-class GetRecordsIterator(ABC):
+class Record(common.BaseCommonClass):
+    def __init__(self, passed_data: [dict]):
+        self._SequenceNumber = None
+        self._ApproximateArrivalTimestamp = None
+        self._Data = None
+        self._PartitionKey = None
+        passed_data["ApproximateArrivalTimestamp"] = 5
+        # Have to call parent after defining attributes other they are not populated
+        super().__init__(passed_data)
 
+    @property
+    def SequenceNumber(self) -> str:
+        return self._SequenceNumber
+
+    @property
+    def ApproximateArrivalTimestamp(self) -> datetime.datetime:
+        return self._ApproximateArrivalTimestamp
+
+    @property
+    def Data(self):
+        return self._Data
+
+    @property
+    def PartitionKey(self) -> str:
+        return self._PartitionKey
+
+    def _post_init_processing(self):
+        pass
+
+    def _is_valid(self):
+        proptypes = [
+            {"name": "SequenceNumber", "type": str},
+            {"name": "PartitionKey", "type": str},
+            {"name": "ApproximateArrivalTimestamp", "type": datetime.datetime},
+        ]
+        try:
+            self._is_valid_proptypes(proptypes)
+        except ValueError as ex:
+            raise exceptions.InvalidArgumentException(ex) from ex
+
+
+class RecordsCollection(common.RestrictedCollection):
+
+    def __init__(self, iterable):
+        super().__init__(iterable)
+
+    def _validate_collection_item(self, value):
+        if isinstance(value, Record):
+            return value
+        raise TypeError(
+            f"X value expected, got {type(value).__name__}"
+        )
+
+
+class GetRecordsIterator(ABC):
     @abstractmethod
     def __init__(self, *,
                  total_found_records: int,
@@ -185,7 +238,7 @@ class Boto3GetRecordsResponse(common.BaseCommonClass):
         super().__init__(passed_data)
 
     @property
-    def Records(self):
+    def Records(self) -> RecordsCollection:
         return self._Records
 
     @property
@@ -597,6 +650,10 @@ class Client:
 
         # Store records if found in temp list
         if len(response.Records) > 0:
+            record = Record(response.Records[0])
+
+            pvdd(record)
+            pvdd(response.Records)
             log.debug(f'Found {len(response.Records)} in batch.')
 
             iterator_obj.total_found_records += 1
@@ -751,9 +808,11 @@ class Client:
         response = self._client_config.boto_client.describe_stream(StreamName=self._client_config.stream_name)
         log.info(f"Stream name: {response['StreamDescription']['StreamName']}")
         log.info(f"Stream ARN: {response['StreamDescription']['StreamARN']}")
+
         shard_ids = []
         shard_details = response['StreamDescription']['Shards']
         log.debug(f'Detecting shard ids that exist for stream: {self._client_config.stream_name}')
+
         for node in shard_details:
             try:
                 log.info(f"Detected shard id: {node['ShardId']}")

@@ -62,8 +62,9 @@ class BaseSuperclass(ABC):
         for prop in proptypes:
             if not isinstance(getattr(self, prop["name"]), prop["type"]):
                 raise ValueError(
-                    f'"{prop["name"]}" key name must exist and be of type {str(prop["type"])}. '
-                    f'Passed data: {repr(self._base_superclass_passed_data)}')
+                    f'"{prop["name"]}" key name must exist and be of type {str(prop["type"])}.'
+                    f'\nReceived: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}'
+                    f'\nPassed data: {repr(self._base_superclass_passed_data)}')
 
     # Returns a recursive dict of the entire object and any attributes that are also objects
     # Similar to .__dict__ but recursive
@@ -93,6 +94,37 @@ class BaseCommonClass(BaseSuperclass, ABC):
     # setting defaults etc.)
     @abstractmethod
     def _post_init_processing(self):
+        pass
+
+
+# An abstract class that can be made into a list that only accepts contents of specific types
+class RestrictedCollection(list, ABC):
+    @abstractmethod
+    def __init__(self, iterable):
+        super().__init__(self._validate_collection_item(item) for item in iterable)
+
+    def __setitem__(self, index, item):
+        super().__setitem__(index, self._validate_collection_item(item))
+
+    def insert(self, index, item):
+        super().insert(index, self._validate_collection_item(item))
+
+    def append(self, item):
+        super().append(self._validate_collection_item(item))
+
+    def extend(self, other):
+        if isinstance(other, type(self)):
+            super().extend(other)
+        else:
+            super().extend(self._validate_collection_item(item) for item in other)
+
+    @abstractmethod
+    def _validate_collection_item(self, value):
+        # if isinstance(value, (int, float, complex)):
+        #     return value
+        # raise TypeError(
+        #     f"X value expected, got {type(value).__name__}"
+        # )
         pass
 
 

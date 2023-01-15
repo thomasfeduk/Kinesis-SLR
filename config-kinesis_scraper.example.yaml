@@ -8,7 +8,7 @@
 # Description: The debug output level. INFO is the default and provides general status logging
 # Possible values: DEBUG|INFO|WARNING|ERROR
 #
-debug_level: INFO
+debug_level: DEBUG
 
 # ----------------------
 # Property: stream_name
@@ -191,4 +191,4 @@ poll_delay: "0.0"
 # in the stream from the oldest message until now. From my testing, a 24 hour gap between messages resulted
 # in upto 104 empty polls
 #
-max_empty_polls: 5 # Max 5000
+max_empty_polls: 250 # Max 5000
