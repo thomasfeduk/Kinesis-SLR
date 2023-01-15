@@ -120,12 +120,9 @@ class RestrictedCollection(list, ABC):
 
     @abstractmethod
     def _validate_collection_item(self, value):
-        # if isinstance(value, (int, float, complex)):
-        #     return value
-        # raise TypeError(
-        #     f"X value expected, got {type(value).__name__}"
-        # )
-        pass
+        if isinstance(value, type(self)):
+            return value
+        raise TypeError(f"{type(self)} value expected. Received:  {type(value)} {repr(value)}")
 
 
 def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int = 0):

@@ -15,60 +15,6 @@ from abc import ABC, abstractmethod
 log = logging.getLogger(__name__)
 
 
-class Record(common.BaseCommonClass):
-    def __init__(self, passed_data: [dict]):
-        self._SequenceNumber = None
-        self._ApproximateArrivalTimestamp = None
-        self._Data = None
-        self._PartitionKey = None
-        passed_data["ApproximateArrivalTimestamp"] = 5
-        # Have to call parent after defining attributes other they are not populated
-        super().__init__(passed_data)
-
-    @property
-    def SequenceNumber(self) -> str:
-        return self._SequenceNumber
-
-    @property
-    def ApproximateArrivalTimestamp(self) -> datetime.datetime:
-        return self._ApproximateArrivalTimestamp
-
-    @property
-    def Data(self):
-        return self._Data
-
-    @property
-    def PartitionKey(self) -> str:
-        return self._PartitionKey
-
-    def _post_init_processing(self):
-        pass
-
-    def _is_valid(self):
-        proptypes = [
-            {"name": "SequenceNumber", "type": str},
-            {"name": "PartitionKey", "type": str},
-            {"name": "ApproximateArrivalTimestamp", "type": datetime.datetime},
-        ]
-        try:
-            self._is_valid_proptypes(proptypes)
-        except ValueError as ex:
-            raise exceptions.InvalidArgumentException(ex) from ex
-
-
-class RecordsCollection(common.RestrictedCollection):
-
-    def __init__(self, iterable):
-        super().__init__(iterable)
-
-    def _validate_collection_item(self, value):
-        if isinstance(value, Record):
-            return value
-        raise TypeError(
-            f"X value expected, got {type(value).__name__}"
-        )
-
-
 class GetRecordsIterator(ABC):
     @abstractmethod
     def __init__(self, *,
@@ -228,11 +174,66 @@ class GetRecordsIteratorResponse(GetRecordsIterator):
         return self._break_iteration
 
 
+class Record(common.BaseCommonClass):
+    def __init__(self, passed_data: [dict]):
+        self._SequenceNumber = None
+        self._ApproximateArrivalTimestamp = None
+        self._Data = None
+        self._PartitionKey = None
+
+        # Have to call parent after defining attributes other they are not populated
+        super().__init__(passed_data)
+
+    @property
+    def SequenceNumber(self) -> str:
+        return self._SequenceNumber
+
+    @property
+    def ApproximateArrivalTimestamp(self) -> datetime.datetime:
+        return self._ApproximateArrivalTimestamp
+
+    @property
+    def Data(self):
+        return self._Data
+
+    @property
+    def PartitionKey(self) -> str:
+        return self._PartitionKey
+
+    def _post_init_processing(self):
+        pass
+
+    def _is_valid(self):
+        proptypes = [
+            {"name": "SequenceNumber", "type": str},
+            {"name": "PartitionKey", "type": str},
+            {"name": "ApproximateArrivalTimestamp", "type": datetime.datetime},
+        ]
+        try:
+            self._is_valid_proptypes(proptypes)
+        except ValueError as ex:
+            raise exceptions.InvalidArgumentException(ex) from ex
+
+
+class RecordsCollection(common.RestrictedCollection):
+    def __init__(self, iterable):
+        super().__init__(iterable)
+
+    def _validate_collection_item(self, value):
+        if isinstance(value, type(self)):
+            return value
+        raise TypeError(f"{type(self)} value expected. Received:  {type(value)} {repr(value)}")
+
+
 class Boto3GetRecordsResponse(common.BaseCommonClass):
     def __init__(self, passed_data: [dict]):
         self._Records = None
         self._NextShardIterator = None
         self._MillisBehindLatest = None
+
+        # If Records exists in the passed data, we re-pack it as RecordCollection
+        if 'Records' in passed_data.keys():
+            passed_data["Records"] = RecordsCollection(passed_data["Records"])
 
         # Have to call parent after defining attributes other they are not populated
         super().__init__(passed_data)
@@ -242,11 +243,11 @@ class Boto3GetRecordsResponse(common.BaseCommonClass):
         return self._Records
 
     @property
-    def NextShardIterator(self):
+    def NextShardIterator(self) -> str:
         return self._NextShardIterator
 
     @property
-    def MillisBehindLatest(self):
+    def MillisBehindLatest(self) -> int:
         return self._MillisBehindLatest
 
     def _post_init_processing(self):
@@ -254,7 +255,7 @@ class Boto3GetRecordsResponse(common.BaseCommonClass):
 
     def _is_valid(self):
         proptypes = [
-            {"name": "Records", "type": list},
+            {"name": "Records", "type": RecordsCollection},
             {"name": "NextShardIterator", "type": str},
             {"name": "MillisBehindLatest", "type": int},
         ]
@@ -650,9 +651,7 @@ class Client:
 
         # Store records if found in temp list
         if len(response.Records) > 0:
-            record = Record(response.Records[0])
-
-            pvdd(record)
+            pvdd('line 657')
             pvdd(response.Records)
             log.debug(f'Found {len(response.Records)} in batch.')
 
