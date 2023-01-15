@@ -8,7 +8,7 @@
 # Description: The debug output level. INFO is the default and provides general status logging
 # Possible values: DEBUG|INFO|WARNING|ERROR
 #
-debug_level: DEBUG
+debug_level: INFO
 
 # ----------------------
 # Property: stream_name
@@ -32,7 +32,8 @@ stream_name: user-activities
 #  - shardId-000000000000
 #  - shardId-000000000001
 #
-shard_ids: ['shardId-000000000005']
+#shard_ids: ['shardId-000000000005']
+shard_ids: []
 
 ###################################
 ## Section: Stream Scrape Range  ##
@@ -190,4 +191,4 @@ poll_delay: "0.0"
 # in the stream from the oldest message until now. From my testing, a 24 hour gap between messages resulted
 # in upto 104 empty polls
 #
-max_empty_polls: 120 # Max 5000
+max_empty_polls: 5 # Max 5000

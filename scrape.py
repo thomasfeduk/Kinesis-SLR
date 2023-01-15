@@ -28,18 +28,18 @@ def main():
     # obj.total_found_records = 123
     # pvdd(obj.total_found_records)
 
-    obj = kinesis.GetRecordsIteratorResponse(
-        total_found_records=10,
-        found_records=5,
-        response_no_records=5,
-        loop_count=0,
-        next_shard_iterator="2",
-        shard_id="3",
-        break_iteration=False
-    )
-    del obj._proptypes
-    del obj._require_numeric_pos
-    pvdd(obj.total_found_records)
+    # obj = kinesis.GetRecordsIteratorResponse(
+    #     total_found_records=10,
+    #     found_records=5,
+    #     response_no_records=5,
+    #     loop_count=0,
+    #     next_shard_iterator="2",
+    #     shard_id="3",
+    #     break_iteration=False
+    # )
+    # del obj._proptypes
+    # del obj._require_numeric_pos
+    # pvdd(obj.total_found_records)
 
     # Delete any existing local files
     try:

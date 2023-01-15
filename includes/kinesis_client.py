@@ -89,14 +89,13 @@ class GetRecordsIterator(ABC):
 class GetRecordsIteratorInput(GetRecordsIterator):
     def __init__(self, *,
                  total_found_records: int,
-                 found_records: int,
                  response_no_records: int,
                  loop_count: int,
                  shard_iterator: str,
                  shard_id: str,
                  ):
 
-        self._found_records = found_records
+        # Set up subclass specific attributes before calling super init
         self._shard_iterator = shard_iterator
 
         super().__init__(
@@ -106,24 +105,24 @@ class GetRecordsIteratorInput(GetRecordsIterator):
             shard_id=shard_id
         )
 
-        # Inject proptype requirement into the parent class's list
-        self._proptypes.append({"name": "found_records", "type": int})
+        # Inject proptype requirement into the proptypes requirements list after inheriting from parent
         self._proptypes.append({"name": "shard_iterator", "type": str})
-        self._require_numeric_pos.append('found_records')
+        # self._require_numeric_pos.append('name_of_prop_here')
 
         # Recall the validation that is called in super().__init__ again after appending the new proptype
         self._is_valid()
 
     @property
     def total_found_records(self):
-        return super().total_found_records
+        return self._total_found_records
+
+    @total_found_records.setter
+    def total_found_records(self, value):
+        self._total_found_records = value
+        self._is_valid()
 
     @property
-    def found_records(self):
-        return self._found_records
-
-    @property
-    def hard_iterator(self):
+    def shard_iterator(self):
         return self._shard_iterator
 
 
@@ -138,6 +137,7 @@ class GetRecordsIteratorResponse(GetRecordsIterator):
                  break_iteration: bool,
                  ):
 
+        # Set up subclass specific attributes before calling super init
         self._found_records = found_records
         self._next_shard_iterator = next_shard_iterator
         self._break_iteration = break_iteration
@@ -149,7 +149,7 @@ class GetRecordsIteratorResponse(GetRecordsIterator):
             shard_id=shard_id
         )
 
-        # Inject break_iteration proptype requirement into the parent class's list
+        # Inject proptype requirement into the proptypes requirements list after inheriting from parent
         self._proptypes.append({"name": "break_iteration", "type": bool})
         self._proptypes.append({"name": "found_records", "type": int})
         self._proptypes.append({"name": "next_shard_iterator", "type": str})
@@ -160,7 +160,7 @@ class GetRecordsIteratorResponse(GetRecordsIterator):
 
     @property
     def total_found_records(self):
-        return super().total_found_records
+        return self._total_found_records
 
     @property
     def found_records(self):
@@ -563,21 +563,29 @@ class Client:
     def _scrape_records_for_shard(self, shard_id: str) -> None:
         next_shard_iterator = self._shard_iterator(shard_id)
 
+        total_found_records = 0
+        response_no_records = 0
+        loop_count = 1
+
         while next_shard_iterator:
             iterator_response_obj = self._scrape_records_for_shard_iterator(GetRecordsIteratorInput(
-                response_no_records=0,
-                total_found_records=0,
+                total_found_records=total_found_records,
+                response_no_records=response_no_records,
                 shard_iterator=next_shard_iterator,
-                loop_count=1,
+                loop_count=loop_count,
                 shard_id=shard_id
                 )
             )
 
-            next_shard_iterator = iterator_response_obj.next_shard_iterator
-            # Set the shard_iterator var for the next iteration
             # Break the iteration only if the iteration response states it is time to do so
             if iterator_response_obj.break_iteration:
                 break
+
+            # Set the variables for the next iteration
+            total_found_records = iterator_response_obj.total_found_records
+            response_no_records = iterator_response_obj.response_no_records
+            next_shard_iterator = iterator_response_obj.next_shard_iterator
+            loop_count = iterator_response_obj.loop_count
 
     def _scrape_records_for_shard_iterator(self, iterator_obj: GetRecordsIteratorInput)\
             -> GetRecordsIteratorResponse:
@@ -630,7 +638,7 @@ class Client:
                 log.info(f'\n\nReached {self._client_config.max_empty_polls} empty polls for shard '
                          f'{iterator_obj.shard_id} and found a total of {len(response.Records)} records, '
                          f'current iterator: {iterator_obj.shard_iterator}\n'
-                         f'Aborting further reads for current shard.')
+                         f'Aborting further reads for current shard: {iterator_obj.shard_id}')
                 return GetRecordsIteratorResponse(
                     total_found_records=iterator_obj.total_found_records,
                     response_no_records=iterator_obj.response_no_records,
