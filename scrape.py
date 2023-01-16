@@ -38,12 +38,11 @@ class RecordsList(common.RestrictedLIst):
     def expected_type(self):
         return Woof
 
-var = RecordsList([Woof('thomas'), Woof('dog'), Woof('Tim'), Woof('Sam'), Woof('Jon')])
-# var = TestClass([1,2,3,4,5])
+items = RecordsList([Woof('thomas'), Woof('dog'), Woof('Tim'), Woof('Sam'), Woof('Jon')])
 
-
+pvdd(items)
 i = 0
-for name in var:
+for name in items:
     if i > 1:
         break
     print('First loop: ')
@@ -51,12 +50,12 @@ for name in var:
 
     i += 1
 
-for i in var:
+for i in items:
     print('Second loop: ')
     pvd(i)
 
 die('end')
-pvdd(var)
+pvdd(items)
 
 
 def main():
