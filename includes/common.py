@@ -101,6 +101,12 @@ class BaseCommonClass(BaseSuperclass, ABC):
 class RestrictedCollection(list, ABC):
     @abstractmethod
     def __init__(self, iterable):
+        dict_list = {}
+        i = 0
+        for item in iterable:
+            dict_list[f"{i}"] = item
+            i += 1
+        self.__dict__ = dict_list
         super().__init__(self._validate_collection_item(item) for item in iterable)
 
     def __setitem__(self, index, item):
@@ -125,6 +131,8 @@ class RestrictedCollection(list, ABC):
             return value
         raise TypeError(f"{type(expected_type)} value expected. Received:  {type(value)} {repr(value)}")
         pass
+
+
 
 
 def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int = 0):

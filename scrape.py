@@ -21,6 +21,10 @@ from dateutil.tz import tzlocal
 logging.basicConfig()
 
 
+var = common.RestrictedCollection([1,2,3,4,5])
+
+pvdd(var)
+
 def main():
     # serialized get_records().Records response:
     record_serialized = b'\x80\x04\x95\xda\x01\x00\x00\x00\x00\x00\x00}\x94(' \
