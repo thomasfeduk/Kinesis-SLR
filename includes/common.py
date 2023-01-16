@@ -43,7 +43,7 @@ class BaseSuperclass(ABC):
                     if hasattr(self, key) and not callable(getattr(self, key)):
                         setattr(self, key, passed_data[key])
         except Exception as ex:
-            raise ValueError(f"Could not convert passed_data to a dict. passed_data: {repr(passed_data)}") from ex
+            raise ValueError(f"Could not convert passed_data to a dict.\npassed_data: {repr(passed_data)}") from ex
 
     def _is_valid_proptypes(self, proptypes: list) -> None:
         """
@@ -95,6 +95,39 @@ class BaseCommonClass(BaseSuperclass, ABC):
     @abstractmethod
     def _post_init_processing(self):
         pass
+
+
+class RestrictedLIst(ABC):
+    @abstractmethod
+    def __init__(self, items):
+        if not isinstance(items, list):
+            raise TypeError(f"Type list is expected. Received:  {type(items)} {repr(items)}")
+        self.last = 0
+        self.items = items
+        for item in self.items:
+            self._validate_item(item)
+
+    @property
+    @abstractmethod
+    def expected_type(self):
+        return object  # Set your allowed object type here
+
+    def __iter__(self):
+        self.last = 0
+        return self
+
+    def __next__(self):
+        if self.last >= len(self.items):
+            raise StopIteration
+        self.last += 1
+        return self.items[self.last-1]
+
+    def _validate_item(self, value):
+        if isinstance(value, self.expected_type):
+            return value
+        raise TypeError(f"Each item in the list must be of type {repr(self.expected_type)}. "
+                        f"Received: {type(value)} {repr(value)}\nPassed data: {repr(self.items)}")
+
 
 
 # An abstract class that can be made into a list that only accepts contents of specific types

@@ -20,10 +20,44 @@ from dateutil.tz import tzlocal
 # Initialize logger
 logging.basicConfig()
 
+class Baaa:
+    def __init__(self, name):
+        self.name = name
 
-var = common.RestrictedCollection([1,2,3,4,5])
+class Woof:
+    def __init__(self, name):
+        self.name = name
 
+
+class RecordsList(common.RestrictedLIst):
+
+    def __init__(self, items):
+        super().__init__(items)
+
+    @property
+    def expected_type(self):
+        return Woof
+
+var = RecordsList([Woof('thomas'), Woof('dog'), Woof('Tim'), Woof('Sam'), Woof('Jon')])
+# var = TestClass([1,2,3,4,5])
+
+
+i = 0
+for name in var:
+    if i > 1:
+        break
+    print('First loop: ')
+    pvd(name)
+
+    i += 1
+
+for i in var:
+    print('Second loop: ')
+    pvd(i)
+
+die('end')
 pvdd(var)
+
 
 def main():
     # serialized get_records().Records response:
