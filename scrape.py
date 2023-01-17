@@ -20,43 +20,6 @@ from dateutil.tz import tzlocal
 # Initialize logger
 logging.basicConfig()
 
-class Baaa:
-    def __init__(self, name):
-        self.name = name
-
-class Woof:
-    def __init__(self, name):
-        self.name = name
-
-
-class RecordsList(common.RestrictedLIst):
-
-    def __init__(self, items):
-        super().__init__(items)
-
-    @property
-    def expected_type(self):
-        return Woof
-
-items = RecordsList([Woof('thomas'), Woof('dog'), Woof('Tim'), Woof('Sam'), Woof('Jon')])
-
-pvdd(items)
-i = 0
-for name in items:
-    if i > 1:
-        break
-    print('First loop: ')
-    pvd(name)
-
-    i += 1
-
-for i in items:
-    print('Second loop: ')
-    pvd(i)
-
-die('end')
-pvdd(items)
-
 
 def main():
     # serialized get_records().Records response:

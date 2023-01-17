@@ -93,7 +93,6 @@ class GetRecordsIteratorInput(GetRecordsIterator):
                  shard_iterator: str,
                  shard_id: str,
                  ):
-
         # Set up subclass specific attributes before calling super init
         self._shard_iterator = shard_iterator
 
@@ -135,7 +134,6 @@ class GetRecordsIteratorResponse(GetRecordsIterator):
                  shard_id: str,
                  break_iteration: bool,
                  ):
-
         # Set up subclass specific attributes before calling super init
         self._found_records = found_records
         self._next_shard_iterator = next_shard_iterator
@@ -216,14 +214,9 @@ class Record(common.BaseCommonClass):
 
 
 class RecordsCollection(common.RestrictedCollection):
-    def __init__(self, iterable):
-        super().__init__(self._validate_collection_item(item) for item in iterable)
-
-    def _validate_collection_item(self, value):
-        expected_type = Record
-        if isinstance(value, expected_type):
-            return value
-        raise TypeError(f"{type(expected_type)} value expected. Received:  {type(value)} {repr(value)}")
+    @property
+    def expected_type(self):
+        return Record
 
 
 class Boto3GetRecordsResponse(common.BaseCommonClass):
@@ -627,7 +620,7 @@ class Client:
                 shard_iterator=next_shard_iterator,
                 loop_count=loop_count,
                 shard_id=shard_id
-                )
+            )
             )
 
             # Break the iteration only if the iteration response states it is time to do so
@@ -640,8 +633,11 @@ class Client:
             next_shard_iterator = iterator_response_obj.next_shard_iterator
             loop_count = iterator_response_obj.loop_count
 
-    def _scrape_records_for_shard_iterator(self, iterator_obj: GetRecordsIteratorInput)\
+    def _scrape_records_for_shard_iterator(self, iterator_obj: GetRecordsIteratorInput) \
             -> GetRecordsIteratorResponse:
+
+        # Increment total loop counter
+        iterator_obj.loop_count += 1
 
         # Poll delay injection
         self._scrape_records_for_shard_handle_poll_delay(
@@ -652,7 +648,6 @@ class Client:
 
         # Store records if found in temp list
         if len(response.Records) > 0:
-            pvdd(response)
             log.debug(f'Found {len(response.Records)} in batch.')
 
             iterator_obj.total_found_records += 1
@@ -662,21 +657,42 @@ class Client:
                 f"{iterator_obj.total_found_records + len(response.Records)}\n")
             iterator_obj.response_no_records = 0
 
-            # Append the records to found_records (upto N records, so we don't exceed total_records_per_shard)
-            records_count_upto_to_add = self._client_config.total_records_per_shard - len(response.Records)
-            # If total_records_per_shard if 0, we include all records by passing 0 as the upto argument
-            if self._client_config.total_records_per_shard == 0:
-                records_count_upto_to_add = 0
+            # If ending_positoin is total records per shard, append upto X records to found_records
+            records_count_upto_to_add = 0
+            records_to_process = []
 
-            # Write the found records before any breaks occur
-            # self._process_records(shard_id, common.list_append_upto_n_items(found_records, response["Records"], records_count_upto_to_add))
+            pvdd(iterator_obj.total_found_records)
+            if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD':
+                records_count_upto_to_add = self._client_config.total_records_per_shard - len(response.Records)
+                # If total_records_per_shard if 0, we include all records by passing 0 as the upto argument
+
+
+            pvd(f"total per shard: {self._client_config.total_records_per_shard}")
+            pvd(f"respone.Records: {len(response.Records)}")
+            pvd(records_count_upto_to_add)
+            die('sadsadsd')
+
+            output = common.list_append_upto_n_items(
+                records_to_process,
+                [i for i in response.Records],
+                records_count_upto_to_add)
+
+            pvdd(output)
+
+            self._process_records(iterator_obj.shard_id,
+                                  RecordsCollection(common.list_append_upto_n_items(
+                                      records_to_process,
+                                      [i for i in response.Records],
+                                      records_count_upto_to_add)
+                                  )
+                              )
             die('kinesis client line 540')
 
             # If we are at the total per shard, we terminate the loop
             if self._client_config.total_records_per_shard > 0 and \
-                    0 < self._client_config.total_records_per_shard <= len(found_records):
+                    0 < self._client_config.total_records_per_shard <= len(iterator_obj):
                 log.info(f'Reached {self._client_config.total_records_per_shard} max records per shard '
-                         f'limit for shard {shard_id}\n')
+                         f'limit for shard {iterator_obj.shard_id}\n')
                 # break
             # Append the new records for this iteration to the found records var
             found_records = common.list_append_upto_n_items(
@@ -704,7 +720,6 @@ class Client:
                 )
 
         # End of iteration, build and return new iterator response
-        iterator_obj.loop_count += 1
         return GetRecordsIteratorResponse(
             total_found_records=iterator_obj.total_found_records,
             response_no_records=iterator_obj.response_no_records,
@@ -825,7 +840,15 @@ class Client:
         return shard_ids
 
     @staticmethod
-    def _process_records(shard_id: str, records: list):
+    def _process_records(shard_id: str, records: RecordsCollection):
+        if not isinstance(shard_id, str):
+            raise exceptions.InvalidArgumentException(
+                f'"shard_id" must be of type RecordsCollection. Received: {repr(type(shard_id))} {repr(shard_id)}')
+
+        if not isinstance(records, RecordsCollection):
+            raise exceptions.InvalidArgumentException(
+                f'"records" must be of type RecordsCollection. Received: {repr(type(records))} {repr(records)}')
+
         # Safety: We strip all but safe characters before creating any files/dirs
         shard_id = re.sub(r'[^A-Za-z0-9-_]', '', shard_id)
         dir_path = f'scraped_events/{shard_id}'

@@ -129,7 +129,7 @@ ending_sequence_number: 49634793967732681113891714384157638505909056619063279650
 # Description: Only used if ending_position = TOTAL_RECORDS_PER_SHARD
 #
 #
-total_records_per_shard: 7
+total_records_per_shard: 5
 
 #####################################
 ## Stream Processing Configuration ##
@@ -150,7 +150,7 @@ total_records_per_shard: 7
 #   - Each read transaction can provide up to 10,000 records with an upper quota of 10 MB per transaction.
 # Therefore, if you have 1MB messages, this value cannot be greater than 10
 #
-poll_batch_size: 2 # Max 500
+poll_batch_size: 7 # Max 500
 
 # --------------------
 # Property: poll_delay

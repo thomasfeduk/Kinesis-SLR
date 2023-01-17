@@ -97,8 +97,7 @@ class BaseCommonClass(BaseSuperclass, ABC):
         pass
 
 
-class RestrictedLIst(ABC):
-    @abstractmethod
+class RestrictedCollection(ABC):
     def __init__(self, items):
         if not isinstance(items, list):
             raise TypeError(f"Type list is expected. Received:  {type(items)} {repr(items)}")
@@ -122,50 +121,17 @@ class RestrictedLIst(ABC):
         self._last += 1
         return self._items[self._last - 1]
 
+    def __getitem__(self, index):
+        return self._items[int(index)]
+
+    def __len__(self):
+        return len(self._items)
+
     def _validate_item(self, value):
         if isinstance(value, self.expected_type):
             return value
         raise TypeError(f"Each item in the list must be of type {repr(self.expected_type)}. "
                         f"Received: {type(value)} {repr(value)}\nPassed data: {repr(self._items)}")
-
-
-
-# An abstract class that can be made into a list that only accepts contents of specific types
-class RestrictedCollection(list, ABC):
-    @abstractmethod
-    def __init__(self, iterable):
-        dict_list = {}
-        i = 0
-        for item in iterable:
-            dict_list[f"{i}"] = item
-            i += 1
-        self.__dict__ = dict_list
-        super().__init__(self._validate_collection_item(item) for item in iterable)
-
-    def __setitem__(self, index, item):
-        super().__setitem__(index, self._validate_collection_item(item))
-
-    def insert(self, index, item):
-        super().insert(index, self._validate_collection_item(item))
-
-    def append(self, item):
-        super().append(self._validate_collection_item(item))
-
-    def extend(self, other):
-        if isinstance(other, type(self)):
-            super().extend(other)
-        else:
-            super().extend(self._validate_collection_item(item) for item in other)
-
-    @abstractmethod
-    def _validate_collection_item(self, value):
-        expected_type = object  # Copy/paste this method into an over and replace this with your allowed object type
-        if isinstance(value, expected_type):
-            return value
-        raise TypeError(f"{type(expected_type)} value expected. Received:  {type(value)} {repr(value)}")
-        pass
-
-
 
 
 def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int = 0):
