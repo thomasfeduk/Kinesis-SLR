@@ -496,11 +496,11 @@ class ClientConfig(common.BaseCommonClass):
 
             timestamp = getattr(self, f"{position_type}_position")
             try:
-                common.validate_datetime(timestamp)
+                common.validate_timestamp_iso8601(timestamp)
             except ValueError as e:
                 raise exceptions.ConfigValidationError(
                     f"config-kinesis_scraper.yaml: Invalid format for config parameter \"{position_type}_timestamp\". "
-                    f"Format should be YYYY-MM-DD HH:MM:SS.\n"
+                    f"Format should be 2016-04-04T19:58:46.480-00:00.\n"
                     f"Value provided: {str(type(timestamp))} {repr(timestamp)}") from e
 
     def _validate_starting_ending_position(self, position_type: str):
@@ -665,7 +665,6 @@ class Client:
             if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD':
                 records_count_upto_to_add = self._client_config.total_records_per_shard - len(response.Records)
                 # If total_records_per_shard if 0, we include all records by passing 0 as the upto argument
-
 
             pvd(f"total per shard: {self._client_config.total_records_per_shard}")
             pvd(f"respone.Records: {len(response.Records)}")
