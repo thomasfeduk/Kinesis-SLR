@@ -61,8 +61,8 @@ starting_position: AT_TIMESTAMP
 # Description: Only used if starting_position = AT_TIMESTAMP
 # Format (UTC): 2016-04-04T19:58:46.480-00:00
 #
-#starting_timestamp: "2016-04-04T19:58:46.480-00:00"
-starting_timestamp: "sdsadd"
+starting_timestamp: "2016-04-04T19:58:46.480-00:00"
+#starting_timestamp: "sdsadd"
 
 # ---------------------------
 # Property: sequence_number

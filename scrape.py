@@ -34,6 +34,34 @@ def main():
                         b'Time\x94\x86\x94ub\x86\x94R\x94\x8c\x04Data\x94CP{"mytimestamp": "2023-01-14 20:23:19-1", ' \
                         b'"error": false, "unrecoverable": false}\x94\x8c\x0cPartitionKey\x94\x8c\x011\x94u. '
 
+    from zoneinfo import ZoneInfo
+    tz_desired = ZoneInfo("Europe/Moscow")
+    tz_desired2 = ZoneInfo("US/Pacific")
+
+    # parse the string to datetime and set the time zone
+    # dt = datetime.fromisoformat(s).replace(tzinfo=origin_tz)
+    timestamp = '2022-10-01 00:00:00'
+    time_obj = datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+    output0 = time_obj.isoformat()
+    output1 = time_obj.replace(tzinfo=tz_desired).isoformat()
+    output2 = time_obj.isoformat()
+    output3 = time_obj.replace(tzinfo=tz_desired2).isoformat(timespec='milliseconds')
+    pvd(output0)
+    pvd(output1)
+    pvd(output2)
+    pvd(output3)
+    # pvd(output4)
+    die()
+
+    client = boto3.client('kinesis')
+    results = client.get_shard_iterator(
+        StreamName='user-activities',
+        ShardId='shardId-000000000004',
+        ShardIteratorType='AT_TIMESTAMP',
+        Timestamp='dsadsdsd'
+    )
+    pvdd(results)
+
     # obj = kinesis.GetRecordsIteratorInput(
     #     total_found_records=21,
     #     response_no_records=5,
