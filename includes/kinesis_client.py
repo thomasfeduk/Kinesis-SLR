@@ -591,8 +591,6 @@ class Client:
                                       f'conflicts/overwriting existing data, please move any previously scrapped '
                                       f'messages and their shard id directory elsewhere and re-run this tool. ')
 
-        die('got here 594')
-
         # Passed all checks, now we iterate through each shard id specified by the config (or all if not specified)
         shard_ids_to_scrape = shard_ids_detected
         if len(self._client_config.shard_ids) > 0:
@@ -622,7 +620,7 @@ class Client:
                 shard_iterator=next_shard_iterator,
                 loop_count=loop_count,
                 shard_id=shard_id
-            )
+                )
             )
 
             # Break the iteration only if the iteration response states it is time to do so
@@ -647,8 +645,9 @@ class Client:
 
         # Make the boto3 call
         response = self._get_records(iterator_obj.shard_iterator)
-        print(response)
-        die('got here')
+        if len(response.Records) > 0:
+            pvdd(json.dumps(response.Records, default=str, indent=4))
+            die('got here 649')
 
         # Store records if found in temp list
         if len(response.Records) > 0:
@@ -735,7 +734,6 @@ class Client:
         # return found_records, response_no_records, iterator
 
     def _scrape_records_for_shard_handle_poll_delay(self, loop_count: int, iterator: str, shard_id: str) -> None:
-        die('poll delay section')
         if self._client_config.poll_delay > 0:
             log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
             time.sleep(self._client_config.poll_delay)
@@ -743,7 +741,6 @@ class Client:
         log.debug(f'Current iterator: {iterator}')
 
     def _get_records(self, iterator: str) -> Boto3GetRecordsResponse:
-        die('dasdasadddsad')
         timer_start = time.time()
         response = self._client_config.boto_client.get_records(
             ShardIterator=iterator,

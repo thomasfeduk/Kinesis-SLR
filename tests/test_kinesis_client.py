@@ -24,6 +24,8 @@ class ClientGetRecords(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @patch('includes.kinesis_client.Client._get_records', create=True)
+    @patch('includes.kinesis_client.Client._shard_iterator', create=True)
     @patch('os.path.exists', create=True)
     @patch('includes.kinesis_client.Client._confirm_shards_exist', create=True)
     @patch('includes.kinesis_client.Client._get_shard_ids_of_stream', create=True)
@@ -35,13 +37,17 @@ class ClientGetRecords(unittest.TestCase):
                          mocked_get_shard_ids_of_stream,
                          mocked_confirm_shards_exist,
                          mocked_os_path_exists,
+                         mocked_shard_iterator,
+                         mocked_get_records,
                          ):
 
         mocked_get_shard_ids_of_stream.return_value = ['shard_test']
         mocked_os_path_exists.return_value = False
+        mocked_shard_iterator.return_value = 'the_iter_id'
+        mocked_get_records.return_value = 'the_iter_id'
 
         config = mock.Mock()
-        config._shard_ids = []
+        config.shard_ids = []
 
         client = kinesis.Client(config)
 
