@@ -591,6 +591,8 @@ class Client:
                                       f'conflicts/overwriting existing data, please move any previously scrapped '
                                       f'messages and their shard id directory elsewhere and re-run this tool. ')
 
+        die('got here 594')
+
         # Passed all checks, now we iterate through each shard id specified by the config (or all if not specified)
         shard_ids_to_scrape = shard_ids_detected
         if len(self._client_config.shard_ids) > 0:

@@ -24,21 +24,29 @@ class ClientGetRecords(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_simple_none(self):
-        with patch('includes.kinesis_client._scrape_records_for_shard_handle_poll_delay', create=True) as mocked_poll:
-            with patch.object(kinesis.Client, '_get_records',return_value="fake_temp") as mocked_get_records:
-                obj = mock.Mock()
-                iter_obj = mock.Mock()
-                iter_obj.loop_count = 0
-                # iter_obj.shard_id = 'abc'
-                # iter_obj.shard_iterator = 'zzzz'
-                # mocked_get_records.return_value = 'list of recordds'
-                kinesis.Client._scrape_records_for_shard_iterator(obj, iter_obj)
-                # obj.scrape(obj, iter_obj)
-                # Mock out the entire init so we can just test a specific method and manually set its needed attribs
-                # with patch.object(kinesis.Client, "__init__", lambda x, y, z: None):
-                #     c = kinesis.Client('a','b')
-                #     pvdd(c._scrape_records_for_shard_iterator('a'))
+    @patch('os.path.exists', create=True)
+    @patch('includes.kinesis_client.Client._confirm_shards_exist', create=True)
+    @patch('includes.kinesis_client.Client._get_shard_ids_of_stream', create=True)
+    @patch('includes.kinesis_client.Client._scrape_records_for_shard_handle_poll_delay', create=True)
+    @patch('includes.kinesis_client.Client._is_valid', create=True)
+    def test_simple_none(self,
+                         mocked_is_valid,
+                         mocked_poll,
+                         mocked_get_shard_ids_of_stream,
+                         mocked_confirm_shards_exist,
+                         mocked_os_path_exists,
+                         ):
+
+        mocked_get_shard_ids_of_stream.return_value = ['shard_test']
+        mocked_os_path_exists.return_value = False
+
+        config = mock.Mock()
+        config._shard_ids = []
+
+        client = kinesis.Client(config)
+
+        client.begin_scraping()
+        die('est here 40')
 
     # def test_ReqConfigs_empty(self):
     #     with patch('includes.kinesis_client.ShardIteratorConfig.is_valid', create=True) as mocked_kinesis_client:
