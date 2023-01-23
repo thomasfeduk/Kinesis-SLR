@@ -639,13 +639,14 @@ class Client:
         # Increment total loop counter
         iterator_obj.loop_count += 1
 
-        # Poll delay injection
         self._scrape_records_for_shard_handle_poll_delay(
             iterator_obj.loop_count, iterator_obj.shard_iterator, iterator_obj.shard_id
         )
+
         # Make the boto3 call
         response = self._get_records(iterator_obj.shard_iterator)
-        pvdd(response)
+        print(response)
+        die('got here')
 
         # Store records if found in temp list
         if len(response.Records) > 0:
@@ -732,6 +733,7 @@ class Client:
         # return found_records, response_no_records, iterator
 
     def _scrape_records_for_shard_handle_poll_delay(self, loop_count: int, iterator: str, shard_id: str) -> None:
+        die('poll delay section')
         if self._client_config.poll_delay > 0:
             log.info(f"Wait delay of {self._client_config.poll_delay} seconds per poll_delay setting...")
             time.sleep(self._client_config.poll_delay)
@@ -739,6 +741,7 @@ class Client:
         log.debug(f'Current iterator: {iterator}')
 
     def _get_records(self, iterator: str) -> Boto3GetRecordsResponse:
+        die('dasdasadddsad')
         timer_start = time.time()
         response = self._client_config.boto_client.get_records(
             ShardIterator=iterator,

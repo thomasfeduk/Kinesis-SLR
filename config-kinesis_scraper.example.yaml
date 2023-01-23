@@ -53,7 +53,7 @@ shard_ids: []
 # as sequence ids are unique per-shard
 #
 #starting_position: "AT_SEQUENCE_NUMBER"
-starting_position: AT_TIMESTAMP
+starting_position: TRIM_HORIZON
 
 # ---------------------------
 # Property: timestamp
@@ -62,7 +62,6 @@ starting_position: AT_TIMESTAMP
 # Format (UTC): YYYY-MM-DD HH:MM:SS
 #
 starting_timestamp: "2022-12-01 00:00:00"
-starting_timestamp: "sdsadd"
 
 # ---------------------------
 # Property: sequence_number
