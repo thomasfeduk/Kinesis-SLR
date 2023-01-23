@@ -496,11 +496,11 @@ class ClientConfig(common.BaseCommonClass):
 
             timestamp = getattr(self, f"{position_type}_timestamp")
             try:
-                common.validate_timestamp_iso8601(timestamp)
+                common.validate_datetime(timestamp)
             except ValueError as e:
                 raise exceptions.ConfigValidationError(
-                    f"config-kinesis_scraper.yaml: Invalid format for config parameter \"{position_type}_timestamp\". "
-                    f"Format should be in ISO8601 format: 2016-04-04T19:58:46.480-00:00.\n"
+                    f"config-kinesis_scraper.yaml: Invalid format for config parameter \"{position_type}_timestamp\".\n"
+                    f"Format should be YYYY-MM-DD HH:MM:SS. "
                     f"Value provided: {str(type(timestamp))} {repr(timestamp)}") from e
 
     def _validate_starting_ending_position(self, position_type: str):

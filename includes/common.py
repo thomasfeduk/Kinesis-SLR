@@ -162,20 +162,6 @@ def count_files_in_dir(dir_path=str) -> int:
     return file_count
 
 
-def validate_timestamp_iso8601(timestamp: str) -> str:
-    value = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    try:
-        var = datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
-    except Exception as ex:
-        die(repr(ex))
-    pvdd(var)
-    try:
-        pass
-    except ValueError:
-        raise ValueError("Incorrect datetime format, should be in ISO8601 format: 2016-04-04T19:58:46.480-00:00.\n"
-                         "Value provided: " + repr(timestamp))
-
-
 def validate_datetime(timestamp: str) -> str:
     try:
         datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
