@@ -340,6 +340,7 @@ class ClientConfig(common.BaseCommonClass):
         return self._max_empty_polls
 
     def _is_valid(self):
+        die('ot here')
         self._validate_boto_client()
         self._validate_required_configs()
         self._validate_stream_name()

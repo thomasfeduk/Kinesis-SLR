@@ -63,13 +63,10 @@ class ClientGetRecords(unittest.TestCase):
         mocked_get_shard_ids_of_stream.return_value = ['shard_test']
         mocked_os_path_exists.return_value = False
         mocked_shard_iterator.return_value = 'the_iter_id'
-        mocked_get_records.return_value = 'the_iter_id'
-
-        botoresponse = kinesis.Boto3GetRecordsResponse({
+        mocked_get_records.return_value = kinesis.Boto3GetRecordsResponse({
             "Records": generate_records(10), "NextShardIterator": uuid.uuid4().hex, "MillisBehindLatest": 0
         })
 
-        pvdd(botoresponse)
         config = mock.Mock()
         config.shard_ids = []
 
