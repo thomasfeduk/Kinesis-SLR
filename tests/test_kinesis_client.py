@@ -1,3 +1,5 @@
+import uuid
+import datetime
 import json
 import importlib
 import unittest
@@ -7,6 +9,23 @@ import includes.kinesis_client as kinesis
 import sys
 from includes.debug import *
 import includes.common as common
+
+
+def generate_records(num: int) -> list:
+    records = []
+    for item in range(num):
+        records.append(kinesis.Record(generate_record()))
+    return records
+
+
+def generate_record(*, pkey: str = 'sample_event') -> kinesis.Record:
+    record = {
+        "SequenceNumber": uuid.uuid4().hex,
+        "ApproximateArrivalTimestamp": datetime.datetime.now(),
+        "Data": "dataHere",
+        "PartitionKey": pkey
+    }
+    return kinesis.Record(record)
 
 
 class ClientGetRecords(unittest.TestCase):
@@ -46,6 +65,11 @@ class ClientGetRecords(unittest.TestCase):
         mocked_shard_iterator.return_value = 'the_iter_id'
         mocked_get_records.return_value = 'the_iter_id'
 
+        botoresponse = kinesis.Boto3GetRecordsResponse({
+            "Records": generate_records(10), "NextShardIterator": uuid.uuid4().hex, "MillisBehindLatest": 0
+        })
+
+        pvdd(botoresponse)
         config = mock.Mock()
         config.shard_ids = []
 

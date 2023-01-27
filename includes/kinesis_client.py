@@ -200,7 +200,6 @@ class Record(common.BaseCommonClass):
 
     def _post_init_processing(self):
         super()._post_init_processing()
-        pass
 
     def _is_valid(self):
         proptypes = [
@@ -250,7 +249,7 @@ class Boto3GetRecordsResponse(common.BaseCommonClass):
         return self._MillisBehindLatest
 
     def _post_init_processing(self):
-        pass
+        super()._post_init_processing()
 
     def _is_valid(self):
         proptypes = [
@@ -447,6 +446,7 @@ class ClientConfig(common.BaseCommonClass):
             raise exceptions.ConfigValidationError('config-kinesis_scraper.yaml: poll_delay must be between 0-10')
 
     def _post_init_processing(self):
+        super()._post_init_processing()
         # Setup logging
         log.setLevel(self._debug_level)
 
@@ -650,6 +650,7 @@ class Client:
 
         # Make the boto3 call
         response = self._get_records(iterator_obj.shard_iterator)
+        pvdd(response)
         if len(response.Records) > 0:
             pvdd(response.Records[0].SequenceNumber)
             pvdd(json.dumps(response.Records, default=str, indent=4))
