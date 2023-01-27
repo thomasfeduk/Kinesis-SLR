@@ -214,39 +214,14 @@ class Record(common.BaseCommonClass):
             raise exceptions.InvalidArgumentException(ex) from ex
 
 
-
-class TestRecord:
-    def __init__(self):
-        self.SequenceNumber = 1
-        self.ApproximateArrivalTimestamp = 2
-        self.Data = 3
-        self.PartitionKey = 4
-
-
 class RecordsCollection(common.RestrictedCollection):
     @property
     def expected_type(self):
         return Record
 
-data = {
-    "SequenceNumber": "49636577181771207871059760348650819005673406360434245714",
-    "ApproximateArrivalTimestamp": datetime.datetime.now(),
-    "Data": "b'{\"mytimestamp\": \"2023-01-02 21:02:21-1\", \"error\": false, \"unrecoverable\": false}'",
-    "PartitionKey": "1"
-}
-
-record = Record(data)
-
-records = RecordsCollection([record])
-pvdd(records)
-
-
-var = dir(record)
-for item in var:
-    if not callable(getattr(record, item)) and item[0:1] != '_' and item[0:2] != "__":
-        print(item)
-        pass
-die('end')
+    # Override get item so we can typehint the explicit type
+    def __getitem__(self, index) -> Record:
+        return self._items[int(index)]
 
 
 class Boto3GetRecordsResponse(common.BaseCommonClass):
@@ -676,6 +651,7 @@ class Client:
         # Make the boto3 call
         response = self._get_records(iterator_obj.shard_iterator)
         if len(response.Records) > 0:
+            pvdd(response.Records[0].SequenceNumber)
             pvdd(json.dumps(response.Records, default=str, indent=4))
             die('got here 649')
 

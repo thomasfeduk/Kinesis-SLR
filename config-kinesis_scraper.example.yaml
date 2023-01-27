@@ -33,7 +33,7 @@ stream_name: user-activities
 #  - shardId-000000000001
 #
 #shard_ids: ['shardId-000000000005']
-shard_ids: []
+shard_ids: ['shardId-000000000005']
 
 ###################################
 ## Section: Stream Scrape Range  ##
