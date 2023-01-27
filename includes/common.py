@@ -94,6 +94,7 @@ class BaseCommonClass(BaseSuperclass, ABC):
     # setting defaults etc.)
     @abstractmethod
     def _post_init_processing(self):
+        del self._base_superclass_passed_data
         pass
 
 
