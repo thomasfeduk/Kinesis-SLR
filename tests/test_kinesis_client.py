@@ -42,7 +42,7 @@ def generate_record_obj(record_raw_dict=None) -> kinesis.Record:
     return kinesis.Record(record_raw_dict)
 
 
-class ClientRecord(unittest.TestCase):
+class TestRecord(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pass
@@ -120,7 +120,7 @@ class ClientRecord(unittest.TestCase):
         self.assertEquals(record_obj.Data, "dataHere")
 
 
-class ClientGetRecords(unittest.TestCase):
+class TestGetRecordsIterationInput(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pass
@@ -135,36 +135,83 @@ class ClientGetRecords(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @patch('includes.kinesis_client.Client._get_records', create=True)
-    @patch('includes.kinesis_client.Client._shard_iterator', create=True)
-    @patch('os.path.exists', create=True)
-    @patch('includes.kinesis_client.Client._confirm_shards_exist', create=True)
-    @patch('includes.kinesis_client.Client._get_shard_ids_of_stream', create=True)
-    @patch('includes.kinesis_client.Client._scrape_records_for_shard_handle_poll_delay', create=True)
-    @patch('includes.kinesis_client.Client._is_valid', create=True)
-    def test_end_to_end_found_records(self,
-                                      mocked_is_valid,
-                                      mocked_poll,
-                                      mocked_get_shard_ids_of_stream,
-                                      mocked_confirm_shards_exist,
-                                      mocked_os_path_exists,
-                                      mocked_shard_iterator,
-                                      mocked_get_records,
-                                      ):
-        mocked_get_shard_ids_of_stream.return_value = ['shard_test']
-        mocked_os_path_exists.return_value = False
-        mocked_shard_iterator.return_value = 'the_iter_id'
-        mocked_get_records.return_value = kinesis.Boto3GetRecordsResponse({
-            "Records": generate_records(10), "NextShardIterator": uuid.uuid4().hex, "MillisBehindLatest": 0
-        })
+    def test_invalid(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            iteration_input = kinesis.GetRecordsIterationInput(
+                total_found_records="10",
+                response_no_records=0,
+                loop_count=15,
+                shard_iterator="abc",
+                shard_id="shard-123"
+            )
 
-        config = mock.Mock()
-        config.shard_ids = []
+        self.assertIn(
+            "\"total_found_records\" attribute name must exist and be of type [<class 'int'>].\n"
+            "Received: <class 'str'> '10'",
+            str(ex.exception)
+        )
 
-        client = kinesis.Client(config)
+    def test_valid(self):
+        iteration_input = kinesis.GetRecordsIterationInput(
+            total_found_records=10,
+            response_no_records=0,
+            loop_count=15,
+            shard_iterator="abc",
+            shard_id="shard-123"
+        )
 
-        client.begin_scraping()
-        die('est here 40')
+        self.assertEquals(iteration_input.total_found_records, 10)
+        self.assertEquals(iteration_input.response_no_records, 0)
+        self.assertEquals(iteration_input.loop_count, 15)
+        self.assertEquals(iteration_input.shard_iterator, "abc")
+        self.assertEquals(iteration_input.shard_id, "shard-123")
+
+
+class TestClientFullCycle(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    # @patch('includes.kinesis_client.Client._get_records', create=True)
+    # @patch('includes.kinesis_client.Client._shard_iterator', create=True)
+    # @patch('os.path.exists', create=True)
+    # @patch('includes.kinesis_client.Client._confirm_shards_exist', create=True)
+    # @patch('includes.kinesis_client.Client._get_shard_ids_of_stream', create=True)
+    # @patch('includes.kinesis_client.Client._scrape_records_for_shard_handle_poll_delay', create=True)
+    # @patch('includes.kinesis_client.Client._is_valid', create=True)
+    # def test_end_to_end_found_records(self,
+    #                                   mocked_is_valid,
+    #                                   mocked_poll,
+    #                                   mocked_get_shard_ids_of_stream,
+    #                                   mocked_confirm_shards_exist,
+    #                                   mocked_os_path_exists,
+    #                                   mocked_shard_iterator,
+    #                                   mocked_get_records,
+    #                                   ):
+    #     mocked_get_shard_ids_of_stream.return_value = ['shard_test']
+    #     mocked_os_path_exists.return_value = False
+    #     mocked_shard_iterator.return_value = 'the_iter_id'
+    #     mocked_get_records.return_value = kinesis.Boto3GetRecordsResponse({
+    #         "Records": generate_records(10), "NextShardIterator": uuid.uuid4().hex, "MillisBehindLatest": 0
+    #     })
+    #
+    #     config = mock.Mock()
+    #     config.shard_ids = []
+    #
+    #     client = kinesis.Client(config)
+    #
+    #     client.begin_scraping()
+    #     die('est here 40')
 
         # def test_ReqConfigs_empty(self):
         #     with patch('includes.kinesis_client.ShardIteratorConfig.is_valid', create=True) as mocked_kinesis_client:

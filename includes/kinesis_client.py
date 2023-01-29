@@ -70,7 +70,23 @@ class GetRecordsIteration(ABC):
         return self._shard_id
 
     def _is_valid(self):
-        # TODO: add proptypes here
+        """
+        Accepts a list of name:type dictionaries and iterates through validating each self.name=type as defined
+
+        # Example of self._proptypes:
+        [
+            {"name": "found_records", "types": [int]},
+            {"name": "iterator", "types": [str]},
+            {"name": "shard_id", "types": [str, int]},
+        ]
+        """
+
+        for prop in self._proptypes:
+            if type(getattr(self, prop["name"])) not in prop["types"]:
+                raise exceptions.InvalidArgumentException(
+                    f'"{prop["name"]}" attribute name must exist and be of type {str(prop["types"])}.'
+                    f'\nReceived: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}')
+
         for attrib in self._require_numeric_pos:
             try:
                 common.validate_numeric_pos(getattr(self, attrib))

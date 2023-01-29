@@ -82,8 +82,7 @@ class BaseCommonClass(BaseSuperclass, ABC):
         """
         Accepts a list of name:type dictionaries and iterates through validating each self.name=type as defined
 
-        :param proptypes:
-        # Example:
+        # Example of self._proptypes:
         [
             {"name": "found_records", "types": [int]},
             {"name": "iterator", "types": [str]},
