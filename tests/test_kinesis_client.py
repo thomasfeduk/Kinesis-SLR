@@ -105,19 +105,19 @@ class TestRecord(unittest.TestCase):
         timestamp = datetime.datetime.now()
         record_raw = generate_record_raw_dict(sequence_number="1", timestamp=timestamp)
         record_obj = kinesis.Record(record_raw)
-        self.assertEquals(record_obj.SequenceNumber, "1")
-        self.assertEquals(record_obj.ApproximateArrivalTimestamp, timestamp)
-        self.assertEquals(record_obj.PartitionKey, "sample_event")
-        self.assertEquals(record_obj.Data, "dataHere")
+        self.assertEqual(record_obj.SequenceNumber, "1")
+        self.assertEqual(record_obj.ApproximateArrivalTimestamp, timestamp)
+        self.assertEqual(record_obj.PartitionKey, "sample_event")
+        self.assertEqual(record_obj.Data, "dataHere")
 
     def test_record_valid_timestamp_string(self):
         timestamp = datetime.datetime.now()
         record_raw = generate_record_raw_dict(sequence_number="1", timestamp=timestamp.isoformat())
         record_obj = kinesis.Record(record_raw)
-        self.assertEquals(record_obj.SequenceNumber, "1")
-        self.assertEquals(record_obj.ApproximateArrivalTimestamp, timestamp.isoformat())
-        self.assertEquals(record_obj.PartitionKey, "sample_event")
-        self.assertEquals(record_obj.Data, "dataHere")
+        self.assertEqual(record_obj.SequenceNumber, "1")
+        self.assertEqual(record_obj.ApproximateArrivalTimestamp, timestamp.isoformat())
+        self.assertEqual(record_obj.PartitionKey, "sample_event")
+        self.assertEqual(record_obj.Data, "dataHere")
 
 
 class TestGetRecordsIterationInput(unittest.TestCase):
@@ -160,11 +160,11 @@ class TestGetRecordsIterationInput(unittest.TestCase):
             shard_id="shard-123"
         )
 
-        self.assertEquals(iteration_input.total_found_records, 10)
-        self.assertEquals(iteration_input.response_no_records, 0)
-        self.assertEquals(iteration_input.loop_count, 15)
-        self.assertEquals(iteration_input.shard_iterator, "abc")
-        self.assertEquals(iteration_input.shard_id, "shard-123")
+        self.assertEqual(iteration_input.total_found_records, 10)
+        self.assertEqual(iteration_input.response_no_records, 0)
+        self.assertEqual(iteration_input.loop_count, 15)
+        self.assertEqual(iteration_input.shard_iterator, "abc")
+        self.assertEqual(iteration_input.shard_id, "shard-123")
 
 
 class TestClientFullCycle(unittest.TestCase):

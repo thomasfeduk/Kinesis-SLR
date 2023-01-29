@@ -58,25 +58,13 @@ class BaseSuperclass(ABC):
         return dict_dump
 
 
-class BaseCommonClass(BaseSuperclass, ABC):
+class BasePropTypes(BaseSuperclass):
     @abstractmethod
     def __init__(self, passed_data: Union[dict, str] = None):
+        super().__init__(passed_data)
         # Define the default attributes
         if not hasattr(self, '_proptypes'):
-            self._proptypes = None
-        # Have to call parent after defining attributes to populate them
-        super().__init__(passed_data)
-        self._is_valid()
-        self._post_init_processing()
-
-    def _is_valid(self):
-        self._is_valid_proptypes()
-
-    # Class can use this to implement any post-init processing of properties (ie uppercaseing values,
-    # setting defaults etc.)
-    def _post_init_processing(self):
-        del self._base_superclass_passed_data
-        pass
+            self._proptypes = []
 
     def _is_valid_proptypes(self) -> None:
         """
@@ -97,6 +85,24 @@ class BaseCommonClass(BaseSuperclass, ABC):
                         f'"{prop["name"]}" attribute name must exist and be of type {str(prop["types"])}.'
                         f'\nReceived: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}'
                         f'\nPassed data: {repr(self._base_superclass_passed_data)}')
+
+
+class BaseCommonClass(BasePropTypes, ABC):
+    @abstractmethod
+    def __init__(self, passed_data: Union[dict, str] = None):
+        # Have to call parent after defining attributes to populate them
+        super().__init__(passed_data)
+        self._is_valid()
+        self._post_init_processing()
+
+    def _is_valid(self):
+        self._is_valid_proptypes()
+
+    # Class can use this to implement any post-init processing of properties (ie uppercaseing values,
+    # setting defaults etc.)
+    def _post_init_processing(self):
+        del self._base_superclass_passed_data
+        pass
 
 
 class RestrictedCollection(ABC):

@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 log = logging.getLogger(__name__)
 
 
-class GetRecordsIteration(ABC):
+class GetRecordsIteration(common.BasePropTypes, ABC):
     @abstractmethod
     def __init__(self, *,
                  total_found_records: int,
@@ -35,7 +35,7 @@ class GetRecordsIteration(ABC):
             {"name": "shard_id", "types": [str]},
         ]
         self._require_numeric_pos = ['total_found_records', 'response_no_records', 'loop_count']
-
+        super().__init__()
         self._is_valid()
 
     @property
@@ -70,23 +70,7 @@ class GetRecordsIteration(ABC):
         return self._shard_id
 
     def _is_valid(self):
-        """
-        Accepts a list of name:type dictionaries and iterates through validating each self.name=type as defined
-
-        # Example of self._proptypes:
-        [
-            {"name": "found_records", "types": [int]},
-            {"name": "iterator", "types": [str]},
-            {"name": "shard_id", "types": [str, int]},
-        ]
-        """
-
-        for prop in self._proptypes:
-            if type(getattr(self, prop["name"])) not in prop["types"]:
-                raise exceptions.InvalidArgumentException(
-                    f'"{prop["name"]}" attribute name must exist and be of type {str(prop["types"])}.'
-                    f'\nReceived: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}')
-
+        self._is_valid_proptypes()
         for attrib in self._require_numeric_pos:
             try:
                 common.validate_numeric_pos(getattr(self, attrib))
