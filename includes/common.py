@@ -1,3 +1,4 @@
+from typing import Union
 import os
 from os import path
 import json
@@ -6,6 +7,7 @@ import traceback
 import yaml
 from abc import ABC, abstractmethod
 import datetime
+import includes.exceptions as exceptions
 from includes.debug import pvdd, pvd, die
 
 log = logging.getLogger()
@@ -14,9 +16,8 @@ log = logging.getLogger()
 # Abstract class that allows population of pre-defined attributes from a passed dict or json
 class BaseSuperclass(ABC):
     @abstractmethod
-    def __init__(self, passed_data: [dict, str] = None):
-        # Define the attributes for this class
-        # None at superclass level
+    def __init__(self, passed_data: Union[dict, str] = None):
+        # No attributes at superclass level
 
         # Superclass only:
         self._load_base_superclass_data(passed_data)
@@ -26,7 +27,7 @@ class BaseSuperclass(ABC):
     # as a mapping attribute, we set that attribute to the value of the key
     # This allows us to define the known attributes ahead of time on a per-class basis, then just throw
     # data at it, and it smartly populates the attributes if they exist without having to do it manually.
-    def _load_base_superclass_data(self, passed_data: [dict, str]):
+    def _load_base_superclass_data(self, passed_data: Union[dict, str]):
         if passed_data is None:
             return
         try:
@@ -45,27 +46,6 @@ class BaseSuperclass(ABC):
         except Exception as ex:
             raise ValueError(f"Could not convert passed_data to a dict.\npassed_data: {repr(passed_data)}") from ex
 
-    def _is_valid_proptypes(self, proptypes: list) -> None:
-        """
-        Accepts a list of name:type dictionaries and iterates through validating each self.name=type as defined
-
-        :param proptypes:
-        # Example:
-        [
-            {"name": "found_records", "type": int},
-            {"name": "iterator", "type": str},
-            {"name": "shard_id", "type": str},
-        ]
-        """
-
-        # Confirm proper types
-        for prop in proptypes:
-            if not isinstance(getattr(self, prop["name"]), prop["type"]):
-                raise ValueError(
-                    f'"{prop["name"]}" key name must exist and be of type {str(prop["type"])}.'
-                    f'\nReceived: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}'
-                    f'\nPassed data: {repr(self._base_superclass_passed_data)}')
-
     # Returns a recursive dict of the entire object and any attributes that are also objects
     # Similar to .__dict__ but recursive
     def dict(self) -> dict:
@@ -74,28 +54,50 @@ class BaseSuperclass(ABC):
                 json.dumps(self, default=lambda o: getattr(o, '__dict__', str(o)))
             )
         except Exception as ex:
-            raise RuntimeError(f"base_superclass: Error occurred calling .dict()") from ex
+            raise exceptions.InternalError(f"base_superclass: Error occurred calling .dict()") from ex
         return dict_dump
 
 
 class BaseCommonClass(BaseSuperclass, ABC):
     @abstractmethod
-    def __init__(self, passed_data: [dict, str] = None):
+    def __init__(self, passed_data: Union[dict, str] = None):
+        # Define the default attributes
+        if not hasattr(self, '_proptypes'):
+            self._proptypes = None
         # Have to call parent after defining attributes to populate them
         super().__init__(passed_data)
         self._is_valid()
         self._post_init_processing()
 
-    @abstractmethod
     def _is_valid(self):
-        pass
+        self._is_valid_proptypes()
 
     # Class can use this to implement any post-init processing of properties (ie uppercaseing values,
     # setting defaults etc.)
-    @abstractmethod
     def _post_init_processing(self):
         del self._base_superclass_passed_data
         pass
+
+    def _is_valid_proptypes(self) -> None:
+        """
+        Accepts a list of name:type dictionaries and iterates through validating each self.name=type as defined
+
+        :param proptypes:
+        # Example:
+        [
+            {"name": "found_records", "types": [int]},
+            {"name": "iterator", "types": [str]},
+            {"name": "shard_id", "types": [str, int]},
+        ]
+        """
+
+        if self._proptypes:
+            for prop in self._proptypes:
+                if type(getattr(self, prop["name"])) not in prop["types"]:
+                    raise exceptions.InvalidArgumentException(
+                        f'"{prop["name"]}" attribute name must exist and be of type {str(prop["types"])}.'
+                        f'\nReceived: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}'
+                        f'\nPassed data: {repr(self._base_superclass_passed_data)}')
 
 
 class RestrictedCollection(ABC):
@@ -181,7 +183,7 @@ def read_config(filename: str) -> dict:
     return yaml_data
 
 
-def validate_numeric_pos(check_value: [str, int, float]) -> float:
+def validate_numeric_pos(check_value: Union[str, int, float]) -> float:
     if not isinstance(check_value, str) and not isinstance(check_value, int) and not isinstance(check_value, float):
         raise TypeError('Value must be a numeric string, float or int.')
     try:
@@ -195,7 +197,7 @@ def validate_numeric_pos(check_value: [str, int, float]) -> float:
 
 
 # If passed a number, it returns upto max, or the input if it's less, otherwise return max as the default
-def get_max_of(input_val: [int, str, float], max_val: [int, str, float]) -> float:
+def get_max_of(input_val: Union[int, str, float], max_val: Union[int, str, float]) -> float:
     input_val = validate_numeric_pos(input_val)
     max_val = validate_numeric_pos(max_val)
     if input_val <= max_val:
@@ -203,7 +205,7 @@ def get_max_of(input_val: [int, str, float], max_val: [int, str, float]) -> floa
     return max_val
 
 
-def json_or_dict_or_obj_to_dict(data: [dict, str, object]) -> dict:
+def json_or_dict_or_obj_to_dict(data: Union[dict, str, object]) -> dict:
     data_orig = data
     # If data is a json string, convert it to a dict
     if isinstance(data_orig, str):

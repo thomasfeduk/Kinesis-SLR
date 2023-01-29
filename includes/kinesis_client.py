@@ -1,3 +1,4 @@
+from typing import Union
 import boto3
 import includes.exceptions as exceptions
 import json
@@ -15,7 +16,7 @@ from abc import ABC, abstractmethod
 log = logging.getLogger(__name__)
 
 
-class GetRecordsIterator(ABC):
+class GetRecordsIteration(ABC):
     @abstractmethod
     def __init__(self, *,
                  total_found_records: int,
@@ -27,12 +28,11 @@ class GetRecordsIterator(ABC):
         self._response_no_records = response_no_records
         self._loop_count = loop_count
         self._shard_id = shard_id
-
         self._proptypes = [
-            {"name": "total_found_records", "type": int},
-            {"name": "response_no_records", "type": int},
-            {"name": "loop_count", "type": int},
-            {"name": "shard_id", "type": str},
+            {"name": "total_found_records", "types": [int]},
+            {"name": "response_no_records", "types": [int]},
+            {"name": "loop_count", "types": [int]},
+            {"name": "shard_id", "types": [str]},
         ]
         self._require_numeric_pos = ['total_found_records', 'response_no_records', 'loop_count']
 
@@ -70,12 +70,7 @@ class GetRecordsIterator(ABC):
         return self._shard_id
 
     def _is_valid(self):
-        for prop in self._proptypes:
-            if not isinstance(getattr(self, prop["name"]), prop["type"]):
-                raise exceptions.InvalidArgumentException(
-                    f'"{prop["name"]}" must be of type {str(prop["type"])}. '
-                    f'Received: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}')
-
+        # TODO: add proptypes here
         for attrib in self._require_numeric_pos:
             try:
                 common.validate_numeric_pos(getattr(self, attrib))
@@ -85,7 +80,7 @@ class GetRecordsIterator(ABC):
                     f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
 
 
-class GetRecordsIteratorInput(GetRecordsIterator):
+class GetRecordsIterationInput(GetRecordsIteration):
     def __init__(self, *,
                  total_found_records: int,
                  response_no_records: int,
@@ -104,7 +99,7 @@ class GetRecordsIteratorInput(GetRecordsIterator):
         )
 
         # Inject proptype requirement into the proptypes requirements list after inheriting from parent
-        self._proptypes.append({"name": "shard_iterator", "type": str})
+        self._proptypes.append({"name": "shard_iterator", "types": [str]})
         # self._require_numeric_pos.append('name_of_prop_here')
 
         # Recall the validation that is called in super().__init__ again after appending the new proptype
@@ -124,7 +119,7 @@ class GetRecordsIteratorInput(GetRecordsIterator):
         return self._shard_iterator
 
 
-class GetRecordsIteratorResponse(GetRecordsIterator):
+class GetRecordsIterationResponse(GetRecordsIteration):
     def __init__(self, *,
                  total_found_records: int,
                  found_records: int,
@@ -147,9 +142,9 @@ class GetRecordsIteratorResponse(GetRecordsIterator):
         )
 
         # Inject proptype requirement into the proptypes requirements list after inheriting from parent
-        self._proptypes.append({"name": "break_iteration", "type": bool})
-        self._proptypes.append({"name": "found_records", "type": int})
-        self._proptypes.append({"name": "next_shard_iterator", "type": str})
+        self._proptypes.append({"name": "break_iteration", "types": [bool]})
+        self._proptypes.append({"name": "found_records", "types": [int]})
+        self._proptypes.append({"name": "next_shard_iterator", "types": [str]})
         self._require_numeric_pos.append('found_records')
 
         # Recall the validation that is called in super().__init__ again after appending the new proptype
@@ -178,8 +173,13 @@ class Record(common.BaseCommonClass):
         self._ApproximateArrivalTimestamp = None
         self._Data = None
         self._PartitionKey = None
+        self._proptypes = [
+            {"name": "SequenceNumber", "types": [str]},
+            {"name": "PartitionKey", "types": [str]},
+            {"name": "ApproximateArrivalTimestamp", "types": [datetime.datetime, str]},
+        ]
 
-        # Have to call parent after defining attributes other they are not populated
+        # Have to call parent after defining attributes
         super().__init__(passed_data)
 
     @property
@@ -198,20 +198,6 @@ class Record(common.BaseCommonClass):
     def PartitionKey(self) -> str:
         return self._PartitionKey
 
-    def _post_init_processing(self):
-        super()._post_init_processing()
-
-    def _is_valid(self):
-        proptypes = [
-            {"name": "SequenceNumber", "type": str},
-            {"name": "PartitionKey", "type": str},
-            {"name": "ApproximateArrivalTimestamp", "type": datetime.datetime},
-        ]
-        try:
-            self._is_valid_proptypes(proptypes)
-        except ValueError as ex:
-            raise exceptions.InvalidArgumentException(ex) from ex
-
 
 class RecordsCollection(common.RestrictedCollection):
     @property
@@ -228,6 +214,11 @@ class Boto3GetRecordsResponse(common.BaseCommonClass):
         self._Records = None
         self._NextShardIterator = None
         self._MillisBehindLatest = None
+        self._proptypes = [
+            {"name": "Records", "types": [RecordsCollection]},
+            {"name": "NextShardIterator", "types": [str]},
+            {"name": "MillisBehindLatest", "types": [int]},
+        ]
 
         # If Records exists in the passed data, we re-pack it as RecordCollection of Record items
         if 'Records' in passed_data.keys():
@@ -248,23 +239,9 @@ class Boto3GetRecordsResponse(common.BaseCommonClass):
     def MillisBehindLatest(self) -> int:
         return self._MillisBehindLatest
 
-    def _post_init_processing(self):
-        super()._post_init_processing()
-
-    def _is_valid(self):
-        proptypes = [
-            {"name": "Records", "type": RecordsCollection},
-            {"name": "NextShardIterator", "type": str},
-            {"name": "MillisBehindLatest", "type": int},
-        ]
-        try:
-            self._is_valid_proptypes(proptypes)
-        except ValueError as ex:
-            raise exceptions.InvalidArgumentException(ex) from ex
-
 
 class ClientConfig(common.BaseCommonClass):
-    def __init__(self, passed_data: [dict, str], boto_client: botocore.client.BaseClient):
+    def __init__(self, passed_data: Union[dict, str], boto_client: botocore.client.BaseClient):
         self._boto_client = boto_client
         self._debug_level = None
         self._stream_name = None
@@ -340,7 +317,6 @@ class ClientConfig(common.BaseCommonClass):
         return self._max_empty_polls
 
     def _is_valid(self):
-        die('ot here')
         self._validate_boto_client()
         self._validate_required_configs()
         self._validate_stream_name()
@@ -620,7 +596,7 @@ class Client:
         loop_count = 1
 
         while next_shard_iterator:
-            iterator_response_obj = self._scrape_records_for_shard_iterator(GetRecordsIteratorInput(
+            iterator_response_obj = self._scrape_records_for_shard_iterator(GetRecordsIterationInput(
                 total_found_records=total_found_records,
                 response_no_records=response_no_records,
                 shard_iterator=next_shard_iterator,
@@ -639,8 +615,8 @@ class Client:
             next_shard_iterator = iterator_response_obj.next_shard_iterator
             loop_count = iterator_response_obj.loop_count
 
-    def _scrape_records_for_shard_iterator(self, iterator_obj: GetRecordsIteratorInput) \
-            -> GetRecordsIteratorResponse:
+    def _scrape_records_for_shard_iterator(self, iterator_obj: GetRecordsIterationInput) \
+            -> GetRecordsIterationResponse:
 
         # Increment total loop counter
         iterator_obj.loop_count += 1
@@ -651,11 +627,11 @@ class Client:
 
         # Make the boto3 call
         response = self._get_records(iterator_obj.shard_iterator)
-        pvdd(response)
-        if len(response.Records) > 0:
-            pvdd(response.Records[0].SequenceNumber)
-            pvdd(json.dumps(response.Records, default=str, indent=4))
-            die('got here 649')
+        # if len(response.Records) > 0:
+        #     # pvdd(response.Records[0].SequenceNumber)
+        #     # pvdd(json.dumps(response.Records, default=str, indent=4))
+        #     # die('got here 649')
+        #
 
         # Store records if found in temp list
         if len(response.Records) > 0:
@@ -719,7 +695,7 @@ class Client:
                          f'{iterator_obj.shard_id} and found a total of {len(response.Records)} records, '
                          f'current iterator: {iterator_obj.shard_iterator}\n'
                          f'Aborting further reads for current shard: {iterator_obj.shard_id}')
-                return GetRecordsIteratorResponse(
+                return GetRecordsIterationResponse(
                     total_found_records=iterator_obj.total_found_records,
                     response_no_records=iterator_obj.response_no_records,
                     loop_count=iterator_obj.loop_count,
@@ -730,7 +706,7 @@ class Client:
                 )
 
         # End of iteration, build and return new iterator response
-        return GetRecordsIteratorResponse(
+        return GetRecordsIterationResponse(
             total_found_records=iterator_obj.total_found_records,
             response_no_records=iterator_obj.response_no_records,
             loop_count=iterator_obj.loop_count,
