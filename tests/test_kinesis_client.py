@@ -285,35 +285,206 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
     def tearDown(self):
         pass
 
-    # def test_invalid_type_total_found_records(self):
-    #
-    #     with self.assertRaises(exceptions.InvalidArgumentException) as ex:
-    #         kinesis.GetRecordsIterationInput(
-    #             total_found_records=10,
-    #             response_no_records=0,
-    #             loop_count=15,
-    #             shard_iterator="abc",
-    #             shard_id="shard-123"
-    #         )
+    def test_invalid_type_total_found_records(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records="10",
+                found_records=50,
+                response_no_records=2,
+                loop_count=15,
+                next_shard_iterator="abc",
+                shard_id="shard-123",
+                break_iteration=True
+            )
 
-        # self.assertIn(
-        #     "\"total_found_records\" attribute name must exist and be of type [<class 'int'>].\n"
-        #     "Received: <class 'str'> '10'",
-        #     str(ex.exception)
-        # )
+        self.assertIn(
+            "\"total_found_records\" attribute name must exist and be of type [<class 'int'>].\n"
+            "Received: <class 'str'> '10'",
+            str(ex.exception)
+        )
 
-    # def test_invalid_negative_numeric_total_found_records(self):
-    #     with self.assertRaises(exceptions.InvalidArgumentException) as ex:
-    #         kinesis.GetRecordsIterationInput(
-    #             total_found_records=-10,
-    #             response_no_records=0,
-    #             loop_count=15,
-    #             shard_iterator="abc",
-    #             shard_id="shard-500",
-    #         )
-    #
-    #     self.assertIn("\"total_found_records\" must be a positive numeric value. Received: <class 'int'> -10",
-    #                   str(ex.exception))
+    def test_invalid_type_found_records(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records=10,
+                found_records="50",
+                response_no_records=2,
+                loop_count=15,
+                next_shard_iterator="abc",
+                shard_id="shard-123",
+                break_iteration=True
+            )
+
+        self.assertIn(
+            "\"found_records\" attribute name must exist and be of type [<class 'int'>].\n"
+            "Received: <class 'str'> '50'",
+            str(ex.exception)
+        )
+
+    def test_invalid_type_response_no_records(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records=10,
+                found_records=50,
+                response_no_records="2",
+                loop_count=15,
+                next_shard_iterator="abc",
+                shard_id="shard-123",
+                break_iteration=True
+            )
+
+        self.assertIn(
+            "\"response_no_records\" attribute name must exist and be of type [<class 'int'>].\n"
+            "Received: <class 'str'> '2'",
+            str(ex.exception)
+        )
+
+    def test_invalid_type_loop_count(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records=10,
+                found_records=50,
+                response_no_records=2,
+                loop_count="15",
+                next_shard_iterator="abc",
+                shard_id="shard-123",
+                break_iteration=True
+            )
+
+        self.assertIn(
+            "\"loop_count\" attribute name must exist and be of type [<class 'int'>].\n"
+            "Received: <class 'str'> '15'",
+            str(ex.exception)
+        )
+
+    def test_invalid_type_next_shard_iterator(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records=10,
+                found_records=50,
+                response_no_records=2,
+                loop_count=15,
+                next_shard_iterator=5,
+                shard_id="shard-123",
+                break_iteration=True
+            )
+
+        self.assertIn(
+            "\"next_shard_iterator\" attribute name must exist and be of type [<class 'str'>].\n"
+            "Received: <class 'int'> 5",
+            str(ex.exception)
+        )
+
+    def test_invalid_type_next_shard_id(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records=10,
+                found_records=50,
+                response_no_records=2,
+                loop_count=15,
+                next_shard_iterator="abcc",
+                shard_id=123,
+                break_iteration=True
+            )
+
+        self.assertIn(
+            "\"shard_id\" attribute name must exist and be of type [<class 'str'>].\n"
+            "Received: <class 'int'> 123",
+            str(ex.exception)
+        )
+
+    def test_invalid_type_break_iteration(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records=10,
+                found_records=50,
+                response_no_records=2,
+                loop_count=15,
+                next_shard_iterator="abcc",
+                shard_id="shard-123",
+                break_iteration="True"
+            )
+
+        self.assertIn(
+            "\"break_iteration\" attribute name must exist and be of type [<class 'bool'>].\n"
+            "Received: <class 'str'> 'True'",
+            str(ex.exception)
+        )
+
+    def test_invalid_negative_numeric_total_found_records(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records=-10,
+                found_records=50,
+                response_no_records=2,
+                loop_count=15,
+                next_shard_iterator="abcc",
+                shard_id="shard-123",
+                break_iteration=True
+            )
+
+        self.assertIn("\"total_found_records\" must be a positive numeric value. Received: <class 'int'> -10",
+                      str(ex.exception))
+
+    def test_invalid_negative_numeric_found_records(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records=10,
+                found_records=-50,
+                response_no_records=2,
+                loop_count=15,
+                next_shard_iterator="abcc",
+                shard_id="shard-123",
+                break_iteration=True
+            )
+
+        self.assertIn("\"found_records\" must be a positive numeric value. Received: <class 'int'> -50",
+                      str(ex.exception))
+
+    def test_invalid_negative_numeric_response_no_records(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records=10,
+                found_records=50,
+                response_no_records=-2,
+                loop_count=15,
+                next_shard_iterator="abcc",
+                shard_id="shard-123",
+                break_iteration=True
+            )
+
+        self.assertIn("\"response_no_records\" must be a positive numeric value. Received: <class 'int'> -2",
+                      str(ex.exception))
+
+    def test_invalid_negative_numeric_loop_count(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records=10,
+                found_records=50,
+                response_no_records=2,
+                loop_count=-15,
+                next_shard_iterator="abcc",
+                shard_id="shard-123",
+                break_iteration=True
+            )
+
+        self.assertIn("\"loop_count\" must be a positive numeric value. Received: <class 'int'> -15",
+                      str(ex.exception))
+
+    def test_invalid_total_found_less_than_found(self):
+        with self.assertRaises(exceptions.InternalError) as ex:
+            kinesis.GetRecordsIterationResponse(
+                total_found_records=10,
+                found_records=50,
+                response_no_records=2,
+                loop_count=15,
+                next_shard_iterator="abcc",
+                shard_id="shard-123",
+                break_iteration=True
+            )
+
+        self.assertIn("Calculation fault: found_records (50) cannot exceed total_found_records (10).",
+                      str(ex.exception))
 
     def test_valid(self):
         iteration_input = kinesis.GetRecordsIterationResponse(

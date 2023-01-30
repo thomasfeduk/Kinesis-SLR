@@ -173,6 +173,13 @@ class GetRecordsIterationResponse(GetRecordsIteration):
     def break_iteration(self):
         return self._break_iteration
 
+    def _is_valid(self):
+        super()._is_valid()
+
+        if self.found_records > self.total_found_records:
+            raise exceptions.InternalError(f"Calculation fault: found_records ({self.found_records}) cannot"
+                                           f" exceed total records ({self.total_found_records}).")
+
 
 class Record(common.BaseCommonClass):
     def __init__(self, passed_data: [dict]):
