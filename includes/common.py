@@ -82,25 +82,12 @@ def validate_proptypes(attributes_list: dict, rules: list, original_passed_data=
                 f'{debug_passed_data}')
 
 
-class BasePropTypes(BaseSuperclass):
+class BaseCommonClass(BaseSuperclass, ABC):
     @abstractmethod
     def __init__(self, passed_data: Union[dict, str] = None):
-        super().__init__(passed_data)
         # Define the default attributes
         if not hasattr(self, '_proptypes'):
             self._proptypes = []
-
-    def _is_valid_proptypes(self) -> None:
-        attribs = {}
-        for item in dir(self):
-            if not callable(getattr(self, item)):
-                attribs[item] = getattr(self, item)
-        validate_proptypes(attribs, self._proptypes, self._base_superclass_passed_data)
-
-
-class BaseCommonClass(BasePropTypes, ABC):
-    @abstractmethod
-    def __init__(self, passed_data: Union[dict, str] = None):
         # Have to call parent after defining attributes to populate them
         super().__init__(passed_data)
         self._is_valid()
@@ -114,6 +101,14 @@ class BaseCommonClass(BasePropTypes, ABC):
     def _post_init_processing(self):
         del self._base_superclass_passed_data
         pass
+
+
+    def _is_valid_proptypes(self) -> None:
+        attribs = {}
+        for item in dir(self):
+            if not callable(getattr(self, item)):
+                attribs[item] = getattr(self, item)
+        validate_proptypes(attribs, self._proptypes, self._base_superclass_passed_data)
 
 
 class RestrictedCollection(ABC):

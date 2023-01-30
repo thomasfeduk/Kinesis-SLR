@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 log = logging.getLogger(__name__)
 
 
-class GetRecordsIteration(common.BasePropTypes, ABC):
+class GetRecordsIteration(ABC):
     @abstractmethod
     def __init__(self, *,
                  total_found_records: int,
@@ -78,6 +78,13 @@ class GetRecordsIteration(common.BasePropTypes, ABC):
                 raise exceptions.InvalidArgumentException(
                     f'"{attrib}" must be a positive numeric value. Received: '
                     f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
+
+    def _is_valid_proptypes(self) -> None:
+        attribs = {}
+        for item in dir(self):
+            if not callable(getattr(self, item)):
+                attribs[item] = getattr(self, item)
+        common.validate_proptypes(attribs, self._proptypes)
 
 
 class GetRecordsIterationInput(GetRecordsIteration):
