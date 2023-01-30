@@ -16,7 +16,7 @@ import includes.common as common
 def generate_records(num: int) -> list:
     records = []
     for item in range(num):
-        records.append(kinesis.Record(generate_record_obj()))
+        records.append(generate_record_obj())
     return records
 
 
@@ -67,7 +67,7 @@ class TestRecord(unittest.TestCase):
             str(ex.exception)
         )
 
-    def test_record_invalid_SequenceNumber(self):
+    def test_record_invalid_type_SequenceNumber(self):
         record_raw = generate_record_raw_dict()
         # Cant have an int for sequence number
         record_raw["SequenceNumber"] = 5
@@ -78,7 +78,7 @@ class TestRecord(unittest.TestCase):
             str(ex.exception)
         )
 
-    def test_record_invalid_PartitionKey(self):
+    def test_record_invalid_type_PartitionKey(self):
         record_raw = generate_record_raw_dict()
         # Cant have an int for sequence number
         record_raw["PartitionKey"] = 1
@@ -89,7 +89,7 @@ class TestRecord(unittest.TestCase):
             str(ex.exception)
         )
 
-    def test_record_invalid_timestamp_type(self):
+    def test_record_invalid_type_timestamp(self):
         record_raw = generate_record_raw_dict()
         # Cant have an int for sequence number
         record_raw["ApproximateArrivalTimestamp"] = []
@@ -135,9 +135,9 @@ class TestGetRecordsIterationInput(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_invalid(self):
+    def test_invalid_type_total_found_records(self):
         with self.assertRaises(exceptions.InvalidArgumentException) as ex:
-            iteration_input = kinesis.GetRecordsIterationInput(
+            kinesis.GetRecordsIterationInput(
                 total_found_records="10",
                 response_no_records=0,
                 loop_count=15,
@@ -148,6 +148,70 @@ class TestGetRecordsIterationInput(unittest.TestCase):
         self.assertIn(
             "\"total_found_records\" attribute name must exist and be of type [<class 'int'>].\n"
             "Received: <class 'str'> '10'",
+            str(ex.exception)
+        )
+
+    def test_invalid_type_response_no_records(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationInput(
+                total_found_records=10,
+                response_no_records='blah',
+                loop_count=15,
+                shard_iterator="abc",
+                shard_id="shard-123"
+            )
+
+        self.assertIn(
+            "\"response_no_records\" attribute name must exist and be of type [<class 'int'>].\n"
+            "Received: <class 'str'> 'blah'",
+            str(ex.exception)
+        )
+
+    def test_invalid_type_loop_count(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationInput(
+                total_found_records=10,
+                response_no_records=0,
+                loop_count="15",
+                shard_iterator="abc",
+                shard_id="shard-123"
+            )
+
+        self.assertIn(
+            "\"loop_count\" attribute name must exist and be of type [<class 'int'>].\n"
+            "Received: <class 'str'> '15'",
+            str(ex.exception)
+        )
+
+    def test_invalid_type_shard_iterator(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationInput(
+                total_found_records=10,
+                response_no_records=0,
+                loop_count=15,
+                shard_iterator=None,
+                shard_id="shard-123"
+            )
+
+        self.assertIn(
+            "\"shard_iterator\" attribute name must exist and be of type [<class 'str'>].\n"
+            "Received: <class 'NoneType'> None",
+            str(ex.exception)
+        )
+
+    def test_invalid_type_shard_id(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationInput(
+                total_found_records=10,
+                response_no_records=0,
+                loop_count=15,
+                shard_iterator="abc",
+                shard_id=500,
+            )
+
+        self.assertIn(
+            "\"shard_id\" attribute name must exist and be of type [<class 'str'>].\n"
+            "Received: <class 'int'> 500",
             str(ex.exception)
         )
 
