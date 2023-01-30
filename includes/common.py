@@ -58,6 +58,30 @@ class BaseSuperclass(ABC):
         return dict_dump
 
 
+def validate_proptypes(attributes_list: dict, rules: list, original_passed_data=None) -> None:
+    pass
+    """
+    :param original_passed_data: If we want to pass the original data for more debugging output
+    :param attributes_list: The name-value-pair dict of attributes to check the rules against
+                            (typically the non-callable self attribs)
+    :param rules: 
+        [
+        {"name": "found_records", "types": [int]},
+        {"name": "iterator", "types": [str]},
+        {"name": "shard_id", "types": [str, int]},
+    ]
+    """
+    debug_passed_data = ""
+    if original_passed_data:
+        debug_passed_data = f'\nPassed data: {repr(original_passed_data)}'
+    for prop in rules:
+        if type(attributes_list[prop["name"]]) not in prop["types"]:
+            raise exceptions.InvalidArgumentException(
+                f'"{prop["name"]}" attribute name must exist and be of type {str(prop["types"])}.'
+                f'\nReceived: {repr(type(attributes_list[prop["name"]]))} {repr(attributes_list[prop["name"]])}'
+                f'{debug_passed_data}')
+
+
 class BasePropTypes(BaseSuperclass):
     @abstractmethod
     def __init__(self, passed_data: Union[dict, str] = None):
@@ -67,24 +91,11 @@ class BasePropTypes(BaseSuperclass):
             self._proptypes = []
 
     def _is_valid_proptypes(self) -> None:
-        """
-        Accepts a list of name:type dictionaries and iterates through validating each self.name=type as defined
-
-        # Example of self._proptypes:
-        [
-            {"name": "found_records", "types": [int]},
-            {"name": "iterator", "types": [str]},
-            {"name": "shard_id", "types": [str, int]},
-        ]
-        """
-
-        if self._proptypes:
-            for prop in self._proptypes:
-                if type(getattr(self, prop["name"])) not in prop["types"]:
-                    raise exceptions.InvalidArgumentException(
-                        f'"{prop["name"]}" attribute name must exist and be of type {str(prop["types"])}.'
-                        f'\nReceived: {repr(type(getattr(self, prop["name"])))} {repr(getattr(self, prop["name"]))}'
-                        f'\nPassed data: {repr(self._base_superclass_passed_data)}')
+        attribs = {}
+        for item in dir(self):
+            if not callable(getattr(self, item)):
+                attribs[item] = getattr(self, item)
+        validate_proptypes(attribs, self._proptypes, self._base_superclass_passed_data)
 
 
 class BaseCommonClass(BasePropTypes, ABC):
