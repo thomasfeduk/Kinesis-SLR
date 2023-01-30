@@ -215,6 +215,45 @@ class TestGetRecordsIterationInput(unittest.TestCase):
             str(ex.exception)
         )
 
+    def test_invalid_negative_numeric_total_found_records(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationInput(
+                total_found_records=-10,
+                response_no_records=0,
+                loop_count=15,
+                shard_iterator="abc",
+                shard_id="shard-500",
+            )
+
+        self.assertIn("\"total_found_records\" must be a positive numeric value. Received: <class 'int'> -10",
+                      str(ex.exception))
+
+    def test_invalid_negative_numeric_response_no_records(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationInput(
+                total_found_records=10,
+                response_no_records=-2,
+                loop_count=15,
+                shard_iterator="abc",
+                shard_id="shard-500",
+            )
+
+        self.assertIn("\"response_no_records\" must be a positive numeric value. Received: <class 'int'> -2",
+                      str(ex.exception))
+
+    def test_invalid_negative_numeric_loop_count(self):
+        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+            kinesis.GetRecordsIterationInput(
+                total_found_records=10,
+                response_no_records=2,
+                loop_count=-15,
+                shard_iterator="abc",
+                shard_id="shard-500",
+            )
+
+        self.assertIn("\"loop_count\" must be a positive numeric value. Received: <class 'int'> -15",
+                      str(ex.exception))
+
     def test_valid(self):
         iteration_input = kinesis.GetRecordsIterationInput(
             total_found_records=10,
@@ -229,6 +268,71 @@ class TestGetRecordsIterationInput(unittest.TestCase):
         self.assertEqual(iteration_input.loop_count, 15)
         self.assertEqual(iteration_input.shard_iterator, "abc")
         self.assertEqual(iteration_input.shard_id, "shard-123")
+
+
+class TestGetRecordsIterationOutput(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    # def test_invalid_type_total_found_records(self):
+    #
+    #     with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+    #         kinesis.GetRecordsIterationInput(
+    #             total_found_records=10,
+    #             response_no_records=0,
+    #             loop_count=15,
+    #             shard_iterator="abc",
+    #             shard_id="shard-123"
+    #         )
+
+        # self.assertIn(
+        #     "\"total_found_records\" attribute name must exist and be of type [<class 'int'>].\n"
+        #     "Received: <class 'str'> '10'",
+        #     str(ex.exception)
+        # )
+
+    # def test_invalid_negative_numeric_total_found_records(self):
+    #     with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+    #         kinesis.GetRecordsIterationInput(
+    #             total_found_records=-10,
+    #             response_no_records=0,
+    #             loop_count=15,
+    #             shard_iterator="abc",
+    #             shard_id="shard-500",
+    #         )
+    #
+    #     self.assertIn("\"total_found_records\" must be a positive numeric value. Received: <class 'int'> -10",
+    #                   str(ex.exception))
+
+    def test_valid(self):
+        iteration_input = kinesis.GetRecordsIterationResponse(
+            total_found_records=10,
+            found_records=50,
+            response_no_records=2,
+            loop_count=15,
+            next_shard_iterator="abc",
+            shard_id="shard-123",
+            break_iteration=True
+        )
+
+        self.assertEqual(iteration_input.total_found_records, 10)
+        self.assertEqual(iteration_input.found_records, 50)
+        self.assertEqual(iteration_input.response_no_records, 2)
+        self.assertEqual(iteration_input.loop_count, 15)
+        self.assertEqual(iteration_input.next_shard_iterator, "abc")
+        self.assertEqual(iteration_input.shard_id, "shard-123")
+        self.assertEqual(iteration_input.break_iteration, True)
 
 
 class TestClientFullCycle(unittest.TestCase):
@@ -246,36 +350,36 @@ class TestClientFullCycle(unittest.TestCase):
     def tearDown(self):
         pass
 
-    # @patch('includes.kinesis_client.Client._get_records', create=True)
-    # @patch('includes.kinesis_client.Client._shard_iterator', create=True)
-    # @patch('os.path.exists', create=True)
-    # @patch('includes.kinesis_client.Client._confirm_shards_exist', create=True)
-    # @patch('includes.kinesis_client.Client._get_shard_ids_of_stream', create=True)
-    # @patch('includes.kinesis_client.Client._scrape_records_for_shard_handle_poll_delay', create=True)
-    # @patch('includes.kinesis_client.Client._is_valid', create=True)
-    # def test_end_to_end_found_records(self,
-    #                                   mocked_is_valid,
-    #                                   mocked_poll,
-    #                                   mocked_get_shard_ids_of_stream,
-    #                                   mocked_confirm_shards_exist,
-    #                                   mocked_os_path_exists,
-    #                                   mocked_shard_iterator,
-    #                                   mocked_get_records,
-    #                                   ):
-    #     mocked_get_shard_ids_of_stream.return_value = ['shard_test']
-    #     mocked_os_path_exists.return_value = False
-    #     mocked_shard_iterator.return_value = 'the_iter_id'
-    #     mocked_get_records.return_value = kinesis.Boto3GetRecordsResponse({
-    #         "Records": generate_records(10), "NextShardIterator": uuid.uuid4().hex, "MillisBehindLatest": 0
-    #     })
-    #
-    #     config = mock.Mock()
-    #     config.shard_ids = []
-    #
-    #     client = kinesis.Client(config)
-    #
-    #     client.begin_scraping()
-    #     die('est here 40')
+        # @patch('includes.kinesis_client.Client._get_records', create=True)
+        # @patch('includes.kinesis_client.Client._shard_iterator', create=True)
+        # @patch('os.path.exists', create=True)
+        # @patch('includes.kinesis_client.Client._confirm_shards_exist', create=True)
+        # @patch('includes.kinesis_client.Client._get_shard_ids_of_stream', create=True)
+        # @patch('includes.kinesis_client.Client._scrape_records_for_shard_handle_poll_delay', create=True)
+        # @patch('includes.kinesis_client.Client._is_valid', create=True)
+        # def test_end_to_end_found_records(self,
+        #                                   mocked_is_valid,
+        #                                   mocked_poll,
+        #                                   mocked_get_shard_ids_of_stream,
+        #                                   mocked_confirm_shards_exist,
+        #                                   mocked_os_path_exists,
+        #                                   mocked_shard_iterator,
+        #                                   mocked_get_records,
+        #                                   ):
+        #     mocked_get_shard_ids_of_stream.return_value = ['shard_test']
+        #     mocked_os_path_exists.return_value = False
+        #     mocked_shard_iterator.return_value = 'the_iter_id'
+        #     mocked_get_records.return_value = kinesis.Boto3GetRecordsResponse({
+        #         "Records": generate_records(10), "NextShardIterator": uuid.uuid4().hex, "MillisBehindLatest": 0
+        #     })
+        #
+        #     config = mock.Mock()
+        #     config.shard_ids = []
+        #
+        #     client = kinesis.Client(config)
+        #
+        #     client.begin_scraping()
+        #     die('est here 40')
 
         # def test_ReqConfigs_empty(self):
         #     with patch('includes.kinesis_client.ShardIteratorConfig.is_valid', create=True) as mocked_kinesis_client:
