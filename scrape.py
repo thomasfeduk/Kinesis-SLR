@@ -34,6 +34,17 @@ def main():
                         b'Time\x94\x86\x94ub\x86\x94R\x94\x8c\x04Data\x94CP{"mytimestamp": "2023-01-14 20:23:19-1", ' \
                         b'"error": false, "unrecoverable": false}\x94\x8c\x0cPartitionKey\x94\x8c\x011\x94u. '
 
+    var = kinesis.GetRecordsIterationResponse(
+        total_found_records=10,
+        found_records="50",
+        response_no_records=2,
+        loop_count=15,
+        next_shard_iterator="abc",
+        shard_id="shard-123",
+        break_iteration=True
+    )
+
+    pvdd(var)
 
     # client = boto3.client('kinesis')
     # results = client.get_shard_iterator(

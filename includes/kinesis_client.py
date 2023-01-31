@@ -29,14 +29,15 @@ class GetRecordsIteration(ABC):
         self._loop_count = loop_count
         self._shard_id = shard_id
         self._proptypes = [
-            {"name": "total_found_records", "types": [int]},
+            {"name": "total_found_records", "types": [int, bool]},
             {"name": "response_no_records", "types": [int]},
             {"name": "loop_count", "types": [int]},
             {"name": "shard_id", "types": [str]},
         ]
         self._require_numeric_pos = ['total_found_records', 'response_no_records', 'loop_count']
-        super().__init__()
-        self._is_valid()
+
+        # Make sure to call is valid after calling super init in the child classes and only clal is_vlaid in child classes
+        # self._is_valid()
 
     @property
     def total_found_records(self):
@@ -69,7 +70,9 @@ class GetRecordsIteration(ABC):
     def shard_id(self):
         return self._shard_id
 
+    @abstractmethod
     def _is_valid(self):
+        pvd('GetRecordsIteration enteirng is valid...')
         self._is_valid_proptypes()
         for attrib in self._require_numeric_pos:
             try:
@@ -78,13 +81,17 @@ class GetRecordsIteration(ABC):
                 raise exceptions.InvalidArgumentException(
                     f'"{attrib}" must be a positive numeric value. Received: '
                     f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
+        pvd('GetRecordsIteration exiting is valid...')
 
     def _is_valid_proptypes(self) -> None:
+        pvd('entering is valid proptypes...')
         attribs = {}
         for item in dir(self):
             if not callable(getattr(self, item)):
                 attribs[item] = getattr(self, item)
+        pvdd(self._proptypes)
         common.validate_proptypes(attribs, self._proptypes)
+        pvd('exiting is valid proptypes...')
 
 
 class GetRecordsIterationInput(GetRecordsIteration):
@@ -125,6 +132,9 @@ class GetRecordsIterationInput(GetRecordsIteration):
     def shard_iterator(self):
         return self._shard_iterator
 
+    def _is_valid(self):
+        super()._is_valid()
+
 
 class GetRecordsIterationResponse(GetRecordsIteration):
     def __init__(self, *,
@@ -140,6 +150,7 @@ class GetRecordsIterationResponse(GetRecordsIteration):
         self._found_records = found_records
         self._next_shard_iterator = next_shard_iterator
         self._break_iteration = break_iteration
+        self.init_count = 0
 
         super().__init__(
             total_found_records=total_found_records,
@@ -175,10 +186,15 @@ class GetRecordsIterationResponse(GetRecordsIteration):
 
     def _is_valid(self):
         super()._is_valid()
-
+        if self.init_count > 0:
+            pvdd(self._proptypes)
+        pvd('GetRecordsIterationResponse entering is valid')
+        super()._is_valid()
+        pvdd('GetRecordsIterationResponse passed super is valid')
         if self.found_records > self.total_found_records:
             raise exceptions.InternalError(f"Calculation fault: found_records ({self.found_records}) cannot"
                                            f" exceed total records ({self.total_found_records}).")
+        pvd('GetRecordsIterationResponse exiting is valid')
 
 
 class Record(common.BaseCommonClass):

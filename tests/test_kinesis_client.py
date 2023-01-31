@@ -270,7 +270,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
         self.assertEqual(iteration_input.shard_id, "shard-123")
 
 
-class TestGetRecordsIterationOutput(unittest.TestCase):
+    class TestGetRecordsIterationOutput(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pass
