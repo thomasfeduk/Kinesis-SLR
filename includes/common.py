@@ -77,23 +77,16 @@ def validate_proptypes(attributes_list: dict, rules: list, original_passed_data=
     if "__dict__" in attributes_list.keys():
         del attributes_list["__dict__"]
 
-    # pvdd(attributes_list["found_records"])
-
     debug_passed_data = ""
     if original_passed_data:
         debug_passed_data = f'\nPassed data: {repr(original_passed_data)}'
     for prop in rules:
-        print(f'Looping through: {prop["name"]} for type: {prop["types"]}')
-        pvd(f'Real Value for {attributes_list[prop["name"]]} is {type(attributes_list[prop["name"]])}')
-        if prop["name"] == 'found_records':
-            pvdd(prop["types"])
         if type(attributes_list[prop["name"]]) not in prop["types"]:
-            pvd(f'Real Value for {attributes_list[prop["name"]]} is {type(attributes_list[prop["name"]])} is not in prop types. Should error here')
             raise exceptions.InvalidArgumentException(
                 f'"{prop["name"]}" attribute name must exist and be of type {str(prop["types"])}.'
                 f'\nReceived: {repr(type(attributes_list[prop["name"]]))} {repr(attributes_list[prop["name"]])}'
                 f'{debug_passed_data}')
-        pvd(f'Real Value for {attributes_list[prop["name"]]} is {type(attributes_list[prop["name"]])} got passed')
+
 
 class BaseCommonClass(BaseSuperclass, ABC):
     @abstractmethod
@@ -113,8 +106,6 @@ class BaseCommonClass(BaseSuperclass, ABC):
     # setting defaults etc.)
     def _post_init_processing(self):
         del self._base_superclass_passed_data
-        pass
-
 
     def _is_valid_proptypes(self) -> None:
         attribs = {}

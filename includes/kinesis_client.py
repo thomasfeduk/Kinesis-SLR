@@ -72,7 +72,6 @@ class GetRecordsIteration(ABC):
 
     @abstractmethod
     def _is_valid(self):
-        pvd('GetRecordsIteration enteirng is valid...')
         self._is_valid_proptypes()
         for attrib in self._require_numeric_pos:
             try:
@@ -81,17 +80,13 @@ class GetRecordsIteration(ABC):
                 raise exceptions.InvalidArgumentException(
                     f'"{attrib}" must be a positive numeric value. Received: '
                     f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
-        pvd('GetRecordsIteration exiting is valid...')
 
     def _is_valid_proptypes(self) -> None:
-        pvd('entering is valid proptypes...')
         attribs = {}
         for item in dir(self):
             if not callable(getattr(self, item)):
                 attribs[item] = getattr(self, item)
-        pvdd(self._proptypes)
         common.validate_proptypes(attribs, self._proptypes)
-        pvd('exiting is valid proptypes...')
 
 
 class GetRecordsIterationInput(GetRecordsIteration):
@@ -186,15 +181,9 @@ class GetRecordsIterationResponse(GetRecordsIteration):
 
     def _is_valid(self):
         super()._is_valid()
-        if self.init_count > 0:
-            pvdd(self._proptypes)
-        pvd('GetRecordsIterationResponse entering is valid')
-        super()._is_valid()
-        pvdd('GetRecordsIterationResponse passed super is valid')
         if self.found_records > self.total_found_records:
             raise exceptions.InternalError(f"Calculation fault: found_records ({self.found_records}) cannot"
                                            f" exceed total records ({self.total_found_records}).")
-        pvd('GetRecordsIterationResponse exiting is valid')
 
 
 class Record(common.BaseCommonClass):

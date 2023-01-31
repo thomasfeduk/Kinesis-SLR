@@ -35,8 +35,8 @@ def main():
                         b'"error": false, "unrecoverable": false}\x94\x8c\x0cPartitionKey\x94\x8c\x011\x94u. '
 
     var = kinesis.GetRecordsIterationResponse(
-        total_found_records=10,
-        found_records="50",
+        total_found_records=100,
+        found_records=50,
         response_no_records=2,
         loop_count=15,
         next_shard_iterator="abc",
