@@ -29,7 +29,7 @@ class GetRecordsIteration(ABC):
         self._loop_count = loop_count
         self._shard_id = shard_id
         self._proptypes = [
-            {"name": "total_found_records", "types": [int, bool]},
+            {"name": "total_found_records", "types": [int]},
             {"name": "response_no_records", "types": [int]},
             {"name": "loop_count", "types": [int]},
             {"name": "shard_id", "types": [str]},
@@ -182,8 +182,8 @@ class GetRecordsIterationResponse(GetRecordsIteration):
     def _is_valid(self):
         super()._is_valid()
         if self.found_records > self.total_found_records:
-            raise exceptions.InternalError(f"Calculation fault: found_records ({self.found_records}) cannot"
-                                           f" exceed total records ({self.total_found_records}).")
+            raise exceptions.InvalidArgumentException(f"Calculation fault: found_records ({self.found_records}) cannot"
+                                                      f" exceed total_found_records ({self.total_found_records}).")
 
 
 class Record(common.BaseCommonClass):
@@ -621,7 +621,7 @@ class Client:
                 shard_iterator=next_shard_iterator,
                 loop_count=loop_count,
                 shard_id=shard_id
-                )
+            )
             )
 
             # Break the iteration only if the iteration response states it is time to do so
@@ -690,7 +690,7 @@ class Client:
                                       [i for i in response.Records],
                                       records_count_upto_to_add)
                                   )
-                              )
+                                  )
             die('kinesis client line 540')
 
             # If we are at the total per shard, we terminate the loop

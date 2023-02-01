@@ -489,7 +489,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
     def test_valid(self):
         iteration_input = kinesis.GetRecordsIterationResponse(
             total_found_records=10,
-            found_records=50,
+            found_records=5,
             response_no_records=2,
             loop_count=15,
             next_shard_iterator="abc",
@@ -498,7 +498,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         )
 
         self.assertEqual(iteration_input.total_found_records, 10)
-        self.assertEqual(iteration_input.found_records, 50)
+        self.assertEqual(iteration_input.found_records, 5)
         self.assertEqual(iteration_input.response_no_records, 2)
         self.assertEqual(iteration_input.loop_count, 15)
         self.assertEqual(iteration_input.next_shard_iterator, "abc")
