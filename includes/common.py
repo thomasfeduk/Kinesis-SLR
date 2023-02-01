@@ -58,61 +58,31 @@ class BaseSuperclass(ABC):
         return dict_dump
 
 
-def validate_proptypes(attributes_list: dict, rules: list, original_passed_data=None) -> None:
-    """
-    :param original_passed_data: If we want to pass the original data for more debugging output
-    :param attributes_list: The name-value-pair dict of attributes to check the rules against
-                            (typically the non-callable self attribs)
-    :param rules: 
-        [
-        {"name": "found_records", "types": [int]},
-        {"name": "iterator", "types": [str]},
-        {"name": "shard_id", "types": [str, int]},
-    ]
-    """
-
-    # Drop the special attribs if set
-    if "_proptypes" in attributes_list.keys():
-        del attributes_list["_proptypes"]
-    if "__dict__" in attributes_list.keys():
-        del attributes_list["__dict__"]
-
-    debug_passed_data = ""
-    if original_passed_data:
-        debug_passed_data = f'\nPassed data: {repr(original_passed_data)}'
-    for prop in rules:
-        if type(attributes_list[prop["name"]]) not in prop["types"]:
-            raise exceptions.InvalidArgumentException(
-                f'"{prop["name"]}" attribute name must exist and be of type {str(prop["types"])}.'
-                f'\nReceived: {repr(type(attributes_list[prop["name"]]))} {repr(attributes_list[prop["name"]])}'
-                f'{debug_passed_data}')
-
-
 class BaseCommonClass(BaseSuperclass, ABC):
     @abstractmethod
     def __init__(self, passed_data: Union[dict, str] = None):
         # Define the default attributes
-        if not hasattr(self, '_proptypes'):
-            self._proptypes = []
+        if not hasattr(self, '_proprules'):
+            self._proprules = PropRules()
         # Have to call parent after defining attributes to populate them
         super().__init__(passed_data)
         self._is_valid()
         self._post_init_processing()
 
     def _is_valid(self):
-        self._is_valid_proptypes()
+        self._is_valid_proprules()
 
     # Class can use this to implement any post-init processing of properties (ie uppercaseing values,
     # setting defaults etc.)
     def _post_init_processing(self):
         del self._base_superclass_passed_data
 
-    def _is_valid_proptypes(self) -> None:
+    def _is_valid_proprules(self) -> None:
         attribs = {}
         for item in dir(self):
             if not callable(getattr(self, item)):
                 attribs[item] = getattr(self, item)
-        validate_proptypes(attribs, self._proptypes, self._base_superclass_passed_data)
+        self._proprules.validate(attribs)
 
 
 class RestrictedCollection(ABC):
@@ -150,6 +120,92 @@ class RestrictedCollection(ABC):
             return value
         raise TypeError(f"Each item in the list must be of type {repr(self.expected_type)}. "
                         f"Received: {type(value)} {repr(value)}\nPassed data: {repr(self._items)}")
+
+
+class PropRules:
+    def __init__(self):
+        """
+        types: [{"attrib1", [int, float]}]
+        numeric: ["attrib1", "attrib2"]
+        numeric_positive: ["attrib1", "attrib2"]
+        """
+
+        self._types = {}
+        self._numeric = []
+        self._numeric_positive = []
+
+    def add_prop(self, prop_name: str, *,
+                 types=None,
+                 numeric: bool = None,
+                 numeric_positive: bool = None,
+                 ):
+        if types is None:
+            types = []
+
+        if types is not None:
+            self._types[prop_name] = types
+
+        if numeric is not None and numeric_positive is not None:
+            raise exceptions.InvalidArgumentException("numeric and numeric_positive cannot both be specified.")
+
+        if numeric is not None:
+            self._numeric.append(prop_name)
+        if numeric_positive is not None:
+            self._numeric_positive.append(prop_name)
+
+    def validate(self, attribs=None, orig_passed_data: str = None):
+        # Drop the special attribs if set
+        if "_proprules" in attribs.keys():
+            del attribs["_proprules"]
+        if "__dict__" in attribs.keys():
+            del attribs["__dict__"]
+
+        if attribs is None:
+            attribs = {}
+
+        debug_passed_data = ""
+        if orig_passed_data is not None:
+            debug_passed_data = f"\nOriginal passed data: {orig_passed_data}"
+
+        for attrib in self._types:
+            self.is_valid_types(attrib, attribs, debug_passed_data)
+        for attrib in self._numeric:
+            self._is_valid_numeric(attrib, attribs, debug_passed_data)
+        for attrib in self._numeric_positive:
+            self._is_valid_numeric_pos(attrib, attribs, debug_passed_data)
+
+    def is_valid_types(self, attrib, attribs, debug_passed_data):
+        self.is_valid_exists(attrib, attribs, debug_passed_data)
+        if type(attribs[attrib]) not in self._types[attrib]:
+            raise exceptions.InvalidArgumentException(
+                f'"{attrib}" attribute must be of type: {str(self._types[attrib])}'
+                f'\nReceived: {repr(type(attribs[attrib]))} {repr(attribs[attrib])}'
+                f'{debug_passed_data}')
+
+    def _is_valid_numeric(self, attrib, attribs, debug_passed_data):
+        self.is_valid_exists(attrib, attribs, debug_passed_data)
+
+        try:
+            validate_numeric(attribs[attrib])
+        except (TypeError, ValueError) as ex:
+            raise exceptions.InvalidArgumentException(
+                f'"{attrib}" must be a numeric value. Received: '
+                f'{type(attribs[attrib])} {repr(attribs[attrib])}') from ex
+
+    def _is_valid_numeric_pos(self, attrib, attribs, debug_passed_data):
+        self.is_valid_exists(attrib, attribs, debug_passed_data)
+
+        try:
+            validate_numeric_pos(attribs[attrib])
+        except (TypeError, ValueError) as ex:
+            raise exceptions.InvalidArgumentException(
+                f'"{attrib}" must be a positive numeric value. Received: '
+                f'{type(attribs[attrib])} {repr(attribs[attrib])}') from ex
+
+    def is_valid_exists(self, attrib, attribs, debug_passed_data):
+        if attrib not in attribs.keys():
+            raise exceptions.InternalError(
+                f'"{attrib}" is a required attribute and does not exist in attributes list.{debug_passed_data}')
 
 
 def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int = 0):

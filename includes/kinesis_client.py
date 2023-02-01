@@ -16,92 +16,6 @@ from abc import ABC, abstractmethod
 log = logging.getLogger(__name__)
 
 
-class PropRules:
-    def __init__(self):
-        """
-        types: [{"attrib1", [int, float]}]
-        numeric: ["attrib1", "attrib2"]
-        numeric_positive: ["attrib1", "attrib2"]
-        """
-
-        self._types = {}
-        self._numeric = []
-        self._numeric_positive = []
-
-    def add_prop(self, prop_name: str, *,
-                 types=None,
-                 numeric: bool = None,
-                 numeric_positive: bool = None,
-                 ):
-        if types is None:
-            types = []
-
-        if types is not None:
-            self._types[prop_name] = types
-
-        if numeric is not None and numeric_positive is not None:
-            raise exceptions.InvalidArgumentException("numeric and numeric_positive cannot both be specified.")
-
-        if numeric is not None:
-            self._numeric.append(prop_name)
-        if numeric_positive is not None:
-            self._numeric_positive.append(prop_name)
-
-    def validate(self, attribs=None, orig_passed_data: str = None):
-        # Drop the special attribs if set
-        if "_proprules" in attribs.keys():
-            del attribs["_proprules"]
-        if "__dict__" in attribs.keys():
-            del attribs["__dict__"]
-
-        if attribs is None:
-            attribs = {}
-
-        debug_passed_data = ""
-        if orig_passed_data is not None:
-            debug_passed_data = f"\nOriginal passed data: {orig_passed_data}"
-
-        for attrib in self._types:
-            self.is_valid_types(attrib, attribs, debug_passed_data)
-        for attrib in self._numeric:
-            self._is_valid_numeric(attrib, attribs, debug_passed_data)
-        for attrib in self._numeric_positive:
-            self._is_valid_numeric_pos(attrib, attribs, debug_passed_data)
-
-    def is_valid_types(self, attrib, attribs, debug_passed_data):
-        self.is_valid_exists(attrib, attribs, debug_passed_data)
-        if type(attribs[attrib]) not in self._types[attrib]:
-            raise exceptions.InvalidArgumentException(
-                f'"{attrib}" attribute must be of type: {str(self._types[attrib])}'
-                f'\nReceived: {repr(type(attribs[attrib]))} {repr(attribs[attrib])}'
-                f'{debug_passed_data}')
-
-    def _is_valid_numeric(self, attrib, attribs, debug_passed_data):
-        self.is_valid_exists(attrib, attribs, debug_passed_data)
-
-        try:
-            common.validate_numeric(attribs[attrib])
-        except (TypeError, ValueError) as ex:
-            raise exceptions.InvalidArgumentException(
-                f'"{attrib}" must be a numeric value. Received: '
-                f'{type(attribs[attrib])} {repr(attribs[attrib])}') from ex
-
-    def _is_valid_numeric_pos(self, attrib, attribs, debug_passed_data):
-        self.is_valid_exists(attrib, attribs, debug_passed_data)
-
-        try:
-            common.validate_numeric_pos(attribs[attrib])
-        except (TypeError, ValueError) as ex:
-            raise exceptions.InvalidArgumentException(
-                f'"{attrib}" must be a positive numeric value. Received: '
-                f'{type(attribs[attrib])} {repr(attribs[attrib])}') from ex
-
-    def is_valid_exists(self, attrib, attribs, debug_passed_data):
-        if attrib not in attribs.keys():
-            raise exceptions.InternalError(
-                f'"{attrib}" is a required attribute and does not exist in attributes list.{debug_passed_data}')
-
-
 class GetRecordsIteration(ABC):
     @abstractmethod
     def __init__(self, *,
@@ -114,7 +28,7 @@ class GetRecordsIteration(ABC):
         self._response_no_records = response_no_records
         self._loop_count = loop_count
         self._shard_id = shard_id
-        self._proprules = PropRules()
+        self._proprules = common.PropRules()
         self._proprules.add_prop("total_found_records", types=[int], numeric_positive=True)
         self._proprules.add_prop("response_no_records", types=[int], numeric_positive=True)
         self._proprules.add_prop("loop_count", types=[int], numeric_positive=True)
@@ -270,11 +184,10 @@ class Record(common.BaseCommonClass):
         self._ApproximateArrivalTimestamp = None
         self._Data = None
         self._PartitionKey = None
-        self._proptypes = [
-            {"name": "SequenceNumber", "types": [str]},
-            {"name": "PartitionKey", "types": [str]},
-            {"name": "ApproximateArrivalTimestamp", "types": [datetime.datetime, str]},
-        ]
+        self._proprules = common.PropRules()
+        self._proprules.add_prop("SequenceNumber", types=[str])
+        self._proprules.add_prop("PartitionKey", types=[str])
+        self._proprules.add_prop("ApproximateArrivalTimestamp", types=[datetime.datetime,str])
 
         # Have to call parent after defining attributes
         super().__init__(passed_data)

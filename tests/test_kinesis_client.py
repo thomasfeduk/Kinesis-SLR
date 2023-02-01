@@ -74,7 +74,7 @@ class TestRecord(unittest.TestCase):
         with self.assertRaises(exceptions.InvalidArgumentException) as ex:
             kinesis.Record(record_raw)
         self.assertIn(
-            "\"SequenceNumber\" attribute must be of type: [<class 'str'>].\nReceived: <class 'int'> 5",
+            "\"SequenceNumber\" attribute must be of type: [<class 'str'>]\nReceived: <class 'int'> 5",
             str(ex.exception)
         )
 
@@ -85,7 +85,7 @@ class TestRecord(unittest.TestCase):
         with self.assertRaises(exceptions.InvalidArgumentException) as ex:
             kinesis.Record(record_raw)
         self.assertIn(
-            "\"PartitionKey\" attribute must be of type: [<class 'str'>].\nReceived: <class 'int'> 1",
+            "\"PartitionKey\" attribute must be of type: [<class 'str'>]\nReceived: <class 'int'> 1",
             str(ex.exception)
         )
 
@@ -97,7 +97,7 @@ class TestRecord(unittest.TestCase):
             kinesis.Record(record_raw)
         self.assertIn(
             "\"ApproximateArrivalTimestamp\" attribute must be of type: "
-            "[<class 'datetime.datetime'>, <class 'str'>].\nReceived: <class 'list'> []",
+            "[<class 'datetime.datetime'>, <class 'str'>]\nReceived: <class 'list'> []",
             str(ex.exception)
         )
 
