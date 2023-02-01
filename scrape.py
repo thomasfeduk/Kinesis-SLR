@@ -38,7 +38,7 @@ def main():
         total_found_records=10,
         found_records=5,
         response_no_records=2,
-        loop_count=15,
+        loop_count="15",
         next_shard_iterator="abc",
         shard_id="shard-123",
         break_iteration=True

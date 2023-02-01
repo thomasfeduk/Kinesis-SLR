@@ -62,7 +62,7 @@ class TestRecord(unittest.TestCase):
         with self.assertRaises(exceptions.InvalidArgumentException) as ex:
             kinesis.Record(record_raw)
         self.assertIn(
-            "\"SequenceNumber\" attribute name must exist and be of type [<class 'str'>].\n"
+            "\"SequenceNumber\" attribute must be of type: [<class 'str'>]\n"
             "Received: <class 'NoneType'> None",
             str(ex.exception)
         )
@@ -74,7 +74,7 @@ class TestRecord(unittest.TestCase):
         with self.assertRaises(exceptions.InvalidArgumentException) as ex:
             kinesis.Record(record_raw)
         self.assertIn(
-            "\"SequenceNumber\" attribute name must exist and be of type [<class 'str'>].\nReceived: <class 'int'> 5",
+            "\"SequenceNumber\" attribute must be of type: [<class 'str'>].\nReceived: <class 'int'> 5",
             str(ex.exception)
         )
 
@@ -85,7 +85,7 @@ class TestRecord(unittest.TestCase):
         with self.assertRaises(exceptions.InvalidArgumentException) as ex:
             kinesis.Record(record_raw)
         self.assertIn(
-            "\"PartitionKey\" attribute name must exist and be of type [<class 'str'>].\nReceived: <class 'int'> 1",
+            "\"PartitionKey\" attribute must be of type: [<class 'str'>].\nReceived: <class 'int'> 1",
             str(ex.exception)
         )
 
@@ -96,7 +96,7 @@ class TestRecord(unittest.TestCase):
         with self.assertRaises(exceptions.InvalidArgumentException) as ex:
             kinesis.Record(record_raw)
         self.assertIn(
-            "\"ApproximateArrivalTimestamp\" attribute name must exist and be of type "
+            "\"ApproximateArrivalTimestamp\" attribute must be of type: "
             "[<class 'datetime.datetime'>, <class 'str'>].\nReceived: <class 'list'> []",
             str(ex.exception)
         )
@@ -146,7 +146,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"total_found_records\" attribute name must exist and be of type [<class 'int'>].\n"
+            "\"total_found_records\" attribute must be of type: [<class 'int'>]\n"
             "Received: <class 'str'> '10'",
             str(ex.exception)
         )
@@ -162,7 +162,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"response_no_records\" attribute name must exist and be of type [<class 'int'>].\n"
+            "\"response_no_records\" attribute must be of type: [<class 'int'>]\n"
             "Received: <class 'str'> 'blah'",
             str(ex.exception)
         )
@@ -178,7 +178,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"loop_count\" attribute name must exist and be of type [<class 'int'>].\n"
+            "\"loop_count\" attribute must be of type: [<class 'int'>]\n"
             "Received: <class 'str'> '15'",
             str(ex.exception)
         )
@@ -194,7 +194,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"shard_iterator\" attribute name must exist and be of type [<class 'str'>].\n"
+            "\"shard_iterator\" attribute must be of type: [<class 'str'>]\n"
             "Received: <class 'NoneType'> None",
             str(ex.exception)
         )
@@ -210,7 +210,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"shard_id\" attribute name must exist and be of type [<class 'str'>].\n"
+            "\"shard_id\" attribute must be of type: [<class 'str'>]\n"
             "Received: <class 'int'> 500",
             str(ex.exception)
         )
@@ -298,7 +298,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"total_found_records\" attribute name must exist and be of type [<class 'int'>].\n"
+            "\"total_found_records\" attribute must be of type: [<class 'int'>]\n"
             "Received: <class 'str'> '10'",
             str(ex.exception)
         )
@@ -316,7 +316,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"found_records\" attribute name must exist and be of type [<class 'int'>].\n"
+            "\"found_records\" attribute must be of type: [<class 'int'>]\n"
             "Received: <class 'str'> '50'",
             str(ex.exception)
         )
@@ -334,7 +334,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"response_no_records\" attribute name must exist and be of type [<class 'int'>].\n"
+            "\"response_no_records\" attribute must be of type: [<class 'int'>]\n"
             "Received: <class 'str'> '2'",
             str(ex.exception)
         )
@@ -352,7 +352,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"loop_count\" attribute name must exist and be of type [<class 'int'>].\n"
+            "\"loop_count\" attribute must be of type: [<class 'int'>]\n"
             "Received: <class 'str'> '15'",
             str(ex.exception)
         )
@@ -370,7 +370,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"next_shard_iterator\" attribute name must exist and be of type [<class 'str'>].\n"
+            "\"next_shard_iterator\" attribute must be of type: [<class 'str'>]\n"
             "Received: <class 'int'> 5",
             str(ex.exception)
         )
@@ -388,7 +388,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"shard_id\" attribute name must exist and be of type [<class 'str'>].\n"
+            "\"shard_id\" attribute must be of type: [<class 'str'>]\n"
             "Received: <class 'int'> 123",
             str(ex.exception)
         )
@@ -406,7 +406,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
             )
 
         self.assertIn(
-            "\"break_iteration\" attribute name must exist and be of type [<class 'bool'>].\n"
+            "\"break_iteration\" attribute must be of type: [<class 'bool'>]\n"
             "Received: <class 'str'> 'True'",
             str(ex.exception)
         )
