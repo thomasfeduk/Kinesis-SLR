@@ -198,17 +198,21 @@ def read_config(filename: str) -> dict:
     return yaml_data
 
 
-def validate_numeric_pos(check_value: Union[str, int, float]) -> float:
+def validate_numeric(check_value: Union[str, int, float]) -> float:
     if not isinstance(check_value, str) and not isinstance(check_value, int) and not isinstance(check_value, float):
         raise TypeError('Value must be a numeric string, float or int.')
     try:
         float(check_value)
     except ValueError:
         raise ValueError('String value must be numeric.')
-
-    if float(check_value) < 0:
-        raise ValueError('Value must be 0 or greater.')
     return float(check_value)
+
+
+def validate_numeric_pos(check_value: Union[str, int, float]) -> float:
+    float_val = validate_numeric(check_value)
+    if float_val < 0:
+        raise ValueError('Value must be 0 or greater.')
+    return float_val
 
 
 # If passed a number, it returns upto max, or the input if it's less, otherwise return max as the default

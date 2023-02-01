@@ -16,6 +16,89 @@ from abc import ABC, abstractmethod
 log = logging.getLogger(__name__)
 
 
+class PropRules:
+    def __init__(self):
+        """
+        attribs: [{"attrib1": value}, {"attrib2": value}]
+        types: [{"attrib1", [int, float]}]
+        numeric: ["attrib1", "attrib2"]
+        numeric_positive: ["attrib1", "attrib2"]
+        """
+
+        self._types = []
+        self._numeric = []
+        self._numeric_positive = []
+
+    def add_prop(self, prop_name: str, *,
+                 types=None,
+                 numeric: bool = None,
+                 numeric_positive: bool = None,
+                 ):
+        if types is None:
+            types = []
+
+        if types is not None:
+            self._types.append({prop_name: types})
+
+        if numeric is not None and numeric_positive is not None:
+            raise exceptions.InvalidArgumentException("numeric and numeric_positive cannot both be specified.")
+
+        if numeric is not None:
+            self._numeric.append(prop_name)
+        if numeric_positive is not None:
+            self._numeric_positive.append(prop_name)
+
+    def validate(self, attribs=None, orig_passed_data: str = None):
+        # Drop the special attribs if set
+        if "_proprules" in attribs.keys():
+            del attribs["_proprules"]
+        if "__dict__" in attribs.keys():
+            del attribs["__dict__"]
+
+        if attribs is None:
+            attribs = {}
+
+        debug_passed_data = ""
+        if orig_passed_data is not None:
+            debug_passed_data = f"\nOriginal passed data: {orig_passed_data}"
+
+        for attrib in self._numeric:
+            self._is_valid_numeric(attrib, attribs, debug_passed_data)
+        for attrib in self._numeric_positive:
+            self._is_valid_numeric_pos(attrib, attribs, debug_passed_data)
+        for attrib in self._types:
+            pvdd(attrib)
+
+            # error_msg = f'"{attrib}" attribute name must exist but is not numeric.'
+            # f'\nReceived: {repr(type(attributes_list[prop["name"]]))} {repr(attributes_list[prop["name"]])}'
+            # f'{}'
+
+    def _is_valid_numeric(self, attrib, attribs, debug_passed_data):
+        self.is_valid_exists(attrib, attribs, debug_passed_data)
+
+        try:
+            common.validate_numeric(attribs[attrib])
+        except (TypeError, ValueError) as ex:
+            raise exceptions.InvalidArgumentException(
+                f'"{attrib}" must be a numeric value. Received: '
+                f'{type(attribs[attrib])} {repr(attribs[attrib])}') from ex
+
+    def _is_valid_numeric_pos(self, attrib, attribs, debug_passed_data):
+        self.is_valid_exists(attrib, attribs, debug_passed_data)
+
+        try:
+            common.validate_numeric_pos(attribs[attrib])
+        except (TypeError, ValueError) as ex:
+            raise exceptions.InvalidArgumentException(
+                f'"{attrib}" must be a positive numeric value. Received: '
+                f'{type(attribs[attrib])} {repr(attribs[attrib])}') from ex
+
+    def is_valid_exists(self, attrib, attribs, debug_passed_data):
+        if attrib not in attribs.keys():
+            raise exceptions.InternalError(
+                f'"{attrib}" is a required attribute and does not exist in attributes list.{debug_passed_data}')
+
+
 class GetRecordsIteration(ABC):
     @abstractmethod
     def __init__(self, *,
@@ -28,13 +111,19 @@ class GetRecordsIteration(ABC):
         self._response_no_records = response_no_records
         self._loop_count = loop_count
         self._shard_id = shard_id
-        self._proptypes = [
-            {"name": "total_found_records", "types": [int]},
-            {"name": "response_no_records", "types": [int]},
-            {"name": "loop_count", "types": [int]},
-            {"name": "shard_id", "types": [str]},
-        ]
-        self._require_numeric_pos = ['total_found_records', 'response_no_records', 'loop_count']
+        self._proprules = PropRules()
+        self._proprules.add_prop("total_found_records", types=[int], numeric_positive=True)
+        self._proprules.add_prop("response_no_records", types=[int], numeric_positive=True)
+        self._proprules.add_prop("loop_count", types=[int], numeric_positive=True)
+        self._proprules.add_prop("shard_id", types=[str])
+
+        # self._proptypes = [
+        #     {"name": "total_found_records", "types": [int]},
+        #     {"name": "response_no_records", "types": [int]},
+        #     {"name": "loop_count", "types": [int]},
+        #     {"name": "shard_id", "types": [str]},
+        # ]
+        # self._require_numeric_pos = ['total_found_records', 'response_no_records', 'loop_count']
 
         # Make sure to call is valid after calling super init in the child classes and only clal is_vlaid in child classes
         # self._is_valid()
@@ -73,20 +162,13 @@ class GetRecordsIteration(ABC):
     @abstractmethod
     def _is_valid(self):
         self._is_valid_proptypes()
-        for attrib in self._require_numeric_pos:
-            try:
-                common.validate_numeric_pos(getattr(self, attrib))
-            except (TypeError, ValueError) as ex:
-                raise exceptions.InvalidArgumentException(
-                    f'"{attrib}" must be a positive numeric value. Received: '
-                    f'{type(getattr(self, attrib))} {repr(getattr(self, attrib))}') from ex
 
     def _is_valid_proptypes(self) -> None:
         attribs = {}
         for item in dir(self):
             if not callable(getattr(self, item)):
                 attribs[item] = getattr(self, item)
-        common.validate_proptypes(attribs, self._proptypes)
+        self._proprules.validate(attribs)
 
 
 class GetRecordsIterationInput(GetRecordsIteration):
@@ -154,11 +236,11 @@ class GetRecordsIterationResponse(GetRecordsIteration):
             shard_id=shard_id
         )
 
-        # Inject proptype requirement into the proptypes requirements list after inheriting from parent
-        self._proptypes.append({"name": "break_iteration", "types": [bool]})
-        self._proptypes.append({"name": "found_records", "types": [int]})
-        self._proptypes.append({"name": "next_shard_iterator", "types": [str]})
-        self._require_numeric_pos.append('found_records')
+        # # Inject proptype requirement into the proptypes requirements list after inheriting from parent
+        # self._proptypes.append({"name": "break_iteration", "types": [bool]})
+        # self._proptypes.append({"name": "found_records", "types": [int]})
+        # self._proptypes.append({"name": "next_shard_iterator", "types": [str]})
+        # self._require_numeric_pos.append('found_records')
 
         # Recall the validation that is called in super().__init__ again after appending the new proptype
         self._is_valid()
