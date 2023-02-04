@@ -34,19 +34,22 @@ def main():
                         b'Time\x94\x86\x94ub\x86\x94R\x94\x8c\x04Data\x94CP{"mytimestamp": "2023-01-14 20:23:19-1", ' \
                         b'"error": false, "unrecoverable": false}\x94\x8c\x0cPartitionKey\x94\x8c\x011\x94u. '
 
-    iteration_input = kinesis.GetRecordsIterationResponse(
-        total_found_records=10,
-        found_records=5,
-        response_no_records=2,
-        loop_count="15",
-        next_shard_iterator="abc",
-        shard_id="shard-123",
-        break_iteration=True
-    )
+    # iteration_input = kinesis.GetRecordsIterationResponse(
+    #     total_found_records=10,
+    #     found_records=5,
+    #     response_no_records=2,
+    #     loop_count="15",
+    #     next_shard_iterator="abc",
+    #     shard_id="shard-123",
+    #     break_iteration=True
+    # )
+    #
+    # pvdd('here123')
 
-    pvdd('here123')
+    client = boto3.client('kinesis')
+    print(type(client))
+    die()
 
-    # client = boto3.client('kinesis')
     # results = client.get_shard_iterator(
     #     StreamName='user-activities',
     #     ShardId='shardId-000000000004',

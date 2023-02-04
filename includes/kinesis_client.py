@@ -70,9 +70,9 @@ class GetRecordsIteration(ABC):
 
     @abstractmethod
     def _is_valid(self):
-        self._is_valid_proptypes()
+        self._is_valid_proprules()
 
-    def _is_valid_proptypes(self) -> None:
+    def _is_valid_proprules(self) -> None:
         attribs = {}
         for item in dir(self):
             if not callable(getattr(self, item)):
@@ -152,9 +152,6 @@ class GetRecordsIterationResponse(GetRecordsIteration):
         # Recall the validation that is called in super().__init__ again after appending the new proprules
         self._is_valid()
 
-        # Recall the validation that is called in super().__init__ again after appending the new proptype
-        self._is_valid()
-
     @property
     def total_found_records(self):
         return self._total_found_records
@@ -224,11 +221,10 @@ class Boto3GetRecordsResponse(common.BaseCommonClass):
         self._Records = None
         self._NextShardIterator = None
         self._MillisBehindLatest = None
-        self._proptypes = [
-            {"name": "Records", "types": [RecordsCollection]},
-            {"name": "NextShardIterator", "types": [str]},
-            {"name": "MillisBehindLatest", "types": [int]},
-        ]
+        self._proprules = common.PropRules()
+        self._proprules.add_prop("Records", types=[RecordsCollection])
+        self._proprules.add_prop("NextShardIterator", types=[str])
+        self._proprules.add_prop("MillisBehindLatest", types=[int])
 
         # If Records exists in the passed data, we re-pack it as RecordCollection of Record items
         if 'Records' in passed_data.keys():

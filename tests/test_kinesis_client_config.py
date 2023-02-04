@@ -1,4 +1,5 @@
 import json
+import botocore
 import importlib
 import unittest
 import unittest.mock as mock
@@ -27,8 +28,9 @@ class ClientConfig(unittest.TestCase):
     def test_ReqConfigs_empty(self):
         # Run the test once with an empty input config list to simulate no configs set
         config_input = {}
+        client = mock.MagicMock(spec=botocore.client.BaseClient)
         with self.assertRaises(ValueError) as ex:
-            kinesis.ClientConfig(config_input)
+            kinesis.ClientConfig(config_input, client)
         self.assertEqual(
             'config-kinesis_scraper.yaml: Missing config parameter: stream_name',
             str(ex.exception)
