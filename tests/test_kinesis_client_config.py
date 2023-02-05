@@ -22,6 +22,21 @@ class ClientConfig(unittest.TestCase):
 
     def setUp(self):
         self.boto_client = mock.MagicMock(spec=botocore.client.BaseClient)
+        self.config_input = {
+            'debug_level': "INFO",
+            'stream_name': "user_activities",
+            'shard_ids': "shard-001",
+            'starting_position': "TRIM_HORIZON",
+            'starting_timestamp': "2022-12-01 00:00:00",
+            'starting_sequence_number': "abc",
+            'ending_position': "LATEST",
+            'ending_timestamp': "2022-12-01 00:00:00",
+            'ending_sequence_number': "xyz",
+            'total_records_per_shard': 500,
+            'poll_batch_size': 100,
+            'poll_delay': 0,
+            'max_empty_polls': 5,
+        }
 
     def tearDown(self):
         pass
@@ -38,21 +53,14 @@ class ClientConfig(unittest.TestCase):
 
     def test_ReqConfigs(self):
         # Must match the same list order declared in kinesis.ConfigClient._is_valid
-        required_configs = [
-            'debug_level',
-            'stream_name',
-            'shard_ids',
-            'starting_position',
-            # 'starting_timestamp', # These are optional. We cannot check them in this test
-            # 'starting_sequence_number',   # These are optional. We cannot check them in this test
-            'ending_position',
-            # 'ending_timestamp',   # These are optional. We cannot check them in this test
-            # 'ending_sequence_number', # These are optional. We cannot check them in this test
-            # 'total_records_per_shard',  # These are optional. We cannot check them in this test
-            'poll_batch_size',
-            'poll_delay',
-            'max_empty_polls',
-        ]
+        # Delete optional entries so we can check the proper exceptions are thrown in order for parameter names
+        del self.config_input['starting_timestamp']
+        del self.config_input['starting_sequence_number']
+        del self.config_input['ending_timestamp']
+        del self.config_input['ending_sequence_number']
+        del self.config_input['total_records_per_shard']
+        required_configs = list(self.config_input.keys())
+
         config_input = {}
         i = 0
         for current_conf in required_configs:
@@ -69,66 +77,42 @@ class ClientConfig(unittest.TestCase):
             )
             i += 1
 
-    def test_stream_name(self):
-        config_input = {
-            "stream_name": 5,
-            "shard_ids": 5,
-            "starting_position": 5,
-            "poll_batch_size": 5,
-            "poll_delay": 5,
-            "max_total_records_per_shard": 5,
-            "max_empty_polls": 5,
-        }
-        # Wrong type
-        with self.assertRaises(TypeError) as ex:
-            kinesis.ClientConfig(config_input)
+    def test_stream_name_invalid_int(self):
+        self.config_input["stream_name"] = 5
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("stream_name must be a string. Type provided: <class 'int'>",
                          str(ex.exception)
                          )
-        # Blank
-        config_input["stream_name"] = ""
+
+    def test_stream_name_invalid_blank(self):
+        self.config_input["stream_name"] = ""
         with self.assertRaises(exceptions.ConfigValidationError) as ex:
-            kinesis.ClientConfig(config_input)
-        self.assertEqual("config-kinesis_scraper.yaml: A stream name must be set.",
-                         str(ex.exception)
-                         )
-        # Default name
-        config_input["stream_name"] = "stream_name_here"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
-            kinesis.ClientConfig(config_input)
+            kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("config-kinesis_scraper.yaml: A stream name must be set.",
                          str(ex.exception)
                          )
 
-    def test_shard_ids(self):
-        config_input = {
-            "stream_name": "kinesis_slr",
-            "shard_ids": 5,
-            "starting_position": 5,
-            "poll_batch_size": 5,
-            "poll_delay": 5,
-            "max_total_records_per_shard": 5,
-            "max_empty_polls": 5,
-        }
-        # Wrong type on dict value
-        with self.assertRaises(TypeError) as ex:
-            kinesis.ClientConfig(config_input)
+    def test_stream_name_invalid_default_name(self):
+        self.config_input["stream_name"] = "stream_name_here"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertEqual("config-kinesis_scraper.yaml: A stream name must be set.",
+                         str(ex.exception)
+                         )
+
+    def test_shard_ids_invlaid_int(self):
+        self.config_input["shard_ids"] = 5
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("shard_ids must be of type list if specified. Type provided: <class 'int'>",
                          str(ex.exception)
                          )
 
-        # Correct dict value (list), but wrong list values
-        config_input = {
-            "stream_name": "kinesis_slr",
-            "shard_ids": [7],
-            "starting_position": 5,
-            "poll_batch_size": 5,
-            "poll_delay": 5,
-            "max_total_records_per_shard": 5,
-            "max_empty_polls": 5,
-        }
-        with self.assertRaises(TypeError) as ex:
-            kinesis.ClientConfig(config_input)
+    def test_shard_ids_invlaid_list_int(self):
+        self.config_input["shard_ids"] = [7]
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("Each shard_id must be a string. Value provided: <class 'int'> 7",
                          str(ex.exception)
                          )
@@ -136,19 +120,3 @@ class ClientConfig(unittest.TestCase):
     def test_shard_ids_validate_shard_ids(self):
         self.assertEqual([], kinesis.ClientConfig.validate_shard_ids())
 
-    def test_validate_iterator_types(self):
-        self.assertEqual([], kinesis.ClientConfig.validate_shard_ids())
-
-
-    # def test_ClientConfig(self):
-    #     with patch('includes.kinesis_client.ShardIteratorConfig.is_valid', create=True) as mocked_kinesis_client:
-    #         mocked_kinesis_client.return_value = 'boo'
-    #
-    #         yaml_input = {
-    #
-    #         }
-    #         kinesis_obj = kinesis.ConfigClient(yaml_input)
-
-    #     pvdd(kinesis_obj)
-    #
-    # self.assertEqual(1, 2)
