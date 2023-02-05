@@ -243,6 +243,17 @@ class ClientConfig(unittest.TestCase):
                       "a positive numeric string, float or an integer.\nValue provided: <class 'str'> 'abc'",
                       str(ex.exception))
 
+    def test_valid_validate_shard_ids_none_void(self):
+        self.assertEqual([],kinesis.ClientConfig.validate_shard_ids())
+        self.assertEqual([],kinesis.ClientConfig.validate_shard_ids(None))
+
+    def test_invalid_shard_ids_empty_element(self):
+        self.config_input["shard_ids"] = [""]
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("Each shard_id must be a populated string. Value provided: <class 'str'> ''",
+                      str(ex.exception))
+
     def test_invalid_sequence_number_no_shard_ids(self):
         positions_complete = {
             "starting": [
@@ -307,6 +318,18 @@ class ClientConfig(unittest.TestCase):
                     "\nValue provided: <class 'list'> ['shard1', 'shard2']",
                     str(ex.exception))
 
+    def test_invalid_sequence_number_positions(self):
+        positions = ["starting", "ending"]
+        for position in positions:
+            self.config_input["starting_position"] = "LATEST"
+            self.config_input["ending_position"] = "LATEST"
+            self.config_input[f"{position}_position"] = "abc"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn(f"config-kinesis_scraper.yaml: {position}_position must be one of: ['TOTAL_RECORDS_PER_SHARD', "
+                      "'AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER', 'BEFORE_SEQUENCE_NUMBER', 'AT_TIMESTAMP', "
+                      "'BEFORE_TIMESTAMP', 'AFTER_TIMESTAMP', 'LATEST']\nValue provided: <class 'str'> 'abc'",
+                      str(ex.exception))
 
     def test_boto3_invalid_object(self):
         # Run the test once with an empty input config list to simulate no configs set

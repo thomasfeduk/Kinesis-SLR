@@ -545,7 +545,7 @@ class ClientConfig(common.BaseCommonClass):
 
         if shard_id.strip() == '':
             raise exceptions.ConfigValidationError(f'Each shard_id must be a populated string. '
-                                                   f'Value provided: {repr(shard_id)} {repr(shard_id)}')
+                                                   f'Value provided: {repr(type(shard_id))} {repr(shard_id)}')
         return shard_id
 
 
