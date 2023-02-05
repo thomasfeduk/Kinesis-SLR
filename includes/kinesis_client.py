@@ -365,8 +365,9 @@ class ClientConfig(common.BaseCommonClass):
             "ERROR",
         ]
         if self.debug_level not in debug_levels:
-            raise exceptions.ConfigValidationError(f"config-kinesis_scraper.yaml: debug_level must be one of: {repr(debug_levels)}\nValue provided: "
-                                                   f"{repr(type(self.debug_level))} {repr(self.debug_level)}")
+            raise exceptions.ConfigValidationError(
+                f"config-kinesis_scraper.yaml: debug_level must be one of: {repr(debug_levels)}\nValue provided: "
+                f"{repr(type(self.debug_level))} {repr(self.debug_level)}")
 
     def _validate_stream_name(self):
         if not isinstance(self._stream_name, str):
@@ -415,8 +416,8 @@ class ClientConfig(common.BaseCommonClass):
             except (TypeError, ValueError) as e:
                 raise exceptions.ConfigValidationError(
                     f"If config-kinesis_scraper.yaml: \"total_records_per_shard\" must be a positive numeric "
-                    f"string, or an integer.\nValue provided: {repr(type(self._total_records_per_shard))}:"
-                    f" {repr(self._total_records_per_shard)}"
+                    f"string, or an integer.\nValue provided: {repr(type(self._total_records_per_shard))} "
+                    f"{repr(self._total_records_per_shard)}"
                 ) from e
 
     def _validate_poll_delay(self):
@@ -424,7 +425,7 @@ class ClientConfig(common.BaseCommonClass):
             common.validate_numeric_pos(self.poll_delay)
         except (TypeError, ValueError) as e:
             raise exceptions.ConfigValidationError(
-                f"If config-kinesis_scraper.yaml: \"poll_delay\" must be either a numeric "
+                f"If config-kinesis_scraper.yaml: \"poll_delay\" must be a positive numeric "
                 f"string, a float, or an integer.\nValue provided: "
                 f"{repr(type(self.poll_delay))} {repr(self.poll_delay)}"
             ) from e

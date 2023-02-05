@@ -28,10 +28,10 @@ class ClientConfig(unittest.TestCase):
             'shard_ids': ["shard-000000001"],
             'starting_position': "TRIM_HORIZON",
             'starting_timestamp': "2022-12-01 00:00:00",
-            'starting_sequence_number': "abc",
+            'starting_sequence_number': "111111",
             'ending_position': "LATEST",
             'ending_timestamp': "2022-12-01 00:00:00",
-            'ending_sequence_number': "xyz",
+            'ending_sequence_number': "22222",
             'total_records_per_shard': 500,
             'poll_batch_size': 100,
             'poll_delay': 0,
@@ -39,6 +39,122 @@ class ClientConfig(unittest.TestCase):
         }
 
     def tearDown(self):
+        pass
+
+    def test_valid_default(self):
+        self.assertEqual(self.config_input["debug_level"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).debug_level)
+        self.assertEqual(self.config_input["stream_name"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).stream_name)
+        self.assertEqual(self.config_input["shard_ids"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).shard_ids)
+        self.assertEqual(self.config_input["starting_position"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).starting_position)
+        # None because starting position != timestamp
+        self.assertEqual(None,
+                         kinesis.ClientConfig(self.config_input, self.boto_client).starting_timestamp)
+        # None because starting position != sequence_number
+        self.assertEqual(None,
+                         kinesis.ClientConfig(self.config_input, self.boto_client).starting_sequence_number)
+        self.assertEqual(self.config_input["ending_position"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).ending_position)
+        # None because ending position != timestamp
+        self.assertEqual(None,
+                         kinesis.ClientConfig(self.config_input, self.boto_client).ending_timestamp)
+        # None because ending position != sequence_number
+        self.assertEqual(None,
+                         kinesis.ClientConfig(self.config_input, self.boto_client).ending_sequence_number)
+        self.assertEqual(self.config_input["total_records_per_shard"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).total_records_per_shard)
+        self.assertEqual(self.config_input["poll_batch_size"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).poll_batch_size)
+        self.assertEqual(self.config_input["poll_delay"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).poll_delay)
+        self.assertEqual(self.config_input["max_empty_polls"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).max_empty_polls)
+
+    def test_valid_starting_timestamp(self):
+        self.config_input["starting_position"] = "AT_TIMESTAMP"
+        self.assertEqual(self.config_input["starting_position"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).starting_position)
+        self.assertEqual(self.config_input["starting_timestamp"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).starting_timestamp)
+
+    def test_valid_starting_sequence_number(self):
+        self.config_input["starting_position"] = "AT_SEQUENCE_NUMBER"
+        self.assertEqual(self.config_input["starting_position"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).starting_position)
+        self.assertEqual(self.config_input["starting_sequence_number"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client)._starting_sequence_number)
+
+    def test_valid_starting_position_latest(self):
+        self.config_input["starting_position"] = "LATEST"
+        self.assertEqual(self.config_input["starting_position"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).starting_position)
+
+    def test_valid_ending_position_latest(self):
+        self.config_input["ending_position"] = "LATEST"
+        self.assertEqual(self.config_input["ending_position"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).ending_position)
+
+    def test_valid_ending_at_timestamp(self):
+        self.config_input["ending_position"] = "AT_TIMESTAMP"
+        self.assertEqual(self.config_input["ending_timestamp"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).ending_timestamp)
+
+    def test_valid_ending_before_timestamp(self):
+        self.config_input["ending_position"] = "BEFORE_TIMESTAMP"
+        self.assertEqual(self.config_input["ending_timestamp"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).ending_timestamp)
+
+    def test_valid_ending_after_timestamp(self):
+        self.config_input["ending_position"] = "AFTER_TIMESTAMP"
+        self.assertEqual(self.config_input["ending_timestamp"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).ending_timestamp)
+
+    def test_valid_ending_at_sequence_number(self):
+        self.config_input["ending_position"] = "AT_SEQUENCE_NUMBER"
+        self.assertEqual(self.config_input["ending_sequence_number"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).ending_sequence_number)
+
+    def test_valid_ending_before_sequence_number(self):
+        self.config_input["ending_position"] = "BEFORE_SEQUENCE_NUMBER"
+        self.assertEqual(self.config_input["ending_sequence_number"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).ending_sequence_number)
+
+    def test_valid_ending_after_sequence_number(self):
+        self.config_input["ending_position"] = "AFTER_SEQUENCE_NUMBER"
+        self.assertEqual(self.config_input["ending_sequence_number"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).ending_sequence_number)
+
+    def test_invalid_starting_at_timestamp_type(self):
+        pass
+
+    def test_invalid_starting_at_sequence_number_type(self):
+        pass
+    
+    def test_invalid_starting_before_sequence_number_type(self):
+        pass
+
+    def test_valid_ending_position_latest(self):
+        pass
+
+    def test_invalid_ending_at_timestamp_type(self):
+        pass
+
+    def test_invalid_ending_before_timestamp_type(self):
+        pass
+
+    def test_invalid_ending_after_timestamp_type(self):
+        pass
+
+    def test_invalid_ending_at_sequence_number_type(self):
+        pass
+
+    def test_invalid_ending_before_sequence_number_type(self):
+        pass
+
+    def test_invalid_ending_after_sequence_number_type(self):
         pass
 
     def test_boto3_invalid_object(self):
@@ -150,3 +266,44 @@ class ClientConfig(unittest.TestCase):
         with self.assertRaises(exceptions.ConfigValidationError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500", str(ex.exception))
+
+    def test_max_empty_polls_invalid_string(self):
+        self.config_input["max_empty_polls"] = "abc"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("If config-kinesis_scraper.yaml: \"max_empty_polls\" must be a positive numeric "
+                      "string, or an integer.\nValue provided: <class 'str'> 'abc'", str(ex.exception))
+
+    def test_max_empty_polls_invalid_over_max(self):
+        self.config_input["max_empty_polls"] = 2001
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertEqual("config-kinesis_scraper.yaml: max_empty_polls cannot exceed 2000", str(ex.exception))
+
+    def test_total_records_per_shard_invalid_string(self):
+        self.config_input["total_records_per_shard"] = "abc"
+        self.config_input["ending_position"] = "TOTAL_RECORDS_PER_SHARD"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("If config-kinesis_scraper.yaml: \"total_records_per_shard\" must be a positive numeric "
+                      "string, or an integer.\nValue provided: <class 'str'> 'abc'", str(ex.exception))
+
+    def test_poll_delay_invalid_string(self):
+        self.config_input["poll_delay"] = "abc"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("If config-kinesis_scraper.yaml: \"poll_delay\" must be a positive numeric "
+                      "string, a float, or an integer.\nValue provided: <class 'str'> 'abc'", str(ex.exception))
+
+    def test_poll_delay_invalid_over_max(self):
+        self.config_input["poll_delay"] = 2001
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertEqual("config-kinesis_scraper.yaml: poll_delay must be between 0-10", str(ex.exception))
+
+    def test_poll_delay_invalid_under_max(self):
+        self.config_input["poll_delay"] = -5
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("If config-kinesis_scraper.yaml: \"poll_delay\" must be a positive numeric "
+                      "string, a float, or an integer.\nValue provided: <class 'int'> -5", str(ex.exception))
