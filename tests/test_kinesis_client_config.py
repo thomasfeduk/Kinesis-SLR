@@ -128,34 +128,185 @@ class ClientConfig(unittest.TestCase):
                          kinesis.ClientConfig(self.config_input, self.boto_client).ending_sequence_number)
 
     def test_invalid_starting_at_timestamp_type(self):
-        pass
+        self.config_input["starting_position"] = "AT_TIMESTAMP"
+        self.config_input["starting_timestamp"] = "abc"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"starting_timestamp\".\n"
+                      "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'str'> 'abc'", str(ex.exception))
+        self.config_input["starting_timestamp"] = 5.5
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"starting_timestamp\".\n"
+                      "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'float'> 5.5", str(ex.exception))
 
     def test_invalid_starting_at_sequence_number_type(self):
-        pass
-    
-    def test_invalid_starting_before_sequence_number_type(self):
-        pass
+        self.config_input["starting_position"] = "AT_SEQUENCE_NUMBER"
+        self.config_input["starting_sequence_number"] = {}
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: If \"starting_position\" is *_SEQUENCE_NUMBER, the value must be "
+                      "a positive numeric string, float or an integer.\nValue provided: <class 'dict'> {}",
+                      str(ex.exception))
+        self.config_input["starting_position"] = "AT_SEQUENCE_NUMBER"
+        self.config_input["starting_sequence_number"] = "abc"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: If \"starting_position\" is *_SEQUENCE_NUMBER, the value must be "
+                      "a positive numeric string, float or an integer.\nValue provided: <class 'str'> 'abc'",
+                      str(ex.exception))
 
-    def test_valid_ending_position_latest(self):
-        pass
+    def test_invalid_starting_before_sequence_number_type(self):
+        self.config_input["starting_position"] = "AFTER_SEQUENCE_NUMBER"
+        self.config_input["starting_sequence_number"] = {}
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: If \"starting_position\" is *_SEQUENCE_NUMBER, the value must be "
+                      "a positive numeric string, float or an integer.\nValue provided: <class 'dict'> {}",
+                      str(ex.exception))
 
     def test_invalid_ending_at_timestamp_type(self):
-        pass
+        self.config_input["ending_position"] = "AT_TIMESTAMP"
+        self.config_input["ending_timestamp"] = "abc"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"ending_timestamp\".\n"
+                      "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'str'> 'abc'", str(ex.exception))
 
     def test_invalid_ending_before_timestamp_type(self):
-        pass
+        self.config_input["ending_position"] = "BEFORE_TIMESTAMP"
+        self.config_input["ending_timestamp"] = "abc"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"ending_timestamp\".\n"
+                      "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'str'> 'abc'", str(ex.exception))
 
     def test_invalid_ending_after_timestamp_type(self):
-        pass
+        self.config_input["ending_position"] = "AFTER_TIMESTAMP"
+        self.config_input["ending_timestamp"] = "abc"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"ending_timestamp\".\n"
+                      "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'str'> 'abc'", str(ex.exception))
+        self.config_input["ending_position"] = "AFTER_TIMESTAMP"
+        self.config_input["ending_timestamp"] = []
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"ending_timestamp\".\n"
+                      "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'list'> []", str(ex.exception))
 
     def test_invalid_ending_at_sequence_number_type(self):
-        pass
+        self.config_input["ending_position"] = "AT_SEQUENCE_NUMBER"
+        self.config_input["ending_sequence_number"] = {}
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
+                      "a positive numeric string, float or an integer.\nValue provided: <class 'dict'> {}",
+                      str(ex.exception))
+        self.config_input["ending_position"] = "AT_SEQUENCE_NUMBER"
+        self.config_input["ending_sequence_number"] = "abc"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
+                      "a positive numeric string, float or an integer.\nValue provided: <class 'str'> 'abc'",
+                      str(ex.exception))
 
     def test_invalid_ending_before_sequence_number_type(self):
-        pass
+        self.config_input["ending_position"] = "BEFORE_SEQUENCE_NUMBER"
+        self.config_input["ending_sequence_number"] = {}
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
+                      "a positive numeric string, float or an integer.\nValue provided: <class 'dict'> {}",
+                      str(ex.exception))
+        self.config_input["ending_position"] = "BEFORE_SEQUENCE_NUMBER"
+        self.config_input["ending_sequence_number"] = "abc"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
+                      "a positive numeric string, float or an integer.\nValue provided: <class 'str'> 'abc'",
+                      str(ex.exception))
 
     def test_invalid_ending_after_sequence_number_type(self):
-        pass
+        self.config_input["ending_position"] = "AFTER_SEQUENCE_NUMBER"
+        self.config_input["ending_sequence_number"] = {}
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
+                      "a positive numeric string, float or an integer.\nValue provided: <class 'dict'> {}",
+                      str(ex.exception))
+        self.config_input["ending_position"] = "AFTER_SEQUENCE_NUMBER"
+        self.config_input["ending_sequence_number"] = "abc"
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(self.config_input, self.boto_client)
+        self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
+                      "a positive numeric string, float or an integer.\nValue provided: <class 'str'> 'abc'",
+                      str(ex.exception))
+
+    def test_invalid_sequence_number_no_shard_ids(self):
+        positions_complete = {
+            "starting": [
+                "AT_SEQUENCE_NUMBER",
+                "AFTER_SEQUENCE_NUMBER",
+            ],
+            "ending": [
+                'AT_SEQUENCE_NUMBER',
+                'AFTER_SEQUENCE_NUMBER',
+                'BEFORE_SEQUENCE_NUMBER',
+            ]
+        }
+
+        positions = list(positions_complete.keys())
+
+        self.config_input["shard_ids"] = []
+        for position in positions:
+            for sequence_index in positions_complete[position]:
+                self.config_input[f"{position}_position"] = sequence_index
+                if position == "starting":
+                    self.config_input["ending_position"] = "LATEST"
+                else:
+                    self.config_input["starting_position"] = "LATEST"
+
+                with self.assertRaises(exceptions.ConfigValidationError) as ex:
+                    kinesis.ClientConfig(self.config_input, self.boto_client)
+                self.assertIn(
+                    f"config-kinesis_scraper.yaml: If \"{position}_position\" is *_SEQUENCE_NUMBER, "
+                    "exactly 1 shard_id must be specified as the sequence numbers are unique per shard."
+                    "\nValue provided: <class 'list'> []",
+                    str(ex.exception))
+
+    def test_invalid_sequence_number_multiple_shard_ids(self):
+        positions_complete = {
+            "starting": [
+                "AT_SEQUENCE_NUMBER",
+                "AFTER_SEQUENCE_NUMBER",
+            ],
+            "ending": [
+                'AT_SEQUENCE_NUMBER',
+                'AFTER_SEQUENCE_NUMBER',
+                'BEFORE_SEQUENCE_NUMBER',
+            ]
+        }
+
+        positions = list(positions_complete.keys())
+
+        self.config_input["shard_ids"] = ["shard1", "shard2"]
+        for position in positions:
+            for sequence_index in positions_complete[position]:
+                self.config_input[f"{position}_position"] = sequence_index
+                if position == "starting":
+                    self.config_input["ending_position"] = "LATEST"
+                else:
+                    self.config_input["starting_position"] = "LATEST"
+
+                with self.assertRaises(exceptions.ConfigValidationError) as ex:
+                    kinesis.ClientConfig(self.config_input, self.boto_client)
+                self.assertIn(
+                    f"config-kinesis_scraper.yaml: If \"{position}_position\" is *_SEQUENCE_NUMBER, "
+                    "exactly 1 shard_id must be specified as the sequence numbers are unique per shard."
+                    "\nValue provided: <class 'list'> ['shard1', 'shard2']",
+                    str(ex.exception))
+
 
     def test_boto3_invalid_object(self):
         # Run the test once with an empty input config list to simulate no configs set
@@ -234,7 +385,7 @@ class ClientConfig(unittest.TestCase):
         self.config_input["shard_ids"] = 5
         with self.assertRaises(exceptions.ConfigValidationError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
-        self.assertEqual("shard_ids must be of type list if specified. Type provided: <class 'int'>", str(ex.exception))
+        self.assertEqual("shard_ids must be of type list if specified. Type provided: <class 'int'> 5", str(ex.exception))
 
     def test_shard_ids_invalid_list_int(self):
         self.config_input["shard_ids"] = [7]

@@ -463,7 +463,7 @@ class ClientConfig(common.BaseCommonClass):
                 value_provided_type = repr(type(self._shard_ids))
                 value_provided = repr(self._shard_ids)
                 raise exceptions.ConfigValidationError(
-                    f"If config-kinesis_scraper.yaml: \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
+                    f"config-kinesis_scraper.yaml: If \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
                     f"exactly 1 shard_id must be specified as the sequence numbers are unique per shard."
                     f"\nValue provided: {value_provided_type} {value_provided}"
                 )
@@ -473,8 +473,8 @@ class ClientConfig(common.BaseCommonClass):
                 value_provided_type = repr(type(getattr(self, f"{position_type}_sequence_number")))
                 value_provided = repr(getattr(self, f"{position_type}_sequence_number"))
                 raise exceptions.ConfigValidationError(
-                    f"If config-kinesis_scraper.yaml: \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
-                    f"the value must be a positive numeric string, float or an integer. "
+                    f"config-kinesis_scraper.yaml: If \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
+                    f"the value must be a positive numeric string, float or an integer."
                     f"\nValue provided: {value_provided_type} {value_provided}"
                 ) from e
 
@@ -489,7 +489,7 @@ class ClientConfig(common.BaseCommonClass):
             timestamp = getattr(self, f"{position_type}_timestamp")
             try:
                 common.validate_datetime(timestamp)
-            except ValueError as e:
+            except (ValueError, TypeError) as e:
                 raise exceptions.ConfigValidationError(
                     f"config-kinesis_scraper.yaml: Invalid format for config parameter \"{position_type}_timestamp\".\n"
                     f"Format should be YYYY-MM-DD HH:MM:SS. "
@@ -517,10 +517,12 @@ class ClientConfig(common.BaseCommonClass):
         }
 
         valid_positions = positions[position_type]
-
-        if getattr(self, f"{position_type}_position") not in valid_positions:
-            raise exceptions.ConfigValidationError(f'config-kinesis_scraper.yaml: {position_type}_position" '
-                                                   f'must be one of: {repr(valid_positions)}')
+        value_provided = getattr(self, f"{position_type}_position")
+        if value_provided not in valid_positions:
+            raise exceptions.ConfigValidationError(
+                f"config-kinesis_scraper.yaml: {position_type}_position "
+                f"must be one of: {repr(valid_positions)}\n"
+                f"Value provided: {str(type(value_provided))} {repr(value_provided)}")
 
     @staticmethod
     def validate_shard_ids(shard_ids: list = None) -> list:
@@ -530,7 +532,7 @@ class ClientConfig(common.BaseCommonClass):
             return []
         if not isinstance(shard_ids, list):
             raise exceptions.ConfigValidationError(f'shard_ids must be of type list if specified. Type provided: '
-                                                   f'{str(type(shard_ids))}')
+                                                   f'{str(type(shard_ids))} {repr(shard_ids)}')
         for shard_id in shard_ids:
             ClientConfig.validate_shard_id(shard_id)
         return shard_ids
@@ -543,7 +545,7 @@ class ClientConfig(common.BaseCommonClass):
 
         if shard_id.strip() == '':
             raise exceptions.ConfigValidationError(f'Each shard_id must be a populated string. '
-                                                   f'Value provided: {repr(shard_id)}')
+                                                   f'Value provided: {repr(shard_id)} {repr(shard_id)}')
         return shard_id
 
 
