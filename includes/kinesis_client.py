@@ -384,7 +384,7 @@ class ClientConfig(common.BaseCommonClass):
             'ending_position',
             # 'ending_timestamp',  # Conditionally required
             # 'ending_sequence_number',  # Conditionally required
-            # 'ending_total_records_per_shard',  # Conditionally required
+            # 'total_records_per_shard',  # Conditionally required
             'poll_batch_size',
             'poll_delay',
             'max_empty_polls',

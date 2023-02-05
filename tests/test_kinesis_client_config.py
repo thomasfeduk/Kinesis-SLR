@@ -1,4 +1,5 @@
 import json
+import includes.exceptions as exceptions
 import botocore
 import importlib
 import unittest
@@ -20,7 +21,7 @@ class ClientConfig(unittest.TestCase):
         pass
 
     def setUp(self):
-        pass
+        self.boto_client = mock.MagicMock(spec=botocore.client.BaseClient)
 
     def tearDown(self):
         pass
@@ -28,23 +29,28 @@ class ClientConfig(unittest.TestCase):
     def test_ReqConfigs_empty(self):
         # Run the test once with an empty input config list to simulate no configs set
         config_input = {}
-        client = mock.MagicMock(spec=botocore.client.BaseClient)
-        with self.assertRaises(ValueError) as ex:
-            kinesis.ClientConfig(config_input, client)
+        with self.assertRaises(expected_exception=exceptions.ConfigValidationError) as ex:
+            kinesis.ClientConfig(config_input, self.boto_client)
         self.assertEqual(
-            'config-kinesis_scraper.yaml: Missing config parameter: stream_name',
+            'config-kinesis_scraper.yaml: Missing config parameter: debug_level',
             str(ex.exception)
         )
 
     def test_ReqConfigs(self):
         # Must match the same list order declared in kinesis.ConfigClient._is_valid
         required_configs = [
+            'debug_level',
             'stream_name',
             'shard_ids',
             'starting_position',
+            # 'starting_timestamp', # These are optional. We cannot check them in this test
+            # 'starting_sequence_number',   # These are optional. We cannot check them in this test
+            'ending_position',
+            # 'ending_timestamp',   # These are optional. We cannot check them in this test
+            # 'ending_sequence_number', # These are optional. We cannot check them in this test
+            # 'total_records_per_shard',  # These are optional. We cannot check them in this test
             'poll_batch_size',
             'poll_delay',
-            'max_total_records_per_shard',
             'max_empty_polls',
         ]
         config_input = {}
@@ -55,8 +61,8 @@ class ClientConfig(unittest.TestCase):
             if i == len(required_configs) - 1:
                 return
             config_input[current_conf] = "x"
-            with self.assertRaises(ValueError) as ex:
-                kinesis.ClientConfig(config_input)
+            with self.assertRaises(exceptions.ConfigValidationError) as ex:
+                kinesis.ClientConfig(config_input, self.boto_client)
             self.assertEqual(
                 f'config-kinesis_scraper.yaml: Missing config parameter: {required_configs[i + 1]}',
                 str(ex.exception)
@@ -81,14 +87,14 @@ class ClientConfig(unittest.TestCase):
                          )
         # Blank
         config_input["stream_name"] = ""
-        with self.assertRaises(ValueError) as ex:
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
             kinesis.ClientConfig(config_input)
         self.assertEqual("config-kinesis_scraper.yaml: A stream name must be set.",
                          str(ex.exception)
                          )
         # Default name
         config_input["stream_name"] = "stream_name_here"
-        with self.assertRaises(ValueError) as ex:
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
             kinesis.ClientConfig(config_input)
         self.assertEqual("config-kinesis_scraper.yaml: A stream name must be set.",
                          str(ex.exception)
