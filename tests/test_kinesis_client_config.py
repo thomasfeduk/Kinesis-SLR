@@ -1,14 +1,10 @@
-import json
 import includes.exceptions as exceptions
 import botocore
-import importlib
 import unittest
 import unittest.mock as mock
 from unittest.mock import patch
 import includes.kinesis_client as kinesis
-import sys
 from includes.debug import *
-import includes.common as common
 
 
 class ClientConfig(unittest.TestCase):
