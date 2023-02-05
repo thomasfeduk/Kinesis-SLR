@@ -184,7 +184,7 @@ class Record(common.BaseCommonClass):
         self._proprules = common.PropRules()
         self._proprules.add_prop("SequenceNumber", types=[str])
         self._proprules.add_prop("PartitionKey", types=[str])
-        self._proprules.add_prop("ApproximateArrivalTimestamp", types=[datetime.datetime,str])
+        self._proprules.add_prop("ApproximateArrivalTimestamp", types=[datetime.datetime, str])
 
         # Have to call parent after defining attributes
         super().__init__(passed_data)
@@ -351,7 +351,8 @@ class ClientConfig(common.BaseCommonClass):
         except (TypeError, ValueError) as e:
             raise exceptions.ConfigValidationError(
                 f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be a positive numeric "
-                f"string, or an integer.\nValue provided: {repr(type(self._poll_batch_size))} "
+                f"string, or an integer.\nValue provided: "
+                f"{repr(type(self._poll_batch_size))} {repr(self._poll_batch_size)}"
             ) from e
         if int(self._poll_batch_size) > 500:
             raise exceptions.ConfigValidationError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
@@ -364,7 +365,8 @@ class ClientConfig(common.BaseCommonClass):
             "ERROR",
         ]
         if self.debug_level not in debug_levels:
-            raise exceptions.ConfigValidationError('debug_level must be one of: ' + repr(debug_levels))
+            raise exceptions.ConfigValidationError(f"config-kinesis_scraper.yaml: debug_level must be one of: {repr(debug_levels)}\nValue provided: "
+                                                   f"{repr(type(self.debug_level))} {repr(self.debug_level)}")
 
     def _validate_stream_name(self):
         if not isinstance(self._stream_name, str):
@@ -400,7 +402,8 @@ class ClientConfig(common.BaseCommonClass):
         except (TypeError, ValueError) as e:
             raise exceptions.ConfigValidationError(
                 f"If config-kinesis_scraper.yaml: \"max_empty_polls\" must be a positive numeric "
-                f"string, or an integer.\nValue provided: {repr(type(self._max_empty_polls))} "
+                f"string, or an integer.\nValue provided: "
+                f"{repr(type(self._max_empty_polls))} {repr(self._max_empty_polls)}"
             ) from e
         if int(self._max_empty_polls) > 2000:
             raise exceptions.ConfigValidationError('config-kinesis_scraper.yaml: max_empty_polls cannot exceed 2000')
