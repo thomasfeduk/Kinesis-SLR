@@ -17,7 +17,7 @@ class ClientConfig(unittest.TestCase):
         pass
 
     def setUp(self):
-        self.boto_client = mock.MagicMock(spec=botocore.client.BaseClient)
+        self.boto_client = mock.Mock(spec=botocore.client.BaseClient)
         self.config_input = {
             'debug_level': "INFO",
             'stream_name': "user_activities",

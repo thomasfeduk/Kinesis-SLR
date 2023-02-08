@@ -46,10 +46,6 @@ def main():
     #
     # pvdd('here123')
 
-    client = boto3.client('kinesis')
-    print(type(client))
-    die()
-
     # results = client.get_shard_iterator(
     #     StreamName='user-activities',
     #     ShardId='shardId-000000000004',

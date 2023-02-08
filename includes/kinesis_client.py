@@ -574,6 +574,8 @@ class Client:
         shard_ids_detected = self._get_shard_ids_of_stream()
         self._confirm_shards_exist(shard_ids_detected)
 
+
+        die('line 578')
         # Pre-check: Confirm we are not trying to scrape any shards that already have been written to disk
         log.debug('Checking for exiting shard directories before beginning scraping')
         for shard_id in shard_ids_detected:
