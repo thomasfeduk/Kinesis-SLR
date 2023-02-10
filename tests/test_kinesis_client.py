@@ -533,6 +533,16 @@ class TestClientFullCycle(unittest.TestCase):
             'poll_delay': 0,
             'max_empty_polls': 5,
         }
+        self.detected_shards = {
+            'StreamDescription':
+                {
+                    'StreamName': '123',
+                    'StreamARN': 'arn:123',
+                    'Shards': [{
+                        'ShardId': 'shard-00001-test'
+                    }]
+                }
+        }
 
     def tearDown(self):
         pass
@@ -556,19 +566,10 @@ class TestClientFullCycle(unittest.TestCase):
         mocked_shard_iterator.return_value = 'the_iter_id'
         mocked_get_records.return_value = kinesis.Boto3GetRecordsResponse({
             "Records": generate_records(10), "NextShardIterator": uuid.uuid4().hex, "MillisBehindLatest": 0
-            })
+        })
 
         self.boto_client.describe_stream = mock.Mock()
-        self.boto_client.describe_stream.return_value = {
-            'StreamDescription':
-            {
-                'StreamName': '123',
-                'StreamARN': 'arn:123',
-                'Shards': [{
-                    'ShardId': 'shard-00001-test'
-                }]
-            }
-        }
+        self.boto_client.describe_stream.return_value = self.detected_shards
 
         self.config_input["shard_ids"] = ["abc"]
         client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
@@ -577,30 +578,26 @@ class TestClientFullCycle(unittest.TestCase):
 
         die('est here 40')
 
-        # def test_ReqConfigs_empty(self):
-        #     with patch('includes.kinesis_client.ShardIteratorConfig.is_valid', create=True) as mocked_kinesis_client:
-        #         mocked_kinesis_client.return_value = 'boo'
-        #
-        #     _scrape_records_for_shard_iterator
+    @patch('includes.kinesis_client.Client._get_records', create=True)
+    @patch('includes.kinesis_client.Client._shard_iterator', create=True)
+    @patch('os.path.exists', create=True)
+    def test_shard_id_not_detected(self,
+                                   mocked_os_path_exists,
+                                   mocked_shard_iterator,
+                                   mocked_get_records,
+                                   ):
+        mocked_os_path_exists.return_value = False
+        mocked_shard_iterator.return_value = 'the_iter_id'
+        mocked_get_records.return_value = kinesis.Boto3GetRecordsResponse({
+            "Records": generate_records(10), "NextShardIterator": uuid.uuid4().hex, "MillisBehindLatest": 0
+        })
 
-        # Run the test once with an empty input config list to simulate no configs set
-        config_input = {}
-        # with self.assertRaises(ValueError) as ex:
-        #     kinesis.ClientConfig(config_input)
-        # self.assertEqual(
-        #     'config-kinesis_scraper.yaml: Missing config parameter: stream_name',
-        #     str(ex.exception)
-        # )
+        self.boto_client.describe_stream = mock.Mock()
+        self.boto_client.describe_stream.return_value = self.detected_shards
 
-    # def test_ClientConfig(self):
-    #     with patch('includes.kinesis_client.ShardIteratorConfig.is_valid', create=True) as mocked_kinesis_client:
-    #         mocked_kinesis_client.return_value = 'boo'
-    #
-    #         yaml_input = {
-    #
-    #         }
-    #         kinesis_obj = kinesis.ConfigClient(yaml_input)
-
-    #     pvdd(kinesis_obj)
-    #
-    # self.assertEqual(1, 2)
+        self.config_input["shard_ids"] = ["abc"]
+        client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
+        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            client.begin_scraping()
+        self.assertIn("Specified shard_id \"abc\" does not exist in stream \"user_activities\". "
+                      "Detected shards: ['shard-00001-test']", str(ex.exception))
