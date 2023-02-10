@@ -58,26 +58,24 @@ class BaseSuperclass(ABC):
             raise exceptions.InternalError(f"base_superclass: Error occurred calling .dict()") from ex
         return dict_dump
 
-    def benchmark(func: Callable[..., Any]) -> Callable[..., Any]:
-        print('startig benchmark')
-
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            print('startig wrapper')
-            value = func(*args, **kwargs)
-
-            print('ending wrapper')
-            return value
-
-        print('ending benchmark')
-
+    @staticmethod
+    def req_valid(func: Callable[..., Any]) -> Callable[..., Any]:
+        def wrapper(*args: Union[dict, str], **kwargs) -> Any:
+            if type(args[1]) not in [dict, str]:
+                raise exceptions.InvalidArgumentException(f'Not a dict or str. Given: {repr(args[1])}')
+            return func(*args, **kwargs)
         return wrapper
 
 
 class Woof(BaseSuperclass):
-    @BaseSuperclass.benchmark
     def __init__(self, data):
         self.firstname = None
         super().__init__(data)
+        self.test(5)
+
+    @BaseSuperclass.req_valid
+    def test(self, data):
+        pvdd(self)
 
 
 
