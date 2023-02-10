@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 import datetime
 import includes.exceptions as exceptions
 from includes.debug import pvdd, pvd, die
+from typing import Any, Callable
 
 log = logging.getLogger()
 
@@ -56,6 +57,32 @@ class BaseSuperclass(ABC):
         except Exception as ex:
             raise exceptions.InternalError(f"base_superclass: Error occurred calling .dict()") from ex
         return dict_dump
+
+    def benchmark(func: Callable[..., Any]) -> Callable[..., Any]:
+        print('startig benchmark')
+
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            print('startig wrapper')
+            value = func(*args, **kwargs)
+
+            print('ending wrapper')
+            return value
+
+        print('ending benchmark')
+
+        return wrapper
+
+
+class Woof(BaseSuperclass):
+    @BaseSuperclass.benchmark
+    def __init__(self, data):
+        self.firstname = None
+        super().__init__(data)
+
+
+
+
+
 
 
 class BaseCommonClass(BaseSuperclass, ABC):

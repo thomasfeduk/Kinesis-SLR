@@ -22,6 +22,15 @@ logging.basicConfig()
 
 
 def main():
+    details = {'firstname': "thomas", "lastname": "feduk"}
+
+    stuff = common.Woof(details)
+
+    pvdd(stuff)
+    die('end here')
+
+
+
     # serialized get_records().Records response:
     record_serialized = b'\x80\x04\x95\xda\x01\x00\x00\x00\x00\x00\x00}\x94(' \
                         b'\x8c\x0eSequenceNumber\x94\x8c849636577182105719049037919318577501443478516337397989442\x94' \
