@@ -221,7 +221,10 @@ class RecordsCollection(common.RestrictedCollection):
 
     # Override get item so we can typehint the explicit type
     def __getitem__(self, index) -> Record:
-        return self._iter_items[int(index)]
+        return self._items[int(index)]
+
+    def __setitem__(self, key, value):
+        self._items[key] = value
 
 
 class Boto3GetRecordsResponse(common.BaseCommonClass):
