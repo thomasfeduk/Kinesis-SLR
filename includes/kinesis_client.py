@@ -152,12 +152,17 @@ class GetRecordsIterationResponse(GetRecordsIteration):
         # Recall the validation that is called in super().__init__ again after appending the new proprules
         self._is_valid()
 
-    def __dict__(self):
-        pvdd('sadsad')
+        # Must be after
+        # self.__dict__ = common.get_obj_proprules_stripped_dict(self)
 
     @property
     def total_found_records(self):
         return self._total_found_records
+
+    @total_found_records.setter
+    def total_found_records(self,value):
+        self._total_found_records = value
+        self._is_valid()
 
     @property
     def found_records(self):

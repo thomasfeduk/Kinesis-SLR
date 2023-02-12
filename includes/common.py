@@ -57,7 +57,6 @@ class BaseCommonClass(BaseSuperclass, ABC):
         super().__init__(passed_data)
         self._is_valid()
         self._post_init_processing()
-        self.__dict__ = self._get_stripped_dict()  # Strip out self._proprules when calling var_dump
 
     def _is_valid(self):
         self._is_valid_proprules()
@@ -73,11 +72,6 @@ class BaseCommonClass(BaseSuperclass, ABC):
             if not callable(getattr(self, item)):
                 attribs[item] = getattr(self, item)
         self._proprules.validate(attribs)
-
-    def _get_stripped_dict(self):
-        dict_output = self.__dict__
-        del dict_output["_proprules"]
-        return dict_output
 
 
 class RestrictedCollection(ABC):

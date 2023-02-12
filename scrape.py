@@ -21,22 +21,6 @@ from dateutil.tz import tzlocal
 logging.basicConfig()
 
 
-class Test:
-    def __init__(self):
-        self.thing = list
-        self.a = 'Thomas'
-        self.__dict__ = self._get_dict()
-
-    def _get_dict(self):
-        dict = self.__dict__
-        del dict["thing"]
-        return dict
-
-
-var = Test()
-pvd('here')
-pvdd(var)
-
 def main():
     # serialized get_records().Records response:
     record_serialized = b'\x80\x04\x95\xda\x01\x00\x00\x00\x00\x00\x00}\x94(' \
