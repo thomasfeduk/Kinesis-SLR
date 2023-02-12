@@ -78,9 +78,9 @@ class RestrictedCollection(ABC):
     def __init__(self, items):
         if not isinstance(items, list):
             raise TypeError(f"Type list is expected. Received:  {type(items)} {repr(items)}")
-        self._last = 0
-        self._items = items
-        for item in self._items:
+        self._iter_last = 0
+        self._iter_items = items
+        for item in self._iter_items:
             self._validate_item(item)
 
     @property
@@ -89,26 +89,26 @@ class RestrictedCollection(ABC):
         return object  # Set your allowed object type here
 
     def __iter__(self):
-        self._last = 0
+        self._iter_last = 0
         return self
 
     def __next__(self):
-        if self._last >= len(self._items):
+        if self._iter_last >= len(self._iter_items):
             raise StopIteration
-        self._last += 1
-        return self._items[self._last - 1]
+        self._iter_last += 1
+        return self._iter_items[self._iter_last - 1]
 
     def __getitem__(self, index):
-        return self._items[int(index)]
+        return self._iter_items[int(index)]
 
     def __len__(self):
-        return len(self._items)
+        return len(self._iter_items)
 
     def _validate_item(self, value):
         if isinstance(value, self.expected_type):
             return value
         raise TypeError(f"Each item in the list must be of type {repr(self.expected_type)}. "
-                        f"Received: {type(value)} {repr(value)}\nPassed data: {repr(self._items)}")
+                        f"Received: {type(value)} {repr(value)}\nPassed data: {repr(self._iter_items)}")
 
 
 class PropRules:

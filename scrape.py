@@ -16,12 +16,29 @@ import includes.common as common
 import pickle
 import datetime
 from dateutil.tz import tzlocal
-
+from tests.test_kinesis_client import generate_records
+import uuid
+from var_dump import var_dump
 # Initialize logger
 logging.basicConfig()
 
 
 def main():
+
+
+    var = kinesis.Boto3GetRecordsResponse({
+        "Records": generate_records(1), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
+        "MillisBehindLatest": 0
+    })
+
+    pvdd(var)
+    die()
+
+
+
+
+
+
     # serialized get_records().Records response:
     record_serialized = b'\x80\x04\x95\xda\x01\x00\x00\x00\x00\x00\x00}\x94(' \
                         b'\x8c\x0eSequenceNumber\x94\x8c849636577182105719049037919318577501443478516337397989442\x94' \
