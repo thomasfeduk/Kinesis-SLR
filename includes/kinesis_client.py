@@ -152,6 +152,9 @@ class GetRecordsIterationResponse(GetRecordsIteration):
         # Recall the validation that is called in super().__init__ again after appending the new proprules
         self._is_valid()
 
+    def __dict__(self):
+        pvdd('sadsad')
+
     @property
     def total_found_records(self):
         return self._total_found_records
@@ -615,6 +618,11 @@ class Client:
                 shard_id=shard_id
                 ))
             loop_count += 1
+            if len(iterator_response_obj) > 0:
+                del iterator_response_obj[0]._proprules
+                pvd(iterator_response_obj[0])
+            else:
+                print('empty records')
             if loop_count > 10:
                 break
 
@@ -641,6 +649,7 @@ class Client:
         # Make the boto3 call
         response = self._get_records(iterator_obj.shard_iterator)
         pvdd(response)
+        return response.Records
 
         # Store records if found in temp list
         if len(response.Records) > 0:

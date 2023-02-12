@@ -548,8 +548,8 @@ class TestClientFullCycle(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @patch('includes.kinesis_client.Client._scrape_records_for_shard_iterator',
-           spec_set=kinesis.Client._scrape_records_for_shard_iterator)
+    # @patch('includes.kinesis_client.Client._scrape_records_for_shard_iterator',
+    #        spec_set=kinesis.Client._scrape_records_for_shard_iterator)
     @patch('includes.kinesis_client.Client._get_records', create=True, spec_set=kinesis.Client._get_records)
     @patch('includes.kinesis_client.Client._shard_iterator', create=True, spec_set=kinesis.Client._shard_iterator)
     @patch('os.path.exists', create=True, spec_set=os.path.exists)
@@ -562,7 +562,7 @@ class TestClientFullCycle(unittest.TestCase):
                                       mocked_os_path_exists,
                                       mocked_shard_iterator,
                                       mocked_get_records,
-                                      mocked_scrape_records_for_shard_iterator,
+                                      # mocked_scrape_records_for_shard_iterator,
                                       ):
         # mocked_get_shard_ids_of_stream.return_value = ['shard-00000-test']
         mocked_os_path_exists.return_value = False
@@ -571,27 +571,55 @@ class TestClientFullCycle(unittest.TestCase):
         mocked_shard_iterator.return_value = 'the_iter_id'
         mock.seal(mocked_shard_iterator)
 
-        mocked_get_records.return_value = kinesis.Boto3GetRecordsResponse({
-            "Records": generate_records(10), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
-            "MillisBehindLatest": 0
-        })
+        # var = kinesis.Boto3GetRecordsResponse({
+        #     "Records": generate_records(0), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
+        #     "MillisBehindLatest": 0
+        # })
+        # del var._proprules
+        # del var.Records[0]._proprules
+        # pvdd(var)
+
+
+        mocked_get_records.side_effect = [
+            kinesis.Boto3GetRecordsResponse({
+                "Records": generate_records(10), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
+                "MillisBehindLatest": 0
+            }),
+            kinesis.Boto3GetRecordsResponse({
+                "Records": generate_records(10), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
+                "MillisBehindLatest": 0
+            }),
+            kinesis.Boto3GetRecordsResponse({
+                "Records": generate_records(0), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
+                "MillisBehindLatest": 0
+            }),
+            kinesis.Boto3GetRecordsResponse({
+                "Records": generate_records(0), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
+                "MillisBehindLatest": 0
+            }),
+            kinesis.Boto3GetRecordsResponse({
+                "Records": generate_records(3), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
+                "MillisBehindLatest": 0
+            }),
+        ]
         mock.seal(mocked_get_records)
 
-        mocked_scrape_records_for_shard_iterator.side_effect = [
-            'boo1',
-            'boo2',
-            'boo3',
-            'boo4',
-            'boo5',
-            'boo6',
-            'boo7',
-            'boo8',
-            'boo9',
-            'boo10',
-            'boo11',
-        ]
-        mock.seal(mocked_scrape_records_for_shard_iterator)
-        var = mocked_scrape_records_for_shard_iterator.call_args_list
+
+        # mocked_scrape_records_for_shard_iterator.side_effect = [
+        #     'boo1',
+        #     'boo2',
+        #     'boo3',
+        #     'boo4',
+        #     'boo5',
+        #     'boo6',
+        #     'boo7',
+        #     'boo8',
+        #     'boo9',
+        #     'boo10',
+        #     'boo11',
+        # ]
+        # mock.seal(mocked_scrape_records_for_shard_iterator)
+        # var = mocked_scrape_records_for_shard_iterator.call_args_list
 
         self.boto_client.describe_stream = mock.Mock()
         self.boto_client.describe_stream.return_value = self.detected_shards
@@ -601,9 +629,6 @@ class TestClientFullCycle(unittest.TestCase):
         client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
         client.begin_scraping()
 
-        pvdd(var[0])
-        # print(json.dumps(kwargs, default=str))
-        die()
 
     @patch('includes.kinesis_client.Client._get_records', create=True)
     @patch('includes.kinesis_client.Client._shard_iterator', create=True)

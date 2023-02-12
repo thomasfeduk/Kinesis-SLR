@@ -46,17 +46,6 @@ class BaseSuperclass(ABC):
         except Exception as ex:
             raise ValueError(f"Could not convert passed_data to a dict.\npassed_data: {repr(passed_data)}") from ex
 
-    # Returns a recursive dict of the entire object and any attributes that are also objects
-    # Similar to .__dict__ but recursive
-    def dict(self) -> dict:
-        try:
-            dict_dump = json.loads(
-                json.dumps(self, default=lambda o: getattr(o, '__dict__', str(o)))
-            )
-        except Exception as ex:
-            raise exceptions.InternalError(f"base_superclass: Error occurred calling .dict()") from ex
-        return dict_dump
-
 
 class BaseCommonClass(BaseSuperclass, ABC):
     @abstractmethod
@@ -68,6 +57,7 @@ class BaseCommonClass(BaseSuperclass, ABC):
         super().__init__(passed_data)
         self._is_valid()
         self._post_init_processing()
+        self.__dict__ = self._get_stripped_dict()  # Strip out self._proprules when calling var_dump
 
     def _is_valid(self):
         self._is_valid_proprules()
@@ -83,6 +73,11 @@ class BaseCommonClass(BaseSuperclass, ABC):
             if not callable(getattr(self, item)):
                 attribs[item] = getattr(self, item)
         self._proprules.validate(attribs)
+
+    def _get_stripped_dict(self):
+        dict_output = self.__dict__
+        del dict_output["_proprules"]
+        return dict_output
 
 
 class RestrictedCollection(ABC):
