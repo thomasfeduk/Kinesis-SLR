@@ -547,6 +547,7 @@ class TestClientFullCycle(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @patch('includes.kinesis_client.Client._scrape_records_for_shard_iterator', create=True)
     @patch('includes.kinesis_client.Client._get_records', create=True)
     @patch('includes.kinesis_client.Client._shard_iterator', create=True)
     @patch('os.path.exists', create=True)
@@ -560,23 +561,35 @@ class TestClientFullCycle(unittest.TestCase):
                                       mocked_os_path_exists,
                                       mocked_shard_iterator,
                                       mocked_get_records,
+                                      mocked_scrape_records_for_shard_iterator,
                                       ):
         # mocked_get_shard_ids_of_stream.return_value = ['shard-00000-test']
         mocked_os_path_exists.return_value = False
         mocked_shard_iterator.return_value = 'the_iter_id'
         mocked_get_records.return_value = kinesis.Boto3GetRecordsResponse({
-            "Records": generate_records(10), "NextShardIterator": uuid.uuid4().hex, "MillisBehindLatest": 0
+            "Records": generate_records(10), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}", "MillisBehindLatest": 0
         })
+
+        mocked_scrape_records_for_shard_iterator.side_effect = [
+            'boo1',
+            'boo2',
+            'boo3',
+            'boo4',
+            'boo5',
+            'boo6',
+            'boo7',
+            'bo98',
+            'boo10',
+            'boo11',
+            'boo12',
+            ]
 
         self.boto_client.describe_stream = mock.Mock()
         self.boto_client.describe_stream.return_value = self.detected_shards
 
-        self.config_input["shard_ids"] = ["abc"]
+        self.config_input["shard_ids"] = ["shard-00001-test"]
         client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
-
         client.begin_scraping()
-
-        die('est here 40')
 
     @patch('includes.kinesis_client.Client._get_records', create=True)
     @patch('includes.kinesis_client.Client._shard_iterator', create=True)

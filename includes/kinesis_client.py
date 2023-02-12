@@ -574,8 +574,6 @@ class Client:
         shard_ids_detected = self._get_shard_ids_of_stream()
         self._confirm_shards_exist(shard_ids_detected)
 
-
-        die('line 578')
         # Pre-check: Confirm we are not trying to scrape any shards that already have been written to disk
         log.debug('Checking for exiting shard directories before beginning scraping')
         for shard_id in shard_ids_detected:
@@ -604,7 +602,6 @@ class Client:
 
     def _scrape_records_for_shard(self, shard_id: str) -> None:
         next_shard_iterator = self._shard_iterator(shard_id)
-
         total_found_records = 0
         response_no_records = 0
         loop_count = 1
@@ -616,18 +613,24 @@ class Client:
                 shard_iterator=next_shard_iterator,
                 loop_count=loop_count,
                 shard_id=shard_id
-            )
-            )
+                ))
+            loop_count += 1
+            pvd(iterator_response_obj)
+            if loop_count > 10:
+                die('end')
 
-            # Break the iteration only if the iteration response states it is time to do so
-            if iterator_response_obj.break_iteration:
-                break
-
-            # Set the variables for the next iteration
-            total_found_records = iterator_response_obj.total_found_records
-            response_no_records = iterator_response_obj.response_no_records
-            next_shard_iterator = iterator_response_obj.next_shard_iterator
-            loop_count = iterator_response_obj.loop_count
+            # pvd('iter response obj:')
+            # pvdd(iterator_response_obj)
+            #
+            # # Break the iteration only if the iteration response states it is time to do so
+            # if iterator_response_obj.break_iteration:
+            #     break
+            #
+            # # Set the variables for the next iteration
+            # total_found_records = iterator_response_obj.total_found_records
+            # response_no_records = iterator_response_obj.response_no_records
+            # next_shard_iterator = iterator_response_obj.next_shard_iterator
+            # loop_count = iterator_response_obj.loop_count
 
     def _scrape_records_for_shard_iterator(self, iterator_obj: GetRecordsIterationInput) \
             -> GetRecordsIterationResponse:
@@ -641,11 +644,7 @@ class Client:
 
         # Make the boto3 call
         response = self._get_records(iterator_obj.shard_iterator)
-        # if len(response.Records) > 0:
-        #     # pvdd(response.Records[0].SequenceNumber)
-        #     # pvdd(json.dumps(response.Records, default=str, indent=4))
-        #     # die('got here 649')
-        #
+        pvdd(response)
 
         # Store records if found in temp list
         if len(response.Records) > 0:
