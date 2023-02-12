@@ -615,13 +615,9 @@ class Client:
                 shard_id=shard_id
                 ))
             loop_count += 1
-            pvd(iterator_response_obj)
             if loop_count > 10:
-                die('end')
+                break
 
-            # pvd('iter response obj:')
-            # pvdd(iterator_response_obj)
-            #
             # # Break the iteration only if the iteration response states it is time to do so
             # if iterator_response_obj.break_iteration:
             #     break
