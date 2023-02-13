@@ -1,9 +1,6 @@
 from includes.debug import pvdd, pvd, die
-
 from datetime import datetime
-
 import shutil
-
 import includes.stdout_unbuffered
 import boto3
 import logging
@@ -24,10 +21,13 @@ logging.basicConfig()
 
 
 def main():
-    pvdd(generate_Boto3GetRecordsResponse(10, "boto3resp"))
-    die('sdasd')
-
-
+    pvdd([
+        generate_Boto3GetRecordsResponse(10, "boto3resp"),
+        generate_Boto3GetRecordsResponse(10, "boto3resp"),
+        generate_Boto3GetRecordsResponse(0, "boto3resp"),
+        generate_Boto3GetRecordsResponse(0, "boto3resp"),
+        generate_Boto3GetRecordsResponse(3, "boto3resp"),
+    ])
     # serialized get_records().Records response:
     record_serialized = b'\x80\x04\x95\xda\x01\x00\x00\x00\x00\x00\x00}\x94(' \
                         b'\x8c\x0eSequenceNumber\x94\x8c849636577182105719049037919318577501443478516337397989442\x94' \

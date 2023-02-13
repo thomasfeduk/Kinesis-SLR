@@ -1,6 +1,10 @@
+# A quick and dirty debug script to aid in development to get a visual minified resursive text dump of an object's
+# contents No error handling or proper  form in this file. It is a quick hack as it is exclusively used as a simple
+# reference/view during dev to check values
+
+import copy
 import sys
 from var_dump import var_dump
-from collections.abc import Iterable
 
 try:
     from enum import Enum
@@ -26,11 +30,15 @@ def pvdd(data):
     exit(0)
 
 
+# Blindly with a hammer deletes from a deep copy all occurrences of _proprules
+# from any object/type to be used in var_dump so we dont clutter the output
 def strip_proprules_recursively(data):
-    data_stripped = data
+    data_stripped = copy.deepcopy(data)
 
-    if hasattr(data_stripped, '_proprules'):
+    try:
         del data_stripped._proprules
+    except Exception:
+        pass
 
     try:
         i = -1
@@ -49,12 +57,29 @@ def strip_proprules_recursively(data):
 
     if hasattr(data_stripped, '__dict__'):
         for i in data_stripped.__dict__:
+            try:
+                delattr(data_stripped, '_proprules')
+            except Exception:
+                pass
+            try:
+                del data_stripped[i]._proprules
+            except Exception:
+                pass
+
             setattr(data_stripped, i, strip_proprules_recursively(getattr(data_stripped, i)))
 
     if hasattr(data_stripped, '__iter__') and type(data_stripped) not in (
-            tuple, list, dict, int, str, float, long, bool, NoneType, unicode):
+            tuple, int, str, float, long, bool, NoneType, unicode):
         i = 0
         for item in data_stripped:
+            try:
+                delattr(item, '_proprules')
+            except Exception:
+                pass
+            try:
+                delattr(data_stripped, '_proprules')
+            except Exception:
+                pass
             try:
                 del data_stripped[i]._proprules
             except AttributeError:

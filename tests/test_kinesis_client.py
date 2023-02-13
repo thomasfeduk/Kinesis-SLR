@@ -586,30 +586,20 @@ class TestClientFullCycle(unittest.TestCase):
         mock.seal(mocked_shard_iterator)
 
 
-        pvdd(generate_Boto3GetRecordsResponse(3, "boto3resp"))
-
         mocked_get_records.side_effect = [
-            kinesis.Boto3GetRecordsResponse({
-                "Records": generate_records(10), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
-                "MillisBehindLatest": 0
-            }),
-            kinesis.Boto3GetRecordsResponse({
-                "Records": generate_records(10), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
-                "MillisBehindLatest": 0
-            }),
-            kinesis.Boto3GetRecordsResponse({
-                "Records": generate_records(0), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
-                "MillisBehindLatest": 0
-            }),
-            kinesis.Boto3GetRecordsResponse({
-                "Records": generate_records(0), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
-                "MillisBehindLatest": 0
-            }),
-            kinesis.Boto3GetRecordsResponse({
-                "Records": generate_records(3), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
-                "MillisBehindLatest": 0
-            }),
+            generate_Boto3GetRecordsResponse(10, "boto3resp"),
+            generate_Boto3GetRecordsResponse(10, "boto3resp"),
+            generate_Boto3GetRecordsResponse(0, "boto3resp"),
+            generate_Boto3GetRecordsResponse(0, "boto3resp"),
+            generate_Boto3GetRecordsResponse(3, "boto3resp"),
         ]
+        pvdd([
+            generate_Boto3GetRecordsResponse(10, "boto3resp"),
+            generate_Boto3GetRecordsResponse(10, "boto3resp"),
+            generate_Boto3GetRecordsResponse(0, "boto3resp"),
+            generate_Boto3GetRecordsResponse(0, "boto3resp"),
+            generate_Boto3GetRecordsResponse(3, "boto3resp"),
+        ])
         mock.seal(mocked_get_records)
 
         self.boto_client.describe_stream = mock.Mock()
