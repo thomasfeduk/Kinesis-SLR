@@ -625,24 +625,16 @@ class Client:
                 loop_count=loop_count,
                 shard_id=shard_id
                 ))
-            loop_count += 1
-            if len(iterator_response_obj) > 0:
-                del iterator_response_obj[0]._proprules
-                pvd(iterator_response_obj[0])
-            else:
-                print('empty records')
-            if loop_count > 10:
+
+            # Break the iteration only if the iteration response states it is time to do so
+            if iterator_response_obj.break_iteration:
                 break
 
-            # # Break the iteration only if the iteration response states it is time to do so
-            # if iterator_response_obj.break_iteration:
-            #     break
-            #
-            # # Set the variables for the next iteration
-            # total_found_records = iterator_response_obj.total_found_records
-            # response_no_records = iterator_response_obj.response_no_records
-            # next_shard_iterator = iterator_response_obj.next_shard_iterator
-            # loop_count = iterator_response_obj.loop_count
+            # Set the variables for the next iteration
+            total_found_records = iterator_response_obj.total_found_records
+            response_no_records = iterator_response_obj.response_no_records
+            next_shard_iterator = iterator_response_obj.next_shard_iterator
+            loop_count = iterator_response_obj.loop_count
 
     def _scrape_records_for_shard_iterator(self, iterator_obj: GetRecordsIterationInput) \
             -> GetRecordsIterationResponse:

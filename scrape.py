@@ -16,7 +16,7 @@ import includes.common as common
 import pickle
 import datetime
 from dateutil.tz import tzlocal
-from tests.test_kinesis_client import generate_records
+from tests.test_kinesis_client import generate_Boto3GetRecordsResponse
 import uuid
 from var_dump import var_dump
 # Initialize logger
@@ -24,19 +24,11 @@ logging.basicConfig()
 
 
 def main():
-
-
-    var = kinesis.Boto3GetRecordsResponse({
-        "Records": generate_records(1), "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}",
-        "MillisBehindLatest": 0
-    })
-
+    var = generate_Boto3GetRecordsResponse(1, "boto3resp")
+    # var.
     pvdd(var)
-    die()
 
-
-
-
+    die('sdasd')
 
 
     # serialized get_records().Records response:
