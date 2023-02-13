@@ -648,8 +648,6 @@ class Client:
 
         # Make the boto3 call
         response = self._get_records(iterator_obj.shard_iterator)
-        pvdd(response)
-        return response.Records
 
         # Store records if found in temp list
         if len(response.Records) > 0:
@@ -666,21 +664,16 @@ class Client:
             records_count_upto_to_add = 0
             records_to_process = []
 
-            pvdd(iterator_obj.total_found_records)
             if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD':
                 records_count_upto_to_add = self._client_config.total_records_per_shard - len(response.Records)
                 # If total_records_per_shard if 0, we include all records by passing 0 as the upto argument
-
-            pvd(f"total per shard: {self._client_config.total_records_per_shard}")
-            pvd(f"respone.Records: {len(response.Records)}")
-            pvd(records_count_upto_to_add)
-            die('sadsadsd')
 
             output = common.list_append_upto_n_items(
                 records_to_process,
                 [i for i in response.Records],
                 records_count_upto_to_add)
 
+            pvd('sadsad')
             pvdd(output)
 
             self._process_records(iterator_obj.shard_id,
@@ -703,6 +696,7 @@ class Client:
                 found_records, response["Records"], records_count_upto_to_add)
 
         else:
+            pvdd('no records')
             log.debug(response)
             iterator_obj.response_no_records += 1
             log.info(f'No records found in loop. Currently at {iterator_obj.response_no_records} empty calls, '

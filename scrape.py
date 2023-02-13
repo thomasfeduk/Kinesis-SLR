@@ -22,11 +22,10 @@ logging.basicConfig()
 
 def main():
     pvdd([
-        generate_Boto3GetRecordsResponse(10, "boto3resp"),
-        generate_Boto3GetRecordsResponse(10, "boto3resp"),
-        generate_Boto3GetRecordsResponse(0, "boto3resp"),
-        generate_Boto3GetRecordsResponse(0, "boto3resp"),
-        generate_Boto3GetRecordsResponse(3, "boto3resp"),
+        generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter1"),
+        generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter2"),
+        generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter3"),
+        generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter4"),
     ])
     # serialized get_records().Records response:
     record_serialized = b'\x80\x04\x95\xda\x01\x00\x00\x00\x00\x00\x00}\x94(' \

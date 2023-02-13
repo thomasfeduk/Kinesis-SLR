@@ -44,16 +44,20 @@ def generate_record_obj(record_raw_dict=None) -> kinesis.Record:
     return kinesis.Record(record_raw_dict)
 
 
-def generate_Boto3GetRecordsResponse(count: int = 0, data_prefix: str = ''):
+def generate_Boto3GetRecordsResponse(count: int = 0, *, data_prefix: str = '', iterator: str = ''):
     records = []
 
     for i in range(count):
         records.append(generate_record_obj(generate_record_raw_dict(data=f"{data_prefix}{i}_sampledata")))
 
+    iterator_default = f"uuid.uuid4().hex-{uuid.uuid4().hex}"
+    if iterator == '':
+        iterator = iterator_default
+
     response = {
         "Records": records,
         "MillisBehindLatest": 0,
-        "NextShardIterator": f"uuid.uuid4().hex-{uuid.uuid4().hex}"
+        "NextShardIterator": f"{iterator}"
     }
     return kinesis.Boto3GetRecordsResponse(response)
 
@@ -585,21 +589,13 @@ class TestClientFullCycle(unittest.TestCase):
         mocked_shard_iterator.return_value = 'the_iter_id'
         mock.seal(mocked_shard_iterator)
 
-
         mocked_get_records.side_effect = [
-            generate_Boto3GetRecordsResponse(10, "boto3resp"),
-            generate_Boto3GetRecordsResponse(10, "boto3resp"),
-            generate_Boto3GetRecordsResponse(0, "boto3resp"),
-            generate_Boto3GetRecordsResponse(0, "boto3resp"),
-            generate_Boto3GetRecordsResponse(3, "boto3resp"),
+            generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator="iter1"),
+            generate_Boto3GetRecordsResponse(10, data_prefix="boto3resp", iterator="iter2"),
+            generate_Boto3GetRecordsResponse(0, data_prefix="boto3resp", iterator="iter3"),
+            generate_Boto3GetRecordsResponse(0, data_prefix="boto3resp", iterator="iter4"),
+            generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator="iter5"),
         ]
-        pvdd([
-            generate_Boto3GetRecordsResponse(10, "boto3resp"),
-            generate_Boto3GetRecordsResponse(10, "boto3resp"),
-            generate_Boto3GetRecordsResponse(0, "boto3resp"),
-            generate_Boto3GetRecordsResponse(0, "boto3resp"),
-            generate_Boto3GetRecordsResponse(3, "boto3resp"),
-        ])
         mock.seal(mocked_get_records)
 
         self.boto_client.describe_stream = mock.Mock()
