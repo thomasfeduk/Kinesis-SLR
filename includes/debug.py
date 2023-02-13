@@ -60,6 +60,7 @@ def strip_proprules_recursively(data):
             except AttributeError:
                 pass
             data_stripped[i] = strip_proprules_recursively(item)
+            i += 1
 
     return data_stripped
 

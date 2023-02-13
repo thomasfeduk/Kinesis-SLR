@@ -24,10 +24,7 @@ logging.basicConfig()
 
 
 def main():
-    var = generate_Boto3GetRecordsResponse(1, "boto3resp")
-    # var.
-    pvdd(var)
-
+    pvdd(generate_Boto3GetRecordsResponse(10, "boto3resp"))
     die('sdasd')
 
 

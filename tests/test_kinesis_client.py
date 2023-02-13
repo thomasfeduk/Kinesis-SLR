@@ -47,8 +47,6 @@ def generate_record_obj(record_raw_dict=None) -> kinesis.Record:
 def generate_Boto3GetRecordsResponse(count: int = 0, data_prefix: str = ''):
     records = []
 
-
-
     for i in range(count):
         records.append(generate_record_obj(generate_record_raw_dict(data=f"{data_prefix}{i}_sampledata")))
 
