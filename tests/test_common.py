@@ -1,5 +1,3 @@
-import includes.exceptions as exceptions
-import botocore
 import unittest
 import unittest.mock as mock
 from unittest.mock import patch

@@ -526,6 +526,79 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         self.assertEqual(iteration_input.break_iteration, True)
 
 
+class TestScrapeRecordsForShardIterator(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
+
+    def setUp(self):
+        self.boto_client = mock.Mock(spec=botocore.client.BaseClient, create=True, autospec=True)
+        self.config_input = {
+            'debug_level': "INFO",
+            'stream_name': "user_activities",
+            'shard_ids': ["shard-000000001"],
+            'starting_position': "TRIM_HORIZON",
+            'starting_timestamp': "2022-12-01 00:00:00",
+            'starting_sequence_number': "111111",
+            'ending_position': "LATEST",
+            'ending_timestamp': "2022-12-01 00:00:00",
+            'ending_sequence_number': "22222",
+            'total_records_per_shard': 500,
+            'poll_batch_size': 100,
+            'poll_delay': 0,
+            'max_empty_polls': 5,
+        }
+        self.detected_shards = {
+            'StreamDescription':
+                {
+                    'StreamName': '123',
+                    'StreamARN': 'arn:123',
+                    'Shards': [{
+                        'ShardId': 'shard-00001-test'
+                    }]
+                }
+        }
+
+    def tearDown(self):
+        pass
+
+    @patch('includes.kinesis_client.Client._process_records', spec_set=kinesis.Client._process_records)
+    @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
+    def test_one_record(self,
+                        mocked_get_records,
+                        mocked_process_records,
+                        ):
+        mocked_get_records.return_value = generate_Boto3GetRecordsResponse(1, data_prefix="boto3resp", iterator="iter1")
+        mock.seal(mocked_get_records)
+
+        shard_id = "shard_abc"
+        next_shard_iterator = 'xyz'
+        total_found_records = 0
+        response_no_records = 0
+        loop_count = 0
+
+        client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
+
+        iteration_response = client._scrape_records_for_shard_iterator(kinesis.GetRecordsIterationInput(
+            total_found_records=total_found_records,
+            response_no_records=response_no_records,
+            shard_iterator=next_shard_iterator,
+            loop_count=loop_count,
+            shard_id=shard_id
+        ))
+
+        self.assertEqual(iteration_response.found_records, 1)
+        self.assertEqual(iteration_response.total_found_records, 1)
+        self.assertEqual(iteration_response.loop_count, 1)
+        self.assertEqual(iteration_response.break_iteration, False)
+        self.assertEqual(iteration_response.next_shard_iterator, 'iter1')
+        self.assertEqual(iteration_response.shard_id, 'shard_abc')
+
+
 class TestClientFullCycle(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -566,21 +639,17 @@ class TestClientFullCycle(unittest.TestCase):
     def tearDown(self):
         pass
 
-    # @patch('includes.kinesis_client.Client._scrape_records_for_shard_iterator',
-    #        spec_set=kinesis.Client._scrape_records_for_shard_iterator)
+    @patch('includes.kinesis_client.Client._process_records', spec_set=kinesis.Client._process_records)
     @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
     @patch('includes.kinesis_client.Client._shard_iterator', spec_set=kinesis.Client._shard_iterator)
     @patch('os.path.exists', spec_set=os.path.exists)
-    @patch('includes.kinesis_client.Client._scrape_records_for_shard_handle_poll_delay',
-           spec_set=kinesis.Client._scrape_records_for_shard_handle_poll_delay)
     def test_end_to_end_found_records(self,
-                                      mocked_poll,
                                       # mocked_get_shard_ids_of_stream,
                                       # mocked_confirm_shards_exist,
                                       mocked_os_path_exists,
                                       mocked_shard_iterator,
                                       mocked_get_records,
-                                      # mocked_scrape_records_for_shard_iterator,
+                                      mocked_process_records,
                                       ):
         # mocked_get_shard_ids_of_stream.return_value = ['shard-00000-test']
         mocked_os_path_exists.return_value = False
@@ -602,9 +671,14 @@ class TestClientFullCycle(unittest.TestCase):
         self.boto_client.describe_stream.return_value = self.detected_shards
         mock.seal(self.boto_client.describe_stream)
 
+        mocked_process_records.return_value = 'proc record'
+        mock.seal(mocked_process_records)
+
         self.config_input["shard_ids"] = ["shard-00001-test"]
         client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
-        # client.begin_scraping()
+        client.begin_scraping()
+
+        self.assertEqual(1, 1)
 
     @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
     @patch('includes.kinesis_client.Client._shard_iterator', spec_set=kinesis.Client._shard_iterator)
