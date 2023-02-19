@@ -568,10 +568,10 @@ class TestClientFullCycle(unittest.TestCase):
 
     # @patch('includes.kinesis_client.Client._scrape_records_for_shard_iterator',
     #        spec_set=kinesis.Client._scrape_records_for_shard_iterator)
-    @patch('includes.kinesis_client.Client._get_records', create=True, spec_set=kinesis.Client._get_records)
-    @patch('includes.kinesis_client.Client._shard_iterator', create=True, spec_set=kinesis.Client._shard_iterator)
-    @patch('os.path.exists', create=True, spec_set=os.path.exists)
-    @patch('includes.kinesis_client.Client._scrape_records_for_shard_handle_poll_delay', create=True,
+    @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
+    @patch('includes.kinesis_client.Client._shard_iterator', spec_set=kinesis.Client._shard_iterator)
+    @patch('os.path.exists', spec_set=os.path.exists)
+    @patch('includes.kinesis_client.Client._scrape_records_for_shard_handle_poll_delay',
            spec_set=kinesis.Client._scrape_records_for_shard_handle_poll_delay)
     def test_end_to_end_found_records(self,
                                       mocked_poll,
@@ -606,9 +606,9 @@ class TestClientFullCycle(unittest.TestCase):
         client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
         client.begin_scraping()
 
-    @patch('includes.kinesis_client.Client._get_records', create=True)
-    @patch('includes.kinesis_client.Client._shard_iterator', create=True)
-    @patch('os.path.exists', create=True)
+    @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
+    @patch('includes.kinesis_client.Client._shard_iterator', spec_set=kinesis.Client._shard_iterator)
+    @patch('os.path.exists', spec_set=os.path.exists)
     def test_shard_id_not_detected(self,
                                    mocked_os_path_exists,
                                    mocked_shard_iterator,

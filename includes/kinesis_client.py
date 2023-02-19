@@ -682,7 +682,7 @@ class Client:
                                       [i for i in response.Records],
                                       records_count_upto_to_add)
                                   )
-                                  )
+                              )
             die('kinesis client line 540')
 
             # If we are at the total per shard, we terminate the loop
