@@ -71,20 +71,24 @@ def strip_proprules_recursively(data):
     if hasattr(data_stripped, '__iter__') and type(data_stripped) not in (
             tuple, int, str, float, long, bool, NoneType, unicode):
         i = 0
+        try:
+            data_stripped_new = data_stripped.copy()
+        except Exception:
+            data_stripped_new = data_stripped
         for item in data_stripped:
             try:
                 delattr(item, '_proprules')
             except Exception:
                 pass
             try:
-                delattr(data_stripped, '_proprules')
+                delattr(data_stripped_new, '_proprules')
             except Exception:
                 pass
             try:
-                del data_stripped[i]._proprules
-            except AttributeError:
+                del data_stripped_new[i]._proprules
+            except Exception:
                 pass
-            data_stripped[i] = strip_proprules_recursively(item)
+            data_stripped_new[i] = strip_proprules_recursively(item)
             i += 1
 
     return data_stripped

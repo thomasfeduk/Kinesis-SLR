@@ -626,12 +626,8 @@ class Client:
             ))
 
             # Break the iteration only if the iteration response states it is time to do so
-            pvd(iterator_response_obj.next_shard_iterator)
             if iterator_response_obj.break_iteration:
-                pvdd('received break')
                 break
-            else:
-                pvd('did not receive break')
 
             # Set the variables for the next iteration
             total_found_records = iterator_response_obj.total_found_records
@@ -667,7 +663,6 @@ class Client:
 
             if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD':
                 records_count_upto_to_add = self._client_config.total_records_per_shard - len(response.Records)
-                # If total_records_per_shard if 0, we include all records by passing 0 as the upto argument
 
             self._process_records(iterator_obj.shard_id,
                                   RecordsCollection(common.list_append_upto_n_items_from_new_list(
@@ -831,7 +826,6 @@ class Client:
 
     @staticmethod
     def _process_records(shard_id: str, records: RecordsCollection):
-        return
         if not isinstance(shard_id, str):
             raise exceptions.InvalidArgumentException(
                 f'"shard_id" must be of type RecordsCollection. Received: {repr(type(shard_id))} {repr(shard_id)}')
@@ -840,7 +834,6 @@ class Client:
             raise exceptions.InvalidArgumentException(
                 f'"records" must be of type RecordsCollection. Received: {repr(type(records))} {repr(records)}')
 
-        pvd('record 843')
         pvdd(records)
 
         # Safety: We strip all but safe characters before creating any files/dirs
