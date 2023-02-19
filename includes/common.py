@@ -197,6 +197,17 @@ class PropRules:
                 f'"{attrib}" is a required attribute and does not exist in attributes list.{debug_passed_data}')
 
 
+def validate_list_append_upto_n_items_inputs(base_list: list, from_list: list, upto_item_count=None):
+    if upto_item_count is not None:
+        validate_numeric_pos(upto_item_count)
+
+    if not isinstance(base_list, list):
+        raise TypeError(f'base_list must be a list. Passed value: {type(base_list)} {repr(base_list)}')
+
+    if not isinstance(from_list, list):
+        raise TypeError(f'from_list must be a list. Passed value: {type(from_list)} {repr(from_list)}')
+
+
 def list_append_upto_n_items_from_new_list(base_list: list, from_list: list, upto_item_count=None):
     """
     Appends upto X items in the from_list to the base_list regardless of the size of baselist
@@ -208,14 +219,7 @@ def list_append_upto_n_items_from_new_list(base_list: list, from_list: list, upt
     :param upto_item_count: The number of items from the b_list that get added to the a_list in index order
     """
 
-    if upto_item_count is not None:
-        validate_numeric_pos(upto_item_count)
-
-    if not isinstance(base_list, list):
-        raise TypeError(f'base_list must be a list. Passed value: {type(base_list)} {repr(base_list)}')
-
-    if not isinstance(from_list, list):
-        raise TypeError(f'from_list must be a list. Passed value: {type(from_list)} {repr(from_list)}')
+    validate_list_append_upto_n_items_inputs(base_list, from_list, upto_item_count)
 
     # Fresh instance, so we can return a new instance and not update by reference the original a_list
     if upto_item_count is not None and len(base_list) >= upto_item_count:
@@ -240,14 +244,7 @@ def list_append_upto_n_items_total(base_list: list, from_list: list, upto_item_c
     If the base_list item count is => than the upto_item_count, we return just the base_list with nothing added
     """
 
-    if upto_item_count is not None:
-        validate_numeric_pos(upto_item_count)
-
-    if not isinstance(base_list, list):
-        raise TypeError(f'base_list must be a list. Passed value: {type(base_list)} {repr(base_list)}')
-
-    if not isinstance(from_list, list):
-        raise TypeError(f'from_list must be a list. Passed value: {type(from_list)} {repr(from_list)}')
+    validate_list_append_upto_n_items_inputs(base_list, from_list, upto_item_count)
 
     # Fresh instance, so we can return a new instance and not update by reference the original a_list
     if upto_item_count is not None and len(base_list) >= upto_item_count:
