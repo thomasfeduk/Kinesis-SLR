@@ -568,6 +568,38 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
 
     @patch('includes.kinesis_client.Client._process_records', spec_set=kinesis.Client._process_records)
     @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
+    def test_one_record(self,
+                        mocked_get_records,
+                        mocked_process_records,
+                        ):
+        mocked_get_records.return_value = generate_Boto3GetRecordsResponse(1, data_prefix="boto3resp", iterator="iter1")
+        mock.seal(mocked_get_records)
+
+        shard_id = "shard_abc"
+        next_shard_iterator = 'xyz'
+        total_found_records = 0
+        response_no_records = 0
+        loop_count = 0
+
+        client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
+
+        iteration_response = client._scrape_records_for_shard_iterator(kinesis.GetRecordsIterationInput(
+            total_found_records=total_found_records,
+            response_no_records=response_no_records,
+            shard_iterator=next_shard_iterator,
+            loop_count=loop_count,
+            shard_id=shard_id
+        ))
+
+        self.assertEqual(iteration_response.found_records, 1)
+        self.assertEqual(iteration_response.total_found_records, 1)
+        self.assertEqual(iteration_response.loop_count, 1)
+        self.assertEqual(iteration_response.break_iteration, False)
+        self.assertEqual(iteration_response.next_shard_iterator, 'iter1')
+        self.assertEqual(iteration_response.shard_id, 'shard_abc')
+
+    @patch('includes.kinesis_client.Client._process_records', spec_set=kinesis.Client._process_records)
+    @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
     def test_multi_records_responses_all_variant_1(self,
                         mocked_get_records,
                         mocked_process_records,
@@ -680,39 +712,68 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
             next_shard_iterator = iterator_response_obj.next_shard_iterator
             loop_count = iterator_response_obj.loop_count
 
-
-
     @patch('includes.kinesis_client.Client._process_records', spec_set=kinesis.Client._process_records)
     @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
-    def test_one_record(self,
+    def test_multi_records_responses_total_records_no_remainder_spanning_across_get_records(self,
                         mocked_get_records,
                         mocked_process_records,
                         ):
-        mocked_get_records.return_value = generate_Boto3GetRecordsResponse(1, data_prefix="boto3resp", iterator="iter1")
+
+        mocked_get_records.side_effect = [
+            generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator="iter1"),
+            generate_Boto3GetRecordsResponse(10, data_prefix="boto3resp", iterator="iter2"),
+            generate_Boto3GetRecordsResponse(0, data_prefix="boto3resp", iterator="iter3"),
+            generate_Boto3GetRecordsResponse(25, data_prefix="boto3resp", iterator="iter4"),
+            generate_Boto3GetRecordsResponse(0, data_prefix="boto3resp", iterator="iter5"),
+            generate_Boto3GetRecordsResponse(10, data_prefix="boto3resp", iterator="iter6"),
+        ]
         mock.seal(mocked_get_records)
+
+        expected_response = []
+        expected_response.insert(0, {"total_found_records": 3, "found_records": 3, "response_no_records": 0, "next_shard_iterator": 'iter1', "loop_count": 1, "shard_id": 'shard_abc', "break_iteration": False})
+        expected_response.insert(1, {"total_found_records": 13, "found_records": 10, "response_no_records": 0, "next_shard_iterator": 'iter2', "loop_count": 2, "shard_id": 'shard_abc', "break_iteration": False})
+        expected_response.insert(2, {"total_found_records": 13, "found_records": 0, "response_no_records": 1, "next_shard_iterator": 'iter3', "loop_count": 3, "shard_id": 'shard_abc', "break_iteration": False})
+        expected_response.insert(3, {"total_found_records": 38, "found_records": 25, "response_no_records": 0, "next_shard_iterator": 'iter4', "loop_count": 4, "shard_id": 'shard_abc', "break_iteration": False})
+        expected_response.insert(4, {"total_found_records": 38, "found_records": 0, "response_no_records": 0, "next_shard_iterator": 'iter5', "loop_count": 5, "shard_id": 'shard_abc', "break_iteration": True})
+        expected_response.insert(5, {"total_found_records": 48, "found_records": 10, "response_no_records": 0, "next_shard_iterator": 'iter6', "loop_count": 6, "shard_id": 'shard_abc', "break_iteration": False})
+
+        self.config_input["ending_position"] = "TOTAL_RECORDS_PER_SHARD"
+        self.config_input["total_records_per_shard"] = "38"
+        client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
 
         shard_id = "shard_abc"
         next_shard_iterator = 'xyz'
         total_found_records = 0
         response_no_records = 0
         loop_count = 0
+        for i in range(len(expected_response)):
+            iterator_response_obj = client._scrape_records_for_shard_iterator(kinesis.GetRecordsIterationInput(
+                total_found_records=total_found_records,
+                response_no_records=response_no_records,
+                shard_iterator=next_shard_iterator,
+                loop_count=loop_count,
+                shard_id=shard_id
+            ))
 
-        client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
+            pvd(iterator_response_obj)
+            self.assertEqual(iterator_response_obj.found_records, expected_response[i]["found_records"])
+            self.assertEqual(iterator_response_obj.total_found_records, expected_response[i]["total_found_records"])
+            self.assertEqual(iterator_response_obj.loop_count, expected_response[i]["loop_count"])
+            self.assertEqual(iterator_response_obj.break_iteration, expected_response[i]["break_iteration"])
+            self.assertEqual(iterator_response_obj.next_shard_iterator, expected_response[i]["next_shard_iterator"])
+            self.assertEqual(iterator_response_obj.shard_id, expected_response[i]["shard_id"])
 
-        iteration_response = client._scrape_records_for_shard_iterator(kinesis.GetRecordsIterationInput(
-            total_found_records=total_found_records,
-            response_no_records=response_no_records,
-            shard_iterator=next_shard_iterator,
-            loop_count=loop_count,
-            shard_id=shard_id
-        ))
+            # Break the test if we exceeded our defined loop count
+            if iterator_response_obj.break_iteration:
+                pvdd('break out')
 
-        self.assertEqual(iteration_response.found_records, 1)
-        self.assertEqual(iteration_response.total_found_records, 1)
-        self.assertEqual(iteration_response.loop_count, 1)
-        self.assertEqual(iteration_response.break_iteration, False)
-        self.assertEqual(iteration_response.next_shard_iterator, 'iter1')
-        self.assertEqual(iteration_response.shard_id, 'shard_abc')
+            # Set the variables for the next iteration
+            total_found_records = iterator_response_obj.total_found_records
+            response_no_records = iterator_response_obj.response_no_records
+            next_shard_iterator = iterator_response_obj.next_shard_iterator
+            loop_count = iterator_response_obj.loop_count
+
+            # TODO: Add check arguments to fwrite
 
 
 class TestClientFullCycle(unittest.TestCase):

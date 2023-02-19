@@ -225,6 +225,9 @@ class RecordsCollection(common.RestrictedCollection):
     def __setitem__(self, key, value):
         self._items[key] = value
 
+    def __len__(self):
+        return len(self._items)
+
 
 class Boto3GetRecordsResponse(common.BaseCommonClass):
     def __init__(self, passed_data: [dict]):
@@ -429,6 +432,7 @@ class ClientConfig(common.BaseCommonClass):
                     f"string, or an integer.\nValue provided: {repr(type(self._total_records_per_shard))} "
                     f"{repr(self._total_records_per_shard)}"
                 ) from e
+            self._total_records_per_shard = int(self._total_records_per_shard)
 
     def _validate_poll_delay(self):
         try:
@@ -661,9 +665,12 @@ class Client:
             records_count_upto_to_add = 0
             records_to_process = []
 
+            die('ended here working on adding tests for ensuring the proper total number of records are written and total number of rercords are reported')
             if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD':
+                pvd(f"total found: {iterator_obj.total_found_records}")
+                pvd(f"total per shard: {self._client_config.total_records_per_shard}")
                 records_count_upto_to_add = self._client_config.total_records_per_shard - len(response.Records)
-
+                pvdd(records_count_upto_to_add)
             self._process_records(iterator_obj.shard_id,
                                   RecordsCollection(common.list_append_upto_n_items_from_new_list(
                                       records_to_process,

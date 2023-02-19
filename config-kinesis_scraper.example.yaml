@@ -129,7 +129,7 @@ ending_sequence_number: 49634793967732681113891714384157638505909056619063279650
 # Description: Only used if ending_position = TOTAL_RECORDS_PER_SHARD
 #
 #
-total_records_per_shard: 5
+total_records_per_shard: 100
 
 #####################################
 ## Stream Processing Configuration ##
