@@ -207,9 +207,8 @@ def list_append_upto_n_items(base_list: list, from_list: list, upto_item_count=N
     If the base_list item count is => than the upto_item_count, we return just the base_list with nothing added
     """
 
-    if upto_item_count is None:
-        upto_item_count = 0
-    validate_numeric_pos(upto_item_count)
+    if upto_item_count is not None:
+        validate_numeric_pos(upto_item_count)
 
     if not isinstance(base_list, list):
         raise TypeError(f'base_list must be a list. Passed value: {type(base_list)} {repr(base_list)}')
@@ -218,12 +217,13 @@ def list_append_upto_n_items(base_list: list, from_list: list, upto_item_count=N
         raise TypeError(f'from_list must be a list. Passed value: {type(from_list)} {repr(from_list)}')
 
     # Fresh instance, so we can return a new instance and not update by reference the original a_list
+    if upto_item_count is not None and len(base_list) >= upto_item_count:
+        return base_list.copy()
+
     base_list_new = base_list.copy()
-    i = 0
     for item in from_list:
-        if upto_item_count == 0 or i < upto_item_count:
+        if upto_item_count is None or (upto_item_count is not None and len(base_list_new) < upto_item_count):
             base_list_new.append(item)
-        i += 1
     return base_list_new
 
 

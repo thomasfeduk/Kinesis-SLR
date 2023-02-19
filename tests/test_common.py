@@ -59,10 +59,10 @@ class ListAppendUptoNItems(unittest.TestCase):
         from_list = list(range(50))
         self.assertEqual(list_append_upto_n_items(base_list, from_list), list(range(50)))
 
-    # def test_empty_base_list_with_upto_zero(self):
-    #     base_list = []
-    #     from_list = list(range(5))
-    #     self.assertEqual(list_append_upto_n_items(base_list, from_list, 0), [])
+    def test_empty_base_list_with_upto_zero(self):
+        base_list = []
+        from_list = list(range(5))
+        self.assertEqual(list_append_upto_n_items(base_list, from_list, 0), [])
 
     def test_empty_base_list_with_upto(self):
         base_list = []
@@ -79,11 +79,21 @@ class ListAppendUptoNItems(unittest.TestCase):
         from_list = list(range(50))
         self.assertEqual(list_append_upto_n_items(base_list, from_list, 55), list(range(50)))
 
-    def test_combine_lists_full(self):
+    def test_combine_lists_full_no_upto(self):
         base_list = list(range(5))
         from_list = list(range(7))
         self.assertEqual(list_append_upto_n_items(base_list, from_list), [0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 5, 6])
-        
+
+    def test_combine_lists_full_with_upto_exact(self):
+        base_list = list(range(5))
+        from_list = list(range(7))
+        self.assertEqual(list_append_upto_n_items(base_list, from_list, 12), [0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 5, 6])
+
+    def test_combine_lists_full_with_upto_over(self):
+        base_list = list(range(5))
+        from_list = list(range(7))
+        self.assertEqual(list_append_upto_n_items(base_list, from_list, 15), [0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 5, 6])
+
     def test_combine_lists_partial(self):
         base_list = list(range(5))
         from_list = list(range(7))
@@ -96,3 +106,4 @@ class ListAppendUptoNItems(unittest.TestCase):
         base_list_new = list_append_upto_n_items(base_list, from_list)
         self.assertEqual(base_list_new, [0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 5, 6])
         self.assertEqual(base_list, list(range(5)))
+        self.assertEqual(base_list, base_list_orig)
