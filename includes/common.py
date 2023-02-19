@@ -197,13 +197,46 @@ class PropRules:
                 f'"{attrib}" is a required attribute and does not exist in attributes list.{debug_passed_data}')
 
 
-def list_append_upto_n_items(base_list: list, from_list: list, upto_item_count=None):
+def list_append_upto_n_items_from_new_list(base_list: list, from_list: list, upto_item_count=None):
     """
-    Appends upto X items in the from_list to the output_list
+    Appends upto X items in the from_list to the base_list regardless of the size of baselist
+    If upto_item_count = None, always append everything
+    If upto_item_count = 0, the original list will be returned with nothing new added
+    If the base_list item count is => than the upto_item_count, we return just the base_list with nothing added
     :param base_list: The list which we call the .append() method on
     :param from_list: The list which we read and append the first X items onto a_list
     :param upto_item_count: The number of items from the b_list that get added to the a_list in index order
+    """
 
+    if upto_item_count is not None:
+        validate_numeric_pos(upto_item_count)
+
+    if not isinstance(base_list, list):
+        raise TypeError(f'base_list must be a list. Passed value: {type(base_list)} {repr(base_list)}')
+
+    if not isinstance(from_list, list):
+        raise TypeError(f'from_list must be a list. Passed value: {type(from_list)} {repr(from_list)}')
+
+    # Fresh instance, so we can return a new instance and not update by reference the original a_list
+    if upto_item_count is not None and len(base_list) >= upto_item_count:
+        return base_list.copy()
+
+    base_list_new = base_list.copy()
+    i = 0
+    for item in from_list:
+        if upto_item_count is None or (upto_item_count is not None and i < upto_item_count):
+            base_list_new.append(item)
+        i += 1
+    return base_list_new
+
+
+def list_append_upto_n_items_total(base_list: list, from_list: list, upto_item_count=None):
+    """
+    Appends upto X items in the from_list to the base_list but ensure the base_list never exceeds the upto_item_count
+    (If base_list exceeds the upto item count we just return it unmodified)
+    If upto_item_count = None, always append everything
+    If upto_item_count = 0, the original list will be returned with nothing new added
+    (even though it may still have more than upto_item_count items)
     If the base_list item count is => than the upto_item_count, we return just the base_list with nothing added
     """
 
@@ -256,7 +289,8 @@ def read_config(filename: str) -> dict:
 
 def validate_numeric(check_value: Union[str, int, float]) -> float:
     if not isinstance(check_value, str) and not isinstance(check_value, int) and not isinstance(check_value, float):
-        raise TypeError(f'Value must be a numeric string, float or int. Passed value: {type(check_value)} {repr(check_value)}')
+        raise TypeError(
+            f'Value must be a numeric string, float or int. Passed value: {type(check_value)} {repr(check_value)}')
     try:
         float(check_value)
     except ValueError:
