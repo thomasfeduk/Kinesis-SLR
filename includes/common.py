@@ -197,23 +197,34 @@ class PropRules:
                 f'"{attrib}" is a required attribute and does not exist in attributes list.{debug_passed_data}')
 
 
-def list_append_upto_n_items(a_list: list, b_list: list, upto_item_count: int = 0):
+def list_append_upto_n_items(base_list: list, from_list: list, upto_item_count=None):
     """
-    Appends upto X items in the from_list to the a_list
-    :param a_list: The list which we call the .append() method on
-    :param b_list: The list which we read and append the first X items onto a_list
+    Appends upto X items in the from_list to the output_list
+    :param base_list: The list which we call the .append() method on
+    :param from_list: The list which we read and append the first X items onto a_list
     :param upto_item_count: The number of items from the b_list that get added to the a_list in index order
 
-    No return value since we just update the mutable a_list that is passed by reference
+    If the base_list item count is => than the upto_item_count, we return just the base_list with nothing added
     """
+
+    if upto_item_count is None:
+        upto_item_count = 0
+    validate_numeric_pos(upto_item_count)
+
+    if not isinstance(base_list, list):
+        raise TypeError(f'base_list must be a list. Passed value: {type(base_list)} {repr(base_list)}')
+
+    if not isinstance(from_list, list):
+        raise TypeError(f'from_list must be a list. Passed value: {type(from_list)} {repr(from_list)}')
+
     # Fresh instance, so we can return a new instance and not update by reference the original a_list
-    a_list_new = a_list.copy()
+    base_list_new = base_list.copy()
     i = 0
-    for item in b_list:
+    for item in from_list:
         if upto_item_count == 0 or i < upto_item_count:
-            a_list.append(item)
+            base_list_new.append(item)
         i += 1
-    return a_list
+    return base_list_new
 
 
 def count_files_in_dir(dir_path=str) -> int:
@@ -245,18 +256,18 @@ def read_config(filename: str) -> dict:
 
 def validate_numeric(check_value: Union[str, int, float]) -> float:
     if not isinstance(check_value, str) and not isinstance(check_value, int) and not isinstance(check_value, float):
-        raise TypeError('Value must be a numeric string, float or int.')
+        raise TypeError(f'Value must be a numeric string, float or int. Passed value: {type(check_value)} {repr(check_value)}')
     try:
         float(check_value)
     except ValueError:
-        raise ValueError('String value must be numeric.')
+        raise ValueError(f'String value must be numeric. Passed value: {type(check_value)} {repr(check_value)}')
     return float(check_value)
 
 
 def validate_numeric_pos(check_value: Union[str, int, float]) -> float:
     float_val = validate_numeric(check_value)
     if float_val < 0:
-        raise ValueError('Value must be 0 or greater.')
+        raise ValueError(f'Value must be 0 or greater. Passed value: {type(check_value)} {repr(check_value)}')
     return float_val
 
 

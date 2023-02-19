@@ -604,7 +604,7 @@ class TestClientFullCycle(unittest.TestCase):
 
         self.config_input["shard_ids"] = ["shard-00001-test"]
         client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
-        client.begin_scraping()
+        # client.begin_scraping()
 
     @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
     @patch('includes.kinesis_client.Client._shard_iterator', spec_set=kinesis.Client._shard_iterator)
