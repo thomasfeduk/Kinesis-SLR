@@ -665,28 +665,10 @@ class Client:
             # If ending_position is total records per shard, append upto X records to found_records
             records_count_upto_to_add = None
             records_to_process = []
-
-
-            total_per_shard = 25
-            total_found = 0
-            response_records = 100
-
-            total_per_shard = 0
-            total_found = 20
-            response_records = 10
-
-            total_per_shard = 25
-            total_found = 20
-            response_records = 5
-
-            total_per_shard = 20
-            total_found = 20
-            response_records = 5
-
             if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD' \
                     and self._client_config.total_records_per_shard <= iterator_obj.total_found_records:
                 records_count_upto_to_add = self._calculate_iteration_upto_add(
-                    iterator_obj.total_found_records, len(response.Records))
+                    iterator_obj.total_found_records-len(response.Records), len(response.Records))
 
             self._process_records(iterator_obj.shard_id,
                                   RecordsCollection(common.list_append_upto_n_items_from_new_list(
@@ -737,24 +719,23 @@ class Client:
             break_iteration=break_iteration,
         )
 
-    def _calculate_iteration_upto_add(self, total_found_records: int, records_count: int) -> int:
+    def _calculate_iteration_upto_add(self, total_found_records_without_records_count: int, records_count: int) -> int:
         """
-        Given the total count of found records (which should include the record_count), and the record_count returned
-        by get_records(), this method cross-references the total_records_per_shard per shard to determine the number
-        of records from record_count should be added to not exceed
         :param total_found_records: The total found records for all get_records calls for the current shard.
-               Note: This MUST include the "records_count". i.e. if the first get_records call returns 20 records
-               then total_found_records=20 and records_count=20
+               Note: This does not include the passed "records_count".
+               e.g. if the first get_records call returns 20 records, total_found_records=0 and records_count=20
         :param records_count: The count of records returned in the current get_records() call
         :return: How many of the records_count should be included without going over the total per shard limit
         """
-        if total_found_records < records_count:
-            raise exceptions.InvalidArgumentException(
-                f"total_found_records ({total_found_records}) cannot be less than records_count ({records_count}) as "
-                f"records_count must be included in total_found_records.")
 
-        upto_add = self._client_config.total_records_per_shard - total_found_records
-        return upto_add
+        if total_found_records_without_records_count > self._client_config.total_records_per_shard:
+            raise exceptions.InternalError(
+                f"Total records count ({total_found_records_without_records_count}) is greater than "
+                f"total_records_per_shard ({self._client_config.total_records_per_shard})")
+
+        if self._client_config.total_records_per_shard < total_found_records_without_records_count + records_count:
+            return self._client_config.total_records_per_shard - total_found_records_without_records_count
+        return records_count
 
     def _scrape_records_for_shard_handle_poll_delay(self, loop_count: int, iterator: str, shard_id: str) -> None:
         if self._client_config.poll_delay > 0:
