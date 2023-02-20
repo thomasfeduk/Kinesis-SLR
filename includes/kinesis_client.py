@@ -668,6 +668,7 @@ class Client:
 
             if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD':
                 records_count_upto_to_add = self._client_config.total_records_per_shard - len(response.Records)
+                pvd(f"records upto add: {records_count_upto_to_add}")
 
             self._process_records(iterator_obj.shard_id,
                                   RecordsCollection(common.list_append_upto_n_items_from_new_list(

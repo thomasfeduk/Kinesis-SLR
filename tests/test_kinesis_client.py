@@ -776,23 +776,35 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
 
             # TODO: Add check arguments to fwrite
         args_list = mocked_process_records.call_args_list
-        # pvd(var1[0][0][1])
+        # print(args_list[0])
+        # die()
+
+        i = 0
+
+        # pvd((args_list[2][0][1]))
+        # pvd(generated_get_records[3].Records)
+        die()
+
+        print(repr(args_list[0][0][1]) == repr(generated_get_records[0].Records))
+        print(repr(args_list[1][0][1]) == repr(generated_get_records[1].Records))
+        print(repr(args_list[2][0][1]) == repr(generated_get_records[3].Records))
+        die('sadsad')
 
 
         # pvd(args_list[0][0][1])
         # print("\n\n")
         # pvd(args_list[1][0][1])
         # die()
-        var1 = args_list[0][0][1]
-        var2 = generated_get_records[0].Records
-
-        pvd(var1)
-        pvd(var2)
-
-        if var1 == var2:
-            die('True')
-        else:
-            die('False')
+        # var1 = args_list[0][0][1]
+        # var2 = generated_get_records[0].Records
+        #
+        # pvd(var1)
+        # pvd(var2)
+        #
+        # if var1 == var2:
+        #     die('True')
+        # else:
+        #     die('False')
 
 
         # print(var1)
