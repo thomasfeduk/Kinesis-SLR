@@ -6,7 +6,7 @@ import json
 import importlib
 import unittest
 import unittest.mock as mock
-from unittest.mock import patch
+from unittest.mock import patch, call
 import os
 import includes.kinesis_client as kinesis
 import includes.exceptions as exceptions
@@ -728,7 +728,6 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
             generate_Boto3GetRecordsResponse(10, data_prefix="boto3resp", iterator="iter6"),
         ]
 
-        pvdd(generated_get_records)
         mocked_get_records.side_effect = generated_get_records
         mock.seal(mocked_get_records)
 
@@ -777,13 +776,26 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
 
             # TODO: Add check arguments to fwrite
         var1 = mocked_process_records.call_args_list
-        # pvdd(var1[0][0][1])
+        # pvd(var1[0][0][1])
+        # pvd(generated_get_records[0])
+        # print(repr(var1[0][0][1]))
+        if var1[0][0][1] == generated_get_records[0]:
+            die('True')
+        else:
+            die('False')
+
+
         # print(var1)
         # print('-----')
         # print(var1[0])
         # print('------')
         # print(var1[0][0])
 
+        # calls = []
+        # calls.append(call(shard_id,generated_get_records[0].Records))
+        # calls.append(call(shard_id,generated_get_records[1].Records))
+        # calls.append(call(shard_id,generated_get_records[2].Records))
+        # mocked_process_records.assert_has_calls(calls, any_order=False)
 
 class TestClientFullCycle(unittest.TestCase):
     @classmethod

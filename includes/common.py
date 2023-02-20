@@ -73,6 +73,32 @@ class BaseCommonClass(BaseSuperclass, ABC):
                 attribs[item] = getattr(self, item)
         self._proprules.validate(attribs)
 
+    def __str__(self):
+        attribs = []
+        for item in dir(self):
+            if callable(getattr(self, item)) or item[0:1] == '_':
+                continue
+            attribs.append(item)
+
+        attrib_pairs = []
+        for item in attribs:
+            attrib_pairs.append(f"{item}={getattr(self, item)}")
+
+        return ','.join(map(str, attrib_pairs))
+
+    def __repr__(self):
+        attribs = []
+        for item in dir(self):
+            if callable(getattr(self, item)) or item[0:1] == '_':
+                continue
+            attribs.append(item)
+
+        attrib_pairs = []
+        for item in attribs:
+            attrib_pairs.append(f"{item}={repr(getattr(self, item))}")
+
+        return ','.join(map(str, attrib_pairs))
+
 
 class RestrictedCollection(ABC):
     def __init__(self, items):
@@ -103,6 +129,18 @@ class RestrictedCollection(ABC):
 
     def __len__(self):
         return len(self._items)
+
+    def __str__(self):
+        output = f"{self.__class__.__name__}("
+        output += ','.join(map(str, self._items))
+        output += f')'
+        return output
+
+    def __repr__(self):
+        output = f"{self.__class__.__name__}("
+        output += ','.join(map(repr, self._items))
+        output += f')'
+        return output
 
     def _validate_item(self, value):
         if isinstance(value, self.expected_type):
