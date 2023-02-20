@@ -99,6 +99,9 @@ class BaseCommonClass(BaseSuperclass, ABC):
 
         return ','.join(map(str, attrib_pairs))
 
+    def __eq__(self, other):
+        return repr(self) == repr(other)
+
 
 class RestrictedCollection(ABC):
     def __init__(self, items):
@@ -141,6 +144,9 @@ class RestrictedCollection(ABC):
         output += ','.join(map(repr, self._items))
         output += f')'
         return output
+
+    def __eq__(self, other):
+        return repr(self) == repr(other)
 
     def _validate_item(self, value):
         if isinstance(value, self.expected_type):
