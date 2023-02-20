@@ -48,6 +48,7 @@ class BaseSuperclass(ABC):
 
 
 class BaseCommonClass(BaseSuperclass, ABC):
+    # TODO: Add decorator here to require a dict/str or exception and pass in a dict
     @abstractmethod
     def __init__(self, passed_data: Union[dict, str] = None):
         # Define the default attributes

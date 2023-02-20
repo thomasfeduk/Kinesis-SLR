@@ -812,6 +812,7 @@ class Client:
                 ShardIteratorType=self._client_config.starting_position,
             )
 
+        # TODO: Replace this with a custom object and validator
         try:
             iterator = response['ShardIterator']
         except Exception as ex:
@@ -833,6 +834,7 @@ class Client:
         shard_details = response['StreamDescription']['Shards']
         log.debug(f'Detecting shard ids that exist for stream: {self._client_config.stream_name}')
 
+        # # TODO: Replace this with a custom object and validator
         for node in shard_details:
             try:
                 log.info(f"Detected shard id: {node['ShardId']}")
@@ -849,7 +851,7 @@ class Client:
     def _process_records(shard_id: str, records: RecordsCollection):
         if not isinstance(shard_id, str):
             raise exceptions.InvalidArgumentException(
-                f'"shard_id" must be of type RecordsCollection. Received: {repr(type(shard_id))} {repr(shard_id)}')
+                f'"shard_id" must be of type str. Received: {repr(type(shard_id))} {repr(shard_id)}')
 
         if not isinstance(records, RecordsCollection):
             raise exceptions.InvalidArgumentException(
