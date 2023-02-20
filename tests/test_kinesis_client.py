@@ -719,7 +719,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
                         mocked_process_records,
                         ):
 
-        mocked_get_records.side_effect = [
+        generated_get_records = [
             generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator="iter1"),
             generate_Boto3GetRecordsResponse(10, data_prefix="boto3resp", iterator="iter2"),
             generate_Boto3GetRecordsResponse(0, data_prefix="boto3resp", iterator="iter3"),
@@ -727,15 +727,18 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
             generate_Boto3GetRecordsResponse(0, data_prefix="boto3resp", iterator="iter5"),
             generate_Boto3GetRecordsResponse(10, data_prefix="boto3resp", iterator="iter6"),
         ]
+
+        pvdd(generated_get_records)
+        mocked_get_records.side_effect = generated_get_records
         mock.seal(mocked_get_records)
 
         expected_response = []
         expected_response.insert(0, {"total_found_records": 3, "found_records": 3, "response_no_records": 0, "next_shard_iterator": 'iter1', "loop_count": 1, "shard_id": 'shard_abc', "break_iteration": False})
         expected_response.insert(1, {"total_found_records": 13, "found_records": 10, "response_no_records": 0, "next_shard_iterator": 'iter2', "loop_count": 2, "shard_id": 'shard_abc', "break_iteration": False})
         expected_response.insert(2, {"total_found_records": 13, "found_records": 0, "response_no_records": 1, "next_shard_iterator": 'iter3', "loop_count": 3, "shard_id": 'shard_abc', "break_iteration": False})
-        expected_response.insert(3, {"total_found_records": 38, "found_records": 25, "response_no_records": 0, "next_shard_iterator": 'iter4', "loop_count": 4, "shard_id": 'shard_abc', "break_iteration": False})
+        expected_response.insert(3, {"total_found_records": 38, "found_records": 25, "response_no_records": 0, "next_shard_iterator": 'iter4', "loop_count": 4, "shard_id": 'shard_abc', "break_iteration": True})
         expected_response.insert(4, {"total_found_records": 38, "found_records": 0, "response_no_records": 0, "next_shard_iterator": 'iter5', "loop_count": 5, "shard_id": 'shard_abc', "break_iteration": True})
-        expected_response.insert(5, {"total_found_records": 48, "found_records": 10, "response_no_records": 0, "next_shard_iterator": 'iter6', "loop_count": 6, "shard_id": 'shard_abc', "break_iteration": False})
+        expected_response.insert(5, {"total_found_records": 48, "found_records": 10, "response_no_records": 0, "next_shard_iterator": 'iter6', "loop_count": 6, "shard_id": 'shard_abc', "break_iteration": True})
 
         self.config_input["ending_position"] = "TOTAL_RECORDS_PER_SHARD"
         self.config_input["total_records_per_shard"] = "38"
@@ -755,7 +758,6 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
                 shard_id=shard_id
             ))
 
-            pvd(iterator_response_obj)
             self.assertEqual(iterator_response_obj.found_records, expected_response[i]["found_records"])
             self.assertEqual(iterator_response_obj.total_found_records, expected_response[i]["total_found_records"])
             self.assertEqual(iterator_response_obj.loop_count, expected_response[i]["loop_count"])
@@ -765,7 +767,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
 
             # Break the test if we exceeded our defined loop count
             if iterator_response_obj.break_iteration:
-                pvdd('break out')
+                break
 
             # Set the variables for the next iteration
             total_found_records = iterator_response_obj.total_found_records
@@ -774,6 +776,13 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
             loop_count = iterator_response_obj.loop_count
 
             # TODO: Add check arguments to fwrite
+        var1 = mocked_process_records.call_args_list
+        # pvdd(var1[0][0][1])
+        # print(var1)
+        # print('-----')
+        # print(var1[0])
+        # print('------')
+        # print(var1[0][0])
 
 
 class TestClientFullCycle(unittest.TestCase):
