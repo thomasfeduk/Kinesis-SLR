@@ -140,6 +140,74 @@ class TestRecord(unittest.TestCase):
         self.assertEqual(record_obj.Data, "dataHere")
 
 
+class TestCalculateIterationUptoAdd(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
+
+    def setUp(self):
+        self.boto_client = mock.Mock(spec=botocore.client.BaseClient, create=True, autospec=True)
+        self.config_input = {
+            'debug_level': "INFO",
+            'stream_name': "user_activities",
+            'shard_ids': ["shard-000000001"],
+            'starting_position': "TRIM_HORIZON",
+            'starting_timestamp': "2022-12-01 00:00:00",
+            'starting_sequence_number': "111111",
+            'ending_position': "LATEST",
+            'ending_timestamp': "2022-12-01 00:00:00",
+            'ending_sequence_number': "22222",
+            'total_records_per_shard': 500,
+            'poll_batch_size': 100,
+            'poll_delay': 0,
+            'max_empty_polls': 5,
+        }
+        self.detected_shards = {
+            'StreamDescription':
+                {
+                    'StreamName': '123',
+                    'StreamARN': 'arn:123',
+                    'Shards': [{
+                        'ShardId': 'shard-00001-test'
+                    }]
+                }
+        }
+
+    def tearDown(self):
+        pass
+
+    def test_less_records_than_max(self):
+        self.config_input["ending_position"] = "TOTAL_RECORDS_PER_SHARD"
+        self.config_input["total_records_per_shard"] = "500"
+        client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
+
+        self.assertEqual(100, client._calculate_iteration_upto_add(105, 100))
+
+    def test_more_records_than_max(self):
+        self.config_input["ending_position"] = "TOTAL_RECORDS_PER_SHARD"
+        self.config_input["total_records_per_shard"] = "50"
+        client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
+
+        self.assertEqual(25, client._calculate_iteration_upto_add(25, 50))
+
+    def test_equal_records_to_max(self):
+        self.config_input["ending_position"] = "TOTAL_RECORDS_PER_SHARD"
+        self.config_input["total_records_per_shard"] = "50"
+        client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
+
+        self.assertEqual(50, client._calculate_iteration_upto_add(50, 50))
+
+    def test_increase_equal_records_to_max(self):
+        self.config_input["ending_position"] = "TOTAL_RECORDS_PER_SHARD"
+        self.config_input["total_records_per_shard"] = "50"
+        client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
+
+        self.assertEqual(10, client._calculate_iteration_upto_add(40, 10))
+
 class TestGetRecordsIterationInput(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
