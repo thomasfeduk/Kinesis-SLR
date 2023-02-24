@@ -1,4 +1,4 @@
-from includes.debug import pvdd, pvd, die
+from includes.debug import *
 from datetime import datetime
 import shutil
 import includes.stdout_unbuffered
@@ -21,12 +21,13 @@ logging.basicConfig()
 
 
 def main():
-    pvdd([
-        generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter1"),
-        generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter2"),
-        generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter3"),
-        generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter4"),
-    ])
+
+    # pvdd([
+    #     generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter1"),
+    #     generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter2"),
+    #     generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter3"),
+    #     generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter4"),
+    # ])
     # serialized get_records().Records response:
     record_serialized = b'\x80\x04\x95\xda\x01\x00\x00\x00\x00\x00\x00}\x94(' \
                         b'\x8c\x0eSequenceNumber\x94\x8c849636577182105719049037919318577501443478516337397989442\x94' \

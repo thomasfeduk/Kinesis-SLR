@@ -5,7 +5,8 @@
 
 import copy
 import sys
-from var_dump import var_dump
+from io import StringIO
+from var_dump import var_dump, var_export
 
 try:
     from enum import Enum
@@ -21,9 +22,22 @@ if sys.version_info > (3,):
     long = int
     unicode = str
 
+class _readoutputbuffer(list):
+    def __enter__(self):
+        self._stdout = sys.stdout
+        sys.stdout = self._stringio = StringIO()
+        return self
+
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio  # free up some memory
+        sys.stdout = self._stdout
 
 def pvd(data):
     var_dump(_strip_proprules_recursively(data))
+
+def pvde(data):
+    return var_export(_strip_proprules_recursively(data))
 
 
 def pvdd(data):
@@ -31,10 +45,30 @@ def pvdd(data):
     exit(0)
 
 
+
+def pvdfile(filename: str, data):
+    import jsonpickle
+
+    if len(filename) < 1:
+        raise ValueError(f'Filename must be at least one character.')
+    try:
+        with open(f"debug-{filename}.dump", "w") as f:
+            f.write(jsonpickle.dumps(data, indent=4))
+    except FileExistsError as ex:
+        raise FileExistsError(f'The debug output file "{filename}" already exists.') from ex
+
+
+def pvddfile(filename, data):
+    pvdfile(filename, data)
+    exit(0)
+
 # Blindly and with the power of Thor's hammer, recursively delete from a deep copy all occurrences of _proprules
 # from any object/type to be used in var_dump, so we don't clutter the output
 def _strip_proprules_recursively(data):
-    data_stripped = copy.deepcopy(data)
+    try:
+        data_stripped = copy.deepcopy(data)
+    except Exception:
+        data_stripped = data
 
     try:
         del data_stripped._proprules

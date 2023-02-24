@@ -4,7 +4,7 @@ import includes.exceptions as exceptions
 import json
 import time
 import re
-from includes.debug import pvdd, pvd, die
+from includes.debug import *
 import random
 import datetime
 import includes.common as common
@@ -669,13 +669,15 @@ class Client:
                     and self._client_config.total_records_per_shard <= iterator_obj.total_found_records:
                 records_count_upto_to_add = self._calculate_iteration_upto_add(
                     iterator_obj.total_found_records-len(response.Records), len(response.Records))
+            # pvdfile('iterator.txt',RecordsCollection(common.list_append_upto_n_items_from_new_list(records_to_process,[i for i in response.Records],records_count_upto_to_add)))
 
             self._process_records(iterator_obj.shard_id,
                                   RecordsCollection(common.list_append_upto_n_items_from_new_list(
                                       records_to_process,
                                       [i for i in response.Records],
                                       records_count_upto_to_add)
-                                  ))
+                                  )
+                                  )
 
             # If we are at the total per shard, we terminate the loop
             break_iteration = False
@@ -856,8 +858,6 @@ class Client:
         if not isinstance(records, RecordsCollection):
             raise exceptions.InvalidArgumentException(
                 f'"records" must be of type RecordsCollection. Received: {repr(type(records))} {repr(records)}')
-        die('sdasd')
-        pvdd(records)
 
         # Safety: We strip all but safe characters before creating any files/dirs
         shard_id = re.sub(r'[^A-Za-z0-9-_]', '', shard_id)
@@ -874,16 +874,17 @@ class Client:
             prefix += 1
             # Safety: We strip all but safe characters before creating any files/dirs
             timestamp = re.sub(r'[^A-Za-z0-9-:_]', '',
-                               record["ApproximateArrivalTimestamp"].strftime('%Y-%m-%d_%H:%M:%S'))
+                               record.ApproximateArrivalTimestamp.strftime('%Y-%m-%d_%H:%M:%S'))
             log.debug(f'timestamp: {timestamp}')
             filename_uri = f"{dir_path}/{prefix}-{timestamp.replace(':', ';')}.json"
             log.debug(f'Filename: {filename_uri}')
 
+            import jsonpickle
             try:
                 f = open(filename_uri, "x")
             except FileExistsError as ex:
                 raise FileExistsError(f'The file "{filename_uri}" already exists when trying to create an event '
                                       f'record file. Be sure scraping is not being run with a populated '
                                       f'scraped_events/{shard_id} directory.') from ex
-            f.write(json.dumps(record, default=str, indent=4))
+            f.write(jsonpickle.dumps(record, make_refs=False, indent=4))
             f.close()
