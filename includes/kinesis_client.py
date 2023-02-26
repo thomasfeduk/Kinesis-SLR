@@ -12,6 +12,7 @@ import logging
 import botocore
 import os
 from abc import ABC, abstractmethod
+import jsonpickle
 
 log = logging.getLogger(__name__)
 
@@ -594,10 +595,11 @@ class Client:
             dir_path = f'scraped_events/{shard_id}'
             log.debug(dir_path)
             log.debug(f'Checking if shard dir exists {dir_path}: {os.path.exists(dir_path)}')
-            if os.path.exists(dir_path):
-                raise FileExistsError(f'Scrapped shard directory {dir_path} currently exists. To prevent '
-                                      f'conflicts/overwriting existing data, please move any previously scrapped '
-                                      f'messages and their shard id directory elsewhere and re-run this tool. ')
+            # TODO: Re-add this check
+            # if os.path.exists(dir_path):
+            #     raise FileExistsError(f'Scrapped shard directory {dir_path} currently exists. To prevent '
+            #                           f'conflicts/overwriting existing data, please move any previously scrapped '
+            #                           f'messages and their shard id directory elsewhere and re-run this tool. ')
 
         # Passed all checks, now we iterate through each shard id specified by the config (or all if not specified)
         shard_ids_to_scrape = shard_ids_detected
@@ -879,12 +881,12 @@ class Client:
             filename_uri = f"{dir_path}/{prefix}-{timestamp.replace(':', ';')}.json"
             log.debug(f'Filename: {filename_uri}')
 
-            import jsonpickle
             try:
                 f = open(filename_uri, "x")
             except FileExistsError as ex:
                 raise FileExistsError(f'The file "{filename_uri}" already exists when trying to create an event '
                                       f'record file. Be sure scraping is not being run with a populated '
                                       f'scraped_events/{shard_id} directory.') from ex
-            f.write(jsonpickle.dumps(record, make_refs=False, indent=4))
+            f.write(str(jsonpickle.dumps(record, indent=4, make_refs=False)))
             f.close()
+

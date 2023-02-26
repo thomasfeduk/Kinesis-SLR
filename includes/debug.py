@@ -130,7 +130,10 @@ def _strip_proprules_recursively(data):
                 del data_stripped_new[i]._proprules
             except Exception:
                 pass
-            data_stripped_new[i] = _strip_proprules_recursively(item)
+            try:
+                data_stripped_new[i] = _strip_proprules_recursively(item)
+            except Exception:
+                pass
             i += 1
             try:
                 data_stripped = data_stripped_new.copy()

@@ -5,3 +5,4 @@ botocore~=1.29.39
 python-dateutil~=2.8.2
 tzdata
 pytz
+jsonpickle
