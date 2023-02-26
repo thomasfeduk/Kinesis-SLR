@@ -923,7 +923,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
         expected_response = []
         expected_response.insert(0, {"total_found_records": 3, "found_records": 3, "response_no_records": 0,"next_shard_iterator": 'iter1', "loop_count": 1, "shard_id": 'shard_abc',"break_iteration": False})
         expected_response.insert(1, {"total_found_records": 13, "found_records": 10, "response_no_records": 0,"next_shard_iterator": 'iter2', "loop_count": 2, "shard_id": 'shard_abc',"break_iteration": False})
-        expected_response.insert(3, {"total_found_records": 38, "found_records": 25, "response_no_records": 0,"next_shard_iterator": 'iter4', "loop_count": 4, "shard_id": 'shard_abc',"break_iteration": True})
+        expected_response.insert(3, {"total_found_records": 38, "found_records": 25, "response_no_records": 0,"next_shard_iterator": 'iter4', "loop_count": 3, "shard_id": 'shard_abc',"break_iteration": True})
 
         self.config_input["ending_position"] = "TOTAL_RECORDS_PER_SHARD"
         self.config_input["total_records_per_shard"] = "38"
@@ -969,7 +969,8 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
         calls = []
         calls.append(call(shard_id, generated_get_records[0].Records))
         calls.append(call(shard_id, generated_get_records[1].Records))
-        calls.append(call(shard_id, generated_get_records[3].Records))
+        calls.append(call(shard_id, generated_get_records[2].Records))
+
         mocked_process_records.assert_has_calls(calls, any_order=False)
         self.assertEqual(3, mocked_process_records.call_count)
 
@@ -1124,6 +1125,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
         subset_records_collection = generated_get_records[3]
         subset_records_collection.Records._items = subset_records
         calls.append(call(shard_id, subset_records_collection.Records))
+
         mocked_process_records.assert_has_calls(calls, any_order=False)
         self.assertEqual(3, mocked_process_records.call_count)
 

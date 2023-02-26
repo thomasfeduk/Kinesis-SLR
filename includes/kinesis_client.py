@@ -13,6 +13,7 @@ import botocore
 import os
 from abc import ABC, abstractmethod
 import jsonpickle
+import includes.debug as debug
 
 log = logging.getLogger(__name__)
 
@@ -853,7 +854,6 @@ class Client:
 
     @staticmethod
     def _process_records(shard_id: str, records: RecordsCollection):
-        return
         if not isinstance(shard_id, str):
             raise exceptions.InvalidArgumentException(
                 f'"shard_id" must be of type str. Received: {repr(type(shard_id))} {repr(shard_id)}')

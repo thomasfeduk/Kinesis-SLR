@@ -10,6 +10,7 @@ from io import StringIO
 from var_dump import var_dump, var_export
 import json
 import jsonpickle
+import inspect
 
 try:
     from enum import Enum
@@ -72,6 +73,12 @@ def pvddfile(filename, data):
     pvdfile(filename, data)
     die()
 
+
+def called_from_where():
+    frame = inspect.currentframe().f_back
+    filename = frame.f_code.co_filename
+    line_number = frame.f_lineno
+    print(f"Called from {filename} line {line_number}")
 
 # Blindly and with the power of Thor's hammer, recursively delete from a deep copy all occurrences of _proprules
 # from any object/type to be used in var_dump, so we don't clutter the output
