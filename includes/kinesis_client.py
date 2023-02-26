@@ -671,15 +671,13 @@ class Client:
                     and self._client_config.total_records_per_shard <= iterator_obj.total_found_records:
                 records_count_upto_to_add = self._calculate_iteration_upto_add(
                     iterator_obj.total_found_records-len(response.Records), len(response.Records))
-            # pvdfile('iterator.txt',RecordsCollection(common.list_append_upto_n_items_from_new_list(records_to_process,[i for i in response.Records],records_count_upto_to_add)))
 
-            self._process_records(iterator_obj.shard_id,
-                                  RecordsCollection(common.list_append_upto_n_items_from_new_list(
-                                      records_to_process,
-                                      [i for i in response.Records],
-                                      records_count_upto_to_add)
-                                  )
-                                  )
+            records_to_process = RecordsCollection(common.list_append_upto_n_items_from_new_list(
+                records_to_process,
+                [i for i in response.Records],
+                records_count_upto_to_add)
+            )
+            self._process_records(iterator_obj.shard_id, records_to_process)
 
             # If we are at the total per shard, we terminate the loop
             break_iteration = False
@@ -689,7 +687,7 @@ class Client:
                 log.info(f'Reached {self._client_config.total_records_per_shard} max records per shard '
                          f'limit for shard {iterator_obj.shard_id}\n')
 
-            return GetRecordsIterationResponse(
+            iterator_response = GetRecordsIterationResponse(
                 total_found_records=iterator_obj.total_found_records,
                 response_no_records=iterator_obj.response_no_records,
                 loop_count=iterator_obj.loop_count,
@@ -698,6 +696,7 @@ class Client:
                 found_records=len(response.Records),
                 break_iteration=break_iteration,
             )
+            return iterator_response
 
         log.debug(response)
         iterator_obj.response_no_records += 1
@@ -713,7 +712,7 @@ class Client:
                      f'Aborting further reads for current shard: {iterator_obj.shard_id}')
 
         # End of iteration, build and return new iterator response
-        return GetRecordsIterationResponse(
+        iterator_response = GetRecordsIterationResponse(
             total_found_records=iterator_obj.total_found_records + len(response.Records),
             response_no_records=iterator_obj.response_no_records,
             loop_count=iterator_obj.loop_count,
@@ -722,6 +721,7 @@ class Client:
             found_records=len(response.Records),
             break_iteration=break_iteration,
         )
+        return iterator_response
 
     def _calculate_iteration_upto_add(self, total_found_records_without_records_count: int, records_count: int) -> int:
         """
@@ -853,6 +853,7 @@ class Client:
 
     @staticmethod
     def _process_records(shard_id: str, records: RecordsCollection):
+        return
         if not isinstance(shard_id, str):
             raise exceptions.InvalidArgumentException(
                 f'"shard_id" must be of type str. Received: {repr(type(shard_id))} {repr(shard_id)}')
@@ -889,4 +890,3 @@ class Client:
                                       f'scraped_events/{shard_id} directory.') from ex
             f.write(str(jsonpickle.dumps(record, indent=4, make_refs=False)))
             f.close()
-

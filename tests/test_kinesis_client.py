@@ -48,7 +48,7 @@ def generate_Boto3GetRecordsResponse(count: int = 0, *, data_prefix: str = '', i
     records = []
 
     for i in range(count):
-        records.append(generate_record_obj(generate_record_raw_dict(data=f"{data_prefix}{i}_sampledata")))
+        records.append(generate_record_obj(generate_record_raw_dict(data=f"{data_prefix}{i}-{iterator}_sampledata")))
 
     iterator_default = f"uuid.uuid4().hex-{uuid.uuid4().hex}"
     if iterator == '':
@@ -1046,11 +1046,11 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
         mocked_process_records.assert_has_calls(calls, any_order=False)
         self.assertEqual(3, mocked_process_records.call_count)
 
-    # @patch('includes.kinesis_client.Client._process_records', spec_set=kinesis.Client._process_records)
+    @patch('includes.kinesis_client.Client._process_records', spec_set=kinesis.Client._process_records)
     @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
     def test_multi_records_responses_total_records_with_remainder_spanning_across_calls(self,
                                                                                         mocked_get_records,
-                                                                                        # mocked_process_records,
+                                                                                        mocked_process_records,
                                                                                         ):
 
         generated_get_records = [
@@ -1089,7 +1089,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
                 shard_id=shard_id
             ))
 
-            pvddfile('test.txt', generated_get_records[i].Records)
+            # pvddfile('test.txt', common.serialize(generated_get_records[i].Records))
             self.assertEqual(iterator_response_obj.found_records, expected_response[i]["found_records"])
             self.assertEqual(iterator_response_obj.total_found_records, expected_response[i]["total_found_records"])
             self.assertEqual(iterator_response_obj.loop_count, expected_response[i]["loop_count"])
@@ -1113,11 +1113,17 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
         # print(repr(args_list[1][0][1]) == repr(generated_get_records[1].Records))
         # print(repr(args_list[2][0][1]) == repr(generated_get_records[3].Records))
 
-        die('got here')
+
         calls = []
         calls.append(call(shard_id, generated_get_records[0].Records))
-        calls.append(call(shard_id, generated_get_records[1].Records))
-        calls.append(call(shard_id, generated_get_records[3].Records))
+        calls.append(call(shard_id, generated_get_records[2].Records))
+        # Since we only use a subset of the records returned to the last get_records call,
+        # we extrac the expected records from the last result set we will be writing
+        # (ie if we only want to write 3 of the 10 records)
+        subset_records = generated_get_records[3].Records._items[0:5]
+        subset_records_collection = generated_get_records[3]
+        subset_records_collection.Records._items = subset_records
+        calls.append(call(shard_id, subset_records_collection.Records))
         mocked_process_records.assert_has_calls(calls, any_order=False)
         self.assertEqual(3, mocked_process_records.call_count)
 
