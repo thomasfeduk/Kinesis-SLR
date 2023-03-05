@@ -209,6 +209,10 @@ class Record(common.BaseCommonClass):
     def Data(self):
         return self._Data
 
+    @Data.setter
+    def Data(self, value):
+        self._Data = value
+
     @property
     def PartitionKey(self) -> str:
         return self._PartitionKey
@@ -754,6 +758,7 @@ class Client:
             ShardIterator=iterator,
             Limit=self._client_config.poll_batch_size
         )
+
         timer_end = time.time()
         log.debug(f'get_records() completed in {timer_end - timer_start} seconds.')
 
@@ -881,11 +886,16 @@ class Client:
             filename_uri = f"{dir_path}/{prefix}-{timestamp.replace(':', ';')}.json"
             log.debug(f'Filename: {filename_uri}')
 
+            # base64 encode the data since kinesis get_records() returns the raw data but the lambda
+            # is fed a base64 version from kinesis. We want to mimick what the lambda is normally fed
+            encoded_bytes = base64.b64encode(common.to_bytes(record.Data))
+            encoded_string = encoded_bytes.decode("utf-8")
+            Record.Data = encoded_string
+
             try:
-                f = open(filename_uri, "x")
+                with open(filename_uri, "x") as f:
+                    f.write(str(jsonpickle.dumps(record, indent=4, make_refs=False)))
             except FileExistsError as ex:
                 raise FileExistsError(f'The file "{filename_uri}" already exists when trying to create an event '
                                       f'record file. Be sure scraping is not being run with a populated '
                                       f'scraped_events/{shard_id} directory.') from ex
-            f.write(str(jsonpickle.dumps(record, indent=4, make_refs=False)))
-            f.close()
