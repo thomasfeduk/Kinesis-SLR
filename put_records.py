@@ -46,7 +46,8 @@ def generate_events():
                 "error": error,
                 "unrecoverable": unrecoverable,
             }),
-            # 'ExplicitHashKey': '000000000001',
+            'ExplicitHashKey': '0',
+            # 'ExplicitHashKey': '170141183460469231731687303715884105728',
             'PartitionKey': partition_key
         })
         i += 1

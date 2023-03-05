@@ -32,7 +32,8 @@ stream_name: user-activities
 #  - shardId-000000000000
 #  - shardId-000000000001
 #
-shard_ids: ['shardId-000000000005']
+#shard_ids: ['shardId-000000000005']
+shard_ids: ['shardId-000000000004']
 
 ###################################
 ## Section: Stream Scrape Range  ##
@@ -60,7 +61,7 @@ starting_position: TRIM_HORIZON
 # Description: Only used if starting_position = AT_TIMESTAMP
 # Format (UTC): YYYY-MM-DD HH:MM:SS
 #
-starting_timestamp: "2022-12-01 00:00:0"
+starting_timestamp: "2022-12-01 00:00:00"
 
 # ---------------------------
 # Property: sequence_number
@@ -128,7 +129,7 @@ ending_sequence_number: 49634793967732681113891714384157638505909056619063279650
 # Description: Only used if ending_position = TOTAL_RECORDS_PER_SHARD
 #
 #
-total_records_per_shard: 7
+total_records_per_shard: 100
 
 #####################################
 ## Stream Processing Configuration ##
@@ -149,7 +150,7 @@ total_records_per_shard: 7
 #   - Each read transaction can provide up to 10,000 records with an upper quota of 10 MB per transaction.
 # Therefore, if you have 1MB messages, this value cannot be greater than 10
 #
-poll_batch_size: 2 # Max 500
+poll_batch_size: 100 # Max 500
 
 # --------------------
 # Property: poll_delay
@@ -190,4 +191,4 @@ poll_delay: "0.0"
 # in the stream from the oldest message until now. From my testing, a 24 hour gap between messages resulted
 # in upto 104 empty polls
 #
-max_empty_polls: 120 # Max 5000
+max_empty_polls: 250 # Max 5000
