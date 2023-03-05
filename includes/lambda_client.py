@@ -1,3 +1,4 @@
+from typing import Union
 import boto3
 import logging
 import json
@@ -13,7 +14,7 @@ log = logging.getLogger()
 
 
 class ConfigLambda(common.BaseCommonClass, ABC):
-    def __init__(self, passed_data: [dict, str] = None):
+    def __init__(self, passed_data: Union[dict, str] = None):
         self.function_name = None
         self.batch_size = None
         self.local_dlq = None

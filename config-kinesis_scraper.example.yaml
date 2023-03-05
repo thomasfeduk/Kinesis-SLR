@@ -8,7 +8,7 @@
 # Description: The debug output level. INFO is the default and provides general status logging
 # Possible values: DEBUG|INFO|WARNING|ERROR
 #
-debug_level: INFO
+debug_level: DEBUG
 
 # ----------------------
 # Property: stream_name
@@ -32,19 +32,27 @@ stream_name: user-activities
 #  - shardId-000000000000
 #  - shardId-000000000001
 #
-shard_ids: []
+#shard_ids: ['shardId-000000000005']
+shard_ids: ['shardId-000000000004']
+
+###################################
+## Section: Stream Scrape Range  ##
+###################################
 
 # ---------------------------
 # Property: starting_position
 # ---------------------------
-# Description: At which point in the stream should the scraper begin reading from?
+# Description: At which point in the stream should the scraper begin reading from? This value is used directly
+# as the ShardIteratorType= value in the boto3 get_shard_iterator() call
+#
 # Possible values: AT_SEQUENCE_NUMBER|AFTER_SEQUENCE_NUMBER|TRIM_HORIZON|LATEST|AT_TIMESTAMP
 #
 # Note: TRIM_HORIZON = Start with the oldest record in the stream
 #
-# Note2: If set to AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER, sequence ids are unique per-shard
-# thus, "shardIds" must be populated with a single shard id
+# Note2: If set to AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER, "shardIds" must be populated with a single shard id
+# as sequence ids are unique per-shard
 #
+#starting_position: "AT_SEQUENCE_NUMBER"
 starting_position: TRIM_HORIZON
 
 # ---------------------------
@@ -53,14 +61,75 @@ starting_position: TRIM_HORIZON
 # Description: Only used if starting_position = AT_TIMESTAMP
 # Format (UTC): YYYY-MM-DD HH:MM:SS
 #
-timestamp: "2022-12-01 00:00:0"
+starting_timestamp: "2022-12-01 00:00:00"
 
 # ---------------------------
 # Property: sequence_number
 # ---------------------------
 # Description: Only used if starting_position = AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER
 #
-sequence_number: 49634793967732681113891714384157638505909056619063279650
+starting_sequence_number: 49634793967732681113891714384157638505909056619063279650
+
+# ---------------------------
+# Property: ending_position
+# ---------------------------
+# Description: At which point the scraper should stop reading from the stream.
+# Possible values:  TOTAL_RECORDS_PER_SHARD
+#                   AT_SEQUENCE_NUMBER
+#                   AFTER_SEQUENCE_NUMBER
+#                   BEFORE_SEQUENCE_NUMBER
+#                   AT_TIMESTAMP
+#                   BEFORE_TIMESTAMP
+#                   AFTER_TIMESTAMP
+#                   LATEST
+#
+# Note: AT_SEQUENCE_NUMBER = Read upto and including the specified sequence number
+# Note: AFTER_SEQUENCE_NUMBER = Read upto and including the specified sequence number as well as the very next message
+# Note: BEFORE_SEQUENCE_NUMBER = Read upto and including the message directly preceding the specified sequence number
+#
+# *_SEQUENCE_NUMBER Note: If set to one of the *_SEQUENCE_NUMBER values, "shardIds" must be populated with a
+#                         single shard id as sequence ids are unique per-shard
+#
+# Note: AT_TIMESTAMP = Read upto and including the first occurrence of a single, or set of contiguous messages,
+#       where ApproximateArrivalTimestamp matches the specified timestamp
+# Note: AFTER_TIMESTAMP = Read upto and including the next single, or set of continuous messages, where
+#       ApproximateArrivalTimestamp is greater by any amount, than the specified timestamp
+# Note: BEFORE_TIMESTAMP = Read upto and including the messages directly preceding the first message in the stream
+#       that has ApproximateArrivalTimestamp equal to the specified timestamp
+#
+# TIMESTAMP Note: Due to the ApproximateArrivalTimestamp being approximate, it is possible some messages may exist
+#           after the intended stopping point in the stream that have an earlier timestamp than the specified stopping
+#           point. Aws makes this unavoidable due to using approximate timestamps. If precision is needed, consider
+#           using TOTAL_RECORDS or one of the *_SEQUENCE_NUMBER options
+#
+# LATEST Note: If set to LATEST, the Kinesis SLR will continue to read the stream until the
+#              max_empty_polls limit is reached
+#
+#
+ending_position: LATEST
+
+# ---------------------------
+# Property: timestamp
+# ---------------------------
+# Description: Only used if ending_position = *_TIMESTAMP
+# Format (UTC): YYYY-MM-DD HH:MM:SS
+#
+ending_timestamp: "2022-12-01 00:00:0"
+
+# --------------------------------
+# Property: ending_sequence_number
+# --------------------------------
+# Description: Only used if ending_sequence_number = *_SEQUENCE_NUMBER
+#
+ending_sequence_number: 49634793967732681113891714384157638505909056619063279650
+
+# ----------------------------------------------
+# Property: ending_total_records_per_shard_value
+# ----------------------------------------------
+# Description: Only used if ending_position = TOTAL_RECORDS_PER_SHARD
+#
+#
+total_records_per_shard: 100
 
 #####################################
 ## Stream Processing Configuration ##
@@ -88,26 +157,18 @@ poll_batch_size: 100 # Max 500
 # --------------------
 # Description: The wait delay between each GetRecords poll call.
 #
+# Note: All calls are handled in a liner fashion, no parallelism/multi-threading is used. If it takes 1 second for
+# each boto3 API call to complete, that will result in a throughput of 1 call-per-second. This parameter simply adds a
+# time.sleep(poll_delay) call in-between each boto3 get_records() call with the value specified in poll_delay.
+# set debug_level above to DEBUG to see the elapsed time for each get_records() call
+#
 # AWS Quota Note: This value must be considered carefully from an engineering perspective and engineers
 # must take into account the total number of consumers making polls to a shard, as well as the
-# poll_batch_size config option in this to ensure they don't exceed a total aggregate of 5 reads/second
-# or 2MB/second, otherwise any pollers for the next 5 seconds will receive a
-# ProvisionedThroughputExceededException
+# poll_batch_size config option, as well as the average boto3 get_records() API call duration, to ensure not to
+# exceed a total aggregate of 5 reads/second or 2MB/second per shard, otherwise any pollers for the next 5 seconds
+# will receive a ProvisionedThroughputExceededException
 #
 poll_delay: "0.0"
-
-# -------------------------------------
-# Property: max_total_records_per_shard
-# -------------------------------------
-# Description: The maximum amount of records to retrieve per shard. If all/unlimited, set to 0
-#
-# Note: In some cases the amount of records fetched per shard may exceed the amount specified below,
-# but only upto the poll_batch_size+max_records_per_shard due to record fetches always being called
-# in batches as specified by the poll_batch_size
-# (e.g, if max_total_records_per_shard is 4, but the poll_batch_size is 3 and there are 100 records,
-# the returned amount would be 6 since we reach in batches of 3)
-#
-max_total_records_per_shard: 0
 
 # --------------------------------
 # Property: max_empty_polls
@@ -124,8 +185,8 @@ max_total_records_per_shard: 0
 #
 # It is important to note, that relying on "MillisBehindLatest" has proven to be unreliable.
 #
-# Once the number of polls that returned empty records matches the max_empty_polls value, the
-# Kinesis-SLP will consider the shard to be fully read and stop scraping messages. A rule of thumb is
+# Once the number of contiguous polls that returned empty records matches the max_empty_polls value, the
+# Kinesis-SLR will consider the shard to be fully read and stop scraping messages. A rule of thumb is
 # 2 empty polls per every 500 contiguous seconds of "empty time" that could exist between messages anywhere
 # in the stream from the oldest message until now. From my testing, a 24 hour gap between messages resulted
 # in upto 104 empty polls
