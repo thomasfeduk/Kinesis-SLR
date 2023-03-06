@@ -8,6 +8,8 @@ import yaml
 from abc import ABC, abstractmethod
 import datetime
 import includes.exceptions as exceptions
+import struct
+
 from includes.debug import pvdd, pvd, die
 
 log = logging.getLogger()
@@ -300,6 +302,17 @@ def list_append_upto_n_items_total(base_list: list, from_list: list, upto_item_c
         if upto_item_count is None or (upto_item_count is not None and len(base_list_new) < upto_item_count):
             base_list_new.append(item)
     return base_list_new
+
+
+def to_bytes(s):
+    if type(s) is bytes:
+        return s
+    if type(s) is str:
+        return s.encode('utf-8')
+    if type(s) in [int, float]:
+        return struct.pack('i', s)
+
+    raise TypeError(f"Expected bytes, string, int or float. Value provided: {type(s)} {repr(s)}")
 
 
 def count_files_in_dir(dir_path=str) -> int:
