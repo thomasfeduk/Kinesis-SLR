@@ -2,7 +2,7 @@ from typing import Union
 import boto3
 import logging
 import json
-from includes.debug import pvdd, pvd, die
+from includes.debug import *
 import random
 import datetime
 import includes.common as common
@@ -49,3 +49,38 @@ class ConfigLambda(common.BaseCommonClass, ABC):
 
 # config_lambda = ConfigLambda(common.read_config('config-lambda_replay.example.yaml'))
 # pvdd(config_lambda)
+
+class Client:
+    def __init__(self, function_name):
+        self.lambda_client = boto3.client('lambda')
+        self.function_name = function_name
+
+    def invoke(self, payload):
+        try:
+            response = self.lambda_client.invoke(FunctionName=self.function_name, Payload=json.dumps(payload))
+
+            jout(response)
+            joutd(response["Payload"].read())
+
+            response_payload = response['Payload'].read()
+            content_type = response['Payload'].content_type
+
+            if content_type == 'application/json':
+                response_payload = json.loads(response_payload)
+            elif content_type == 'text/plain':
+                response_payload = response_payload.decode('utf-8')
+            else:
+                log.warning(f"Lambda response of unknown type: {content_type}")
+                response_payload = None
+
+            if response['StatusCode'] == 200:
+                log.info('Lambda invoked successfully.')
+                if 'errorMessage' in response_payload:
+                    log.error(f"Lambda function returned an error: {response_payload['errorMessage']}")
+                else:
+                    log.info(f"Lambda response: {response_payload}")
+            else:
+                log.error(f"Lambda invocation failed with status code: {response['StatusCode']}")
+        except Exception as e:
+            log.error(f"Error invoking Lambda function: {e}")
+

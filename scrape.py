@@ -20,7 +20,13 @@ from var_dump import var_dump
 logging.basicConfig()
 
 
-def main():
+def main_lambda():
+    lambda_invoker = lambda_client.Client('kworker')
+    payload = {'key1': 'value1', 'key2': 'value2'}
+    lambda_invoker.invoke(payload)
+
+
+def main_kinesis():
 
     # pvdd([
     #     generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter1"),

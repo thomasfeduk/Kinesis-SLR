@@ -39,6 +39,15 @@ class _readoutputbuffer(list):
         sys.stdout = self._stdout
 
 
+def jout(data):
+    print(json.dumps(data, indent=4, default=str))
+
+
+def joutd(data):
+    jout(data)
+    die()
+
+
 def pvd(data):
     var_dump(_strip_proprules_recursively(data))
 
@@ -79,6 +88,7 @@ def called_from_where():
     filename = frame.f_code.co_filename
     line_number = frame.f_lineno
     print(f"Called from {filename} line {line_number}")
+
 
 # Blindly and with the power of Thor's hammer, recursively delete from a deep copy all occurrences of _proprules
 # from any object/type to be used in var_dump, so we don't clutter the output
