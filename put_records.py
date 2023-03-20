@@ -10,7 +10,7 @@ stream_name = 'user-activities'
 kinesis = boto3.client('kinesis')
 
 # Config
-events_total = 10  # Max 500
+events_total = 3  # Max 500
 errors = []
 errors_unrecoverable = []
 randomize_shards = False

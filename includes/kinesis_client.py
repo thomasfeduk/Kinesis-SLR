@@ -1,4 +1,5 @@
-from typing import Union
+import pickle
+from typing import Union, Optional
 import includes.exceptions as exceptions
 import time
 import re
@@ -184,7 +185,7 @@ class GetRecordsIterationResponse(GetRecordsIteration):
 
 
 class Record(common.BaseCommonClass):
-    def __init__(self, passed_data: [dict]):
+    def __init__(self, passed_data: [dict], *, base64_encoded: bool = False):
         self._SequenceNumber = None
         self._ApproximateArrivalTimestamp = None
         self._Data = None
@@ -193,6 +194,11 @@ class Record(common.BaseCommonClass):
         self._proprules.add_prop("SequenceNumber", types=[str])
         self._proprules.add_prop("PartitionKey", types=[str])
         self._proprules.add_prop("ApproximateArrivalTimestamp", types=[datetime.datetime, str])
+
+        # We need to store state if the Data element is base64 encoded. This is due to boto3 get_records()
+        # automatically base64 decodes it but when we write it to disk its written in base64 to properly refect
+        # the value stored in the stream
+        self._base64_encoded = bool(base64_encoded)
 
         # Have to call parent after defining attributes
         super().__init__(passed_data)
@@ -218,6 +224,24 @@ class Record(common.BaseCommonClass):
         return self._PartitionKey
 
 
+    @property
+    def base64_encoded(self) -> bool:
+        return self._base64_encoded
+
+    def toJson(self, *, indent: Optional[Union[int, None]] = None) -> str:
+        data = self.Data
+        if not self.base64_encoded:
+            encoded_bytes = base64.b64encode(common.to_bytes(self.Data))
+            data = encoded_bytes.decode("utf-8")
+
+        return json.dumps({
+            "SequenceNumber": self.SequenceNumber,
+            "ApproximateArrivalTimestamp": self.ApproximateArrivalTimestamp,
+            "Data": data,
+            "PartitionKey": self.PartitionKey
+        }, indent=indent, default=str)
+
+
 class RecordsCollection(common.RestrictedCollection):
     @property
     def expected_type(self):
@@ -232,6 +256,9 @@ class RecordsCollection(common.RestrictedCollection):
 
     def __len__(self):
         return len(self._items)
+
+    def toJson(self, *, indent: Optional[Union[int, None]] = None) -> str:
+        return json.dumps([json.loads(i.toJson()) for i in self._items], indent=indent)
 
 
 class Boto3GetRecordsResponse(common.BaseCommonClass):
@@ -674,7 +701,7 @@ class Client:
             if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD' \
                     and self._client_config.total_records_per_shard <= iterator_obj.total_found_records:
                 records_count_upto_to_add = self._calculate_iteration_upto_add(
-                    iterator_obj.total_found_records-len(response.Records), len(response.Records))
+                    iterator_obj.total_found_records - len(response.Records), len(response.Records))
 
             records_to_process = RecordsCollection(common.list_append_upto_n_items_from_new_list(
                 records_to_process,
@@ -754,6 +781,7 @@ class Client:
 
     def _get_records(self, iterator: str) -> Boto3GetRecordsResponse:
         timer_start = time.time()
+
         response = self._client_config.boto_client.get_records(
             ShardIterator=iterator,
             Limit=self._client_config.poll_batch_size
@@ -886,15 +914,9 @@ class Client:
             filename_uri = f"{dir_path}/{prefix}-{timestamp.replace(':', ';')}.json"
             log.debug(f'Filename: {filename_uri}')
 
-            # base64 encode the data since kinesis get_records() returns the raw data but the lambda
-            # is fed a base64 version from kinesis. We want to mimick what the lambda is normally fed
-            encoded_bytes = base64.b64encode(common.to_bytes(record.Data))
-            encoded_string = encoded_bytes.decode("utf-8")
-            Record.Data = encoded_string
-
             try:
                 with open(filename_uri, "x") as f:
-                    f.write(str(jsonpickle.dumps(record, indent=4, make_refs=False)))
+                    f.write(record.toJson(indent=4))
             except FileExistsError as ex:
                 raise FileExistsError(f'The file "{filename_uri}" already exists when trying to create an event '
                                       f'record file. Be sure scraping is not being run with a populated '
