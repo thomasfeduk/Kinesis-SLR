@@ -49,7 +49,7 @@ class BaseSuperclass(ABC):
             raise ValueError(f"Could not convert passed_data to a dict.\npassed_data: {repr(passed_data)}") from ex
 
 
-class BaseCommonClass(BaseSuperclass, ABC):
+class BaseCommonClass(BaseSuperclass):
     # TODO: Add decorator here to require a dict/str or exception and pass in a dict
     @abstractmethod
     def __init__(self, passed_data: Union[dict, str] = None):

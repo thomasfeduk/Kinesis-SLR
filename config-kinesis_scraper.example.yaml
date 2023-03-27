@@ -3,6 +3,13 @@
 ###################################
 
 # ----------------------
+# Property: region_name
+# ----------------------
+# Description: The AWS region
+#
+region_name: 'us-east-1'
+
+# ----------------------
 # Property: debug_level
 # ----------------------
 # Description: The debug output level. INFO is the default and provides general status logging

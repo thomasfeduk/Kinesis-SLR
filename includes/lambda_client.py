@@ -1,5 +1,6 @@
 from typing import Union
 import boto3
+import botocore
 import logging
 import json
 from includes.debug import *
@@ -12,20 +13,56 @@ from abc import ABC, abstractmethod
 log = logging.getLogger()
 # log.setLevel(logging.DEBUG)
 
-
-class ConfigLambda(common.BaseCommonClass, ABC):
-    def __init__(self, passed_data: Union[dict, str] = None):
-        self.function_name = None
-        self.batch_size = None
-        self.local_dlq = None
-        self.local_dlq_fullevent = None
-        self.retry_attempts = None
-        self.bisect_on_error = None
-        self.tumbling_window_seconds = None
-        self.custom_checkpoints = None
+class ClientConfig(common.BaseCommonClass, ABC):
+    def __init__(self, passed_data: Union[dict, str], boto_client: botocore.client.BaseClient):
+        self._boto_client = boto_client
+        self._function_name = None
+        self._batch_size = None
+        self._local_dlq = None
+        self._local_dlq_fullevent = None
+        self._retry_attempts = None
+        self._bisect_on_error = None
+        self._tumbling_window_seconds = None
+        self._custom_checkpoints = None
 
         # Have to call parent after defining attributes other they are not populated
         super().__init__(passed_data)
+
+    @property
+    def boto_client(self):
+        return self._boto_client
+
+    @property
+    def function_name(self):
+        return self._function_name
+
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+    @property
+    def local_dlq(self):
+        return self._local_dlq
+
+    @property
+    def local_dlq_fullevent(self):
+        return self._local_dlq_fullevent
+
+    @property
+    def retry_attempts(self):
+        return self._retry_attempts
+
+    @property
+    def bisect_on_error(self):
+        return self._bisect_on_error
+
+    @property
+    def tumbling_window_seconds(self):
+        return self._tumbling_window_seconds
+
+    @property
+    def custom_checkpoints(self):
+        return self._custom_checkpoints
 
     def _is_valid(self):
         if self.function_name == 'function_name_here':
@@ -50,37 +87,58 @@ class ConfigLambda(common.BaseCommonClass, ABC):
 # config_lambda = ConfigLambda(common.read_config('config-lambda_replay.example.yaml'))
 # pvdd(config_lambda)
 
-class Client:
-    def __init__(self, function_name):
-        self.lambda_client = boto3.client('lambda')
-        self.function_name = function_name
+class Client(common.BaseCommonClass):
+    def __init__(self, client_config: ClientConfig):
+        self._client_config = client_config
 
     def invoke(self, payload):
         try:
-            response = self.lambda_client.invoke(FunctionName=self.function_name, Payload=json.dumps(payload))
-
-            jout(response)
-            joutd(response["Payload"].read())
-
-            response_payload = response['Payload'].read()
-            content_type = response['Payload'].content_type
-
-            if content_type == 'application/json':
-                response_payload = json.loads(response_payload)
-            elif content_type == 'text/plain':
-                response_payload = response_payload.decode('utf-8')
-            else:
-                log.warning(f"Lambda response of unknown type: {content_type}")
-                response_payload = None
-
-            if response['StatusCode'] == 200:
-                log.info('Lambda invoked successfully.')
-                if 'errorMessage' in response_payload:
-                    log.error(f"Lambda function returned an error: {response_payload['errorMessage']}")
-                else:
-                    log.info(f"Lambda response: {response_payload}")
-            else:
-                log.error(f"Lambda invocation failed with status code: {response['StatusCode']}")
+            response = self._client_config.boto_client.invoke(FunctionName=self._client_config.function_name, Payload=json.dumps(payload))
         except Exception as e:
             log.error(f"Error invoking Lambda function: {e}")
+            return
 
+        jout(response)
+        joutd(response["Payload"].read())
+
+        response_payload = response['Payload'].read()
+        content_type = response['Payload'].content_type
+
+        if content_type == 'application/json':
+            response_payload = json.loads(response_payload)
+        elif content_type == 'text/plain':
+            response_payload = response_payload.decode('utf-8')
+        else:
+            log.warning(f"Lambda response of unknown type: {content_type}")
+            response_payload = None
+
+        if response['StatusCode'] == 200:
+            log.info('Lambda invoked successfully.')
+            if 'errorMessage' in response_payload:
+                log.error(f"Lambda function returned an error: {response_payload['errorMessage']}")
+            else:
+                log.info(f"Lambda response: {response_payload}")
+        else:
+            log.error(f"Lambda invocation failed with status code: {response['StatusCode']}")
+
+    def _build_payload(self):
+        ref = {
+            "Records": [
+                {
+                    "kinesis": {
+                        "kinesisSchemaVersion": "1.0",
+                        "partitionKey": "testfail",
+                        "sequenceNumber": "49634871856207391309887373936488347325069951854572470306",
+                        "data": "eyJudW1iZXIiOiAyLCAiZXJyb3IiOiBmYWxzZX0=",
+                        "approximateArrivalTimestamp": 1667723578.271
+                    },
+                    "eventSource": "aws:kinesis",
+                    "eventVersion": "1.0",
+                    "eventID": "shardId-000000000002:49634871856207391309887373936488347325069951854572470306",
+                    "eventName": "aws:kinesis:record",
+                    "invokeIdentityArn": "arn:aws:iam::443035303084:role/service-role/kworker-role-douez4hk",
+                    "awsRegion": "us-east-1",
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:443035303084:stream/user-activities"
+                }
+            ]
+        }

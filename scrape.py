@@ -86,6 +86,11 @@ class FileProcessor:
 
 
 def main_lambda():
+    client = boto3.client("sts")
+    var = client.get_caller_identity()
+    pvdd(var)
+
+
 
     var = (f for f in os.scandir('scraped_events/shardId-000000000004'))
     pvdd(list(var)[0].name)
@@ -183,16 +188,14 @@ def main_kinesis():
     # pvdd(obj.total_found_records)
 
     # Delete any existing local files
-    try:
-        dir_path = 'scraped_events/shardId-000000000005'
-        shutil.rmtree(dir_path)
-    except FileNotFoundError as ex:
-        print(f'No old scraped events to delete...: {repr(ex)}')
+    # try:
+    #     dir_path = 'scraped_events/shardId-000000000005'
+    #     shutil.rmtree(dir_path)
+    # except FileNotFoundError as ex:
+    #     print(f'No old scraped events to delete...: {repr(ex)}')
 
-    kinesis_config = kinesis.ClientConfig(
-        common.read_config('config-kinesis_scraper.example.yaml'),
-        boto3.client('kinesis')
-    )
+    config_yaml = common.read_config('config-kinesis_scraper.example.yaml')
+    kinesis_config = kinesis.ClientConfig(config_yaml, boto3.client('kinesis', config_yaml['region_name']))
 
     output = None
     kinesis_client = kinesis.Client(kinesis_config)

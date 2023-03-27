@@ -3,6 +3,13 @@
 ###################################
 
 # ----------------------
+# Property: region_name
+# ----------------------
+# Description: The AWS region
+#
+region_name: 'us-east-1'
+
+# ----------------------
 # Property: stream_name
 # ----------------------
 # Description: The name of the lambda function which will be sent the scraped events.
