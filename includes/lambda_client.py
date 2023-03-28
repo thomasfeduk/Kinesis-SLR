@@ -8,12 +8,14 @@ import random
 import datetime
 import includes.common as common
 import logging
-from abc import ABC, abstractmethod
+import re
 
 log = logging.getLogger()
+
+
 # log.setLevel(logging.DEBUG)
 
-class ClientConfig(common.BaseCommonClass, ABC):
+class ClientConfig(common.BaseCommonClass):
     def __init__(self, passed_data: Union[dict, str], boto_client: botocore.client.BaseClient):
         self._boto_client = boto_client
         self._function_name = None
@@ -91,9 +93,10 @@ class Client(common.BaseCommonClass):
     def __init__(self, client_config: ClientConfig):
         self._client_config = client_config
 
-    def invoke(self, payload):
+    def _invoke(self, payload):
         try:
-            response = self._client_config.boto_client.invoke(FunctionName=self._client_config.function_name, Payload=json.dumps(payload))
+            response = self._client_config.boto_client.invoke(FunctionName=self._client_config.function_name,
+                                                              Payload=json.dumps(payload))
         except Exception as e:
             log.error(f"Error invoking Lambda function: {e}")
             return
@@ -120,6 +123,27 @@ class Client(common.BaseCommonClass):
                 log.info(f"Lambda response: {response_payload}")
         else:
             log.error(f"Lambda invocation failed with status code: {response['StatusCode']}")
+
+    def begin_processing(self):
+        output = list(self._filelist_batch_iterator('scraped_events/shardId-000000000004', batch_size=5))
+
+        pvdd(output)
+        pass
+
+    def _filelist_batch_iterator(self, directory_path: str, batch_size: int) -> list:
+        files = [f for f in os.listdir(directory_path)]
+        files = sorted(files,
+                       key=lambda x: (int(re.search(r'^\d+', x).group()) if re.search(r'^\d+', x) else float('inf'), x))
+
+        file_pattern = r'^\d{1,10}-\d{4}-\d{2}-\d{2}_\d{2};\d{2};\d{2}\.json$'
+        for file_name in files:
+            if not re.match(file_pattern, file_name):
+                raise ValueError(f"Cannot begin replaying events: File name \"{file_name}\" does not match the "
+                                 f"expected pattern for a Kinesis message created by the Kinesis-SLR. Please "
+                                 f"corrector remove the offending file to begin replaying events.")
+
+        for i in range(0, len(files), batch_size):
+            yield files[i:i + batch_size]
 
     def _build_payload(self):
         ref = {

@@ -12,6 +12,7 @@ import includes.kinesis_client as kinesis
 import includes.lambda_client as lambda_client
 import logging
 import includes.common as common
+import re
 import pickle
 import datetime
 from dateutil.tz import tzlocal
@@ -85,26 +86,52 @@ class FileProcessor:
             lambda_payload.submit()
 
 
+def filelist_batch_iterator(directory_path: str, batch_size: int):
+    files = [f for f in os.listdir(directory_path)]
+    files = sorted(files,
+                   key=lambda x: (int(re.search('^\d+', x).group()) if re.search('^\d+', x) else float('inf'), x))
+
+    pattern = r'^\d{1,10}-\d{4}-\d{2}-\d{2}_\d{2};\d{2};\d{2}\.json$'
+    for file_name in files:
+        if not re.match(pattern, file_name):
+            raise ValueError(f"File name \"{file_name}\" does not match the expected pattern for a Kinesis "
+                             f"message created by the Kinesis-SLR.")
+
+    for i in range(0, len(files), batch_size):
+        yield files[i:i + batch_size]
+
+
 def main_lambda():
-    client = boto3.client("sts")
-    var = client.get_caller_identity()
-    pvdd(var)
+    # for num in range(1, 51):
+    #     print(num)
 
+    # numbers = list(range(1, 25))
+    # numbers = [str(num) for num in numbers]  # convert integers to strings
+    # numbers.sort()  # sort the list alphabetically
+    # for num in numbers:
+    #     print(num)
+    #
+    # die()
+    # pvdd(list(file_batch_iterator('scraped_events/shardId-000000000004', batch_size=5)))
 
+    client = includes.lambda_client.Client('sdsadd')
+    client.begin_processing()
 
-    var = (f for f in os.scandir('scraped_events/shardId-000000000004'))
-    pvdd(list(var)[0].name)
-    die()
+    die('scrape lambda')
+
+    # client = boto3.client("sts")
+    # var = client.get_caller_identity()
+    # pvdd(var)
 
     # my_list = [f"scraped_events/shardId-000000000004/{i}-2023-03-19_23;44;23.json" for i in range(0, 100_000)]
-    my_list = [i for i in range(0, 100_000)]
-    list_size = sys.getsizeof(my_list)
-    print(f"The size of my_list is {format_size(list_size)}.")
-
-    memory_usage = psutil.Process().memory_info().rss
-    print(f"Python is currently using {format_size(memory_usage)} of memory.")
-
-    pvdd(f"List count: {len(my_list)}")
+    # my_list = [i for i in range(0, 100_000)]
+    # list_size = sys.getsizeof(my_list)
+    # print(f"The size of my_list is {format_size(list_size)}.")
+    #
+    # memory_usage = psutil.Process().memory_info().rss
+    # print(f"Python is currently using {format_size(memory_usage)} of memory.")
+    #
+    # pvdd(f"List count: {len(my_list)}")
 
     processor = FileProcessor('scraped_events/shardId-000000000004', batch_size=20)
     processor.read_files_in_batches()
