@@ -15,33 +15,68 @@ import includes.exceptions as exceptions
 log = logging.getLogger()
 
 
-class FileListBatchIterator:
-    def __init__(self, directory_path: str, batch_size: int) -> None:
-        self.current_index: int = 0
-        self.directory_path: str = directory_path
-        self.batch_size: int = batch_size
-        self.files: List[str] = [f for f in os.listdir(directory_path)]
-        files: List[str] = sorted(self.files,
+class FileList(common.BaseCommonClass):
+    def __init__(self, shard_id: str):
+        self._shard_id = None
+        self._proprules = common.PropRules()
+        self._proprules.add_prop("_shard_id", types=[str])
+        self._dir_path = None
+
+        # Have to call parent after defining attributes
+        super().__init__({'shard_id': shard_id})
+
+    def _is_valid(self) -> None:
+        super()._is_valid()
+
+        self._shard_id = re.sub(r'[^A-Za-z0-9-_]', '', self._shard_id)
+        self._dir_path = f'scraped_events/{self._shard_id}'
+
+        if not os.path.exists(self._dir_path):
+            raise exceptions.InvalidArgumentException(f"Scrapped shard directory {self._shard_id} does not exist.")
+
+    @property
+    def files(self) -> List[str]:
+        files_unsorted: List[str] = [f for f in os.listdir(self._dir_path)]
+        files: List[str] = sorted(files_unsorted,
                                   key=lambda x: (
                                       int(re.search(r'^\d+', x).group()) if re.search(r'^\d+', x) else float('inf'), x))
+        return files
+
+
+class FileListBatchIterator(common.BaseCommonClass):
+    def __init__(self, files_obj: FileList, batch_size: int) -> None:
+        self._current_index: int = 0
+        self._batch_size: int = batch_size
+        self._proprules = common.PropRules()
+        self._files_obj: Union[FileList, None] = None
+        self._proprules.add_prop("_files_obj", types=[FileList])
+
+        # Have to call parent after defining attributes
+        super().__init__({'_files_obj': files_obj})
+
+        self._files: list = self._files_obj.files
 
         file_pattern = r'^\d{1,10}-\d{4}-\d{2}-\d{2}_\d{2};\d{2};\d{2}\.json$'
-        for file_name in files:
+        for file_name in self._files:
             if not re.match(file_pattern, file_name):
                 raise exceptions.FileProcessingError(f"Cannot begin replaying events: File name \"{file_name}\" does "
                                                      f"not match the expected pattern for a Kinesis message created "
                                                      f"by the Kinesis-SLR. Please corrector remove the offending file "
                                                      f"to begin replaying events.")
 
+    @property
+    def batch_size(self) -> int:
+        return self._batch_size
+
     def __iter__(self) -> "FileListBatchIterator":
         return self
 
     def __next__(self) -> List[str]:
-        if self.current_index >= len(self.files):
+        if self._current_index >= len(self._files):
             raise StopIteration
 
-        batch: List[str] = self.files[self.current_index:self.current_index + self.batch_size]
-        self.current_index += self.batch_size
+        batch: List[str] = self._files[self._current_index:self._current_index + self._batch_size]
+        self._current_index += self._batch_size
         return batch
 
 
@@ -155,25 +190,10 @@ class Client(common.BaseCommonClass):
             log.error(f"Lambda invocation failed with status code: {response['StatusCode']}")
 
     def begin_processing(self):
-        output = list(FileListBatchIterator('scraped_events/shardId-000000000004', batch_size=5))
+        output = list(FileListBatchIterator(FileList('shardId-000000000004'), batch_size=5))
 
         pvdd(output)
         pass
-
-    def _filelist_batch_iterator(self, directory_path: str, batch_size: int) -> list:
-        files = [f for f in os.listdir(directory_path)]
-        files = sorted(files,
-                       key=lambda x: (int(re.search(r'^\d+', x).group()) if re.search(r'^\d+', x) else float('inf'), x))
-
-        file_pattern = r'^\d{1,10}-\d{4}-\d{2}-\d{2}_\d{2};\d{2};\d{2}\.json$'
-        for file_name in files:
-            if not re.match(file_pattern, file_name):
-                raise ValueError(f"Cannot begin replaying events: File name \"{file_name}\" does not match the "
-                                 f"expected pattern for a Kinesis message created by the Kinesis-SLR. Please "
-                                 f"corrector remove the offending file to begin replaying events.")
-
-        for i in range(0, len(files), batch_size):
-            yield files[i:i + batch_size]
 
     def _build_payload(self):
         ref = {
