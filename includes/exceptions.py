@@ -2,6 +2,9 @@ class ConfigValidationError(Exception):
     """Raised when a configuration parameter is invalid."""
     pass
 
+class FileProcessingError(Exception):
+    """Raised when a configuration parameter is invalid."""
+    pass
 
 class InternalError(Exception):
     """Raised when an internal exception occurs. Could be connections, logic issues, conditions etc."""

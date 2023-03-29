@@ -9,11 +9,41 @@ import datetime
 import includes.common as common
 import logging
 import re
+from typing import List
+import includes.exceptions as exceptions
 
 log = logging.getLogger()
 
 
-# log.setLevel(logging.DEBUG)
+class FileListBatchIterator:
+    def __init__(self, directory_path: str, batch_size: int) -> None:
+        self.current_index: int = 0
+        self.directory_path: str = directory_path
+        self.batch_size: int = batch_size
+        self.files: List[str] = [f for f in os.listdir(directory_path)]
+        files: List[str] = sorted(self.files,
+                                  key=lambda x: (
+                                      int(re.search(r'^\d+', x).group()) if re.search(r'^\d+', x) else float('inf'), x))
+
+        file_pattern = r'^\d{1,10}-\d{4}-\d{2}-\d{2}_\d{2};\d{2};\d{2}\.json$'
+        for file_name in files:
+            if not re.match(file_pattern, file_name):
+                raise exceptions.FileProcessingError(f"Cannot begin replaying events: File name \"{file_name}\" does "
+                                                     f"not match the expected pattern for a Kinesis message created "
+                                                     f"by the Kinesis-SLR. Please corrector remove the offending file "
+                                                     f"to begin replaying events.")
+
+    def __iter__(self) -> "FileListBatchIterator":
+        return self
+
+    def __next__(self) -> List[str]:
+        if self.current_index >= len(self.files):
+            raise StopIteration
+
+        batch: List[str] = self.files[self.current_index:self.current_index + self.batch_size]
+        self.current_index += self.batch_size
+        return batch
+
 
 class ClientConfig(common.BaseCommonClass):
     def __init__(self, passed_data: Union[dict, str], boto_client: botocore.client.BaseClient):
@@ -125,7 +155,7 @@ class Client(common.BaseCommonClass):
             log.error(f"Lambda invocation failed with status code: {response['StatusCode']}")
 
     def begin_processing(self):
-        output = list(self._filelist_batch_iterator('scraped_events/shardId-000000000004', batch_size=5))
+        output = list(FileListBatchIterator('scraped_events/shardId-000000000004', batch_size=5))
 
         pvdd(output)
         pass
