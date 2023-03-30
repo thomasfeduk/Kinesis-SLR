@@ -20,6 +20,7 @@ class FileList(common.Collection):
         common.require_type(shard_id, str, common.exceptions.InvalidArgumentException)
         self._shard_id = shard_id
         self._dir_path = f'scraped_events/{self._shard_id}'
+        self._is_valid()
 
         files_unsorted: List[str] = [f for f in os.listdir(self._dir_path)]
         items: List[str] = sorted(files_unsorted,
@@ -31,9 +32,10 @@ class FileList(common.Collection):
         super().__init__(items)
 
     def _is_valid(self) -> None:
-        self._shard_id = re.sub(r'[^A-Za-z0-9-_]', '', self._shard_id)
-        self._dir_path = f'scraped_events/{self._shard_id}'
-
+        pattern = r'^shardId-[a-zA-Z0-9]+$'
+        if not re.match(pattern, self._shard_id):
+            raise exceptions.InvalidArgumentException(f"Invalid shard id format. Expected: {str} 'shardId-XXXXXXX' "
+                                                      f"Received: {common.type_repr(self._shard_id)}")
         if not os.path.exists(self._dir_path):
             raise exceptions.InvalidArgumentException(f"Scrapped shard directory {self._shard_id} does not exist.")
 

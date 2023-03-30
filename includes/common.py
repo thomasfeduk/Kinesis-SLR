@@ -329,6 +329,10 @@ def require_type(given_object: object, expected_type: Type,
             f"Type {expected_type} expected. Received: {type(given_object)} {repr(given_object)}")
 
 
+def type_repr(input: object) -> str:
+    return f"{type(input)} {repr(input)}"
+
+
 def to_bytes(s):
     if type(s) is bytes:
         return s

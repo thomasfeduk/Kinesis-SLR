@@ -24,7 +24,7 @@ from var_dump import var_dump
 logging.basicConfig()
 
 import os
-import psutil
+
 
 
 def format_size(size_bytes):
@@ -123,15 +123,7 @@ def main_lambda():
     # var = client.get_caller_identity()
     # pvdd(var)
 
-    # my_list = [f"scraped_events/shardId-000000000004/{i}-2023-03-19_23;44;23.json" for i in range(0, 100_000)]
-    # my_list = [i for i in range(0, 100_000)]
-    # list_size = sys.getsizeof(my_list)
-    # print(f"The size of my_list is {format_size(list_size)}.")
-    #
-    # memory_usage = psutil.Process().memory_info().rss
-    # print(f"Python is currently using {format_size(memory_usage)} of memory.")
-    #
-    # pvdd(f"List count: {len(my_list)}")
+
 
     processor = FileProcessor('scraped_events/shardId-000000000004', batch_size=20)
     processor.read_files_in_batches()
