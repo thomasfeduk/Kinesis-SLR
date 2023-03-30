@@ -17,6 +17,8 @@ log = logging.getLogger()
 
 class FileList(common.BaseCommonClass):
     def __init__(self, shard_id: str):
+        self._current_index: int = 0
+        self._items: list = []
         self._shard_id = None
         self._proprules = common.PropRules()
         self._proprules.add_prop("_shard_id", types=[str])
@@ -24,6 +26,12 @@ class FileList(common.BaseCommonClass):
 
         # Have to call parent after defining attributes
         super().__init__({'shard_id': shard_id})
+
+        files_unsorted: List[str] = [f for f in os.listdir(self._dir_path)]
+        self._items: List[str] = sorted(files_unsorted,
+                                        key=lambda x: (
+                                            int(re.search(r'^\d+', x).group()) if re.search(r'^\d+', x) else float(
+                                                'inf'), x))
 
     def _is_valid(self) -> None:
         super()._is_valid()
@@ -34,13 +42,36 @@ class FileList(common.BaseCommonClass):
         if not os.path.exists(self._dir_path):
             raise exceptions.InvalidArgumentException(f"Scrapped shard directory {self._shard_id} does not exist.")
 
-    @property
-    def files(self) -> List[str]:
-        files_unsorted: List[str] = [f for f in os.listdir(self._dir_path)]
-        files: List[str] = sorted(files_unsorted,
-                                  key=lambda x: (
-                                      int(re.search(r'^\d+', x).group()) if re.search(r'^\d+', x) else float('inf'), x))
-        return files
+    def __iter__(self):
+        self._current_index = 0
+        return self
+
+    def __next__(self):
+        if self._current_index >= len(self._items):
+            raise StopIteration
+        self._current_index += 1
+        return self._items[self._current_index - 1]
+
+    def __getitem__(self, index):
+        return self._items[(index)]
+
+    def __len__(self):
+        return len(self._items)
+
+    def __str__(self):
+        output = f"{self.__class__.__name__}("
+        output += ','.join(map(str, self._items))
+        output += f')'
+        return output
+
+    def __repr__(self):
+        output = f"{self.__class__.__name__}("
+        output += ','.join(map(repr, self._items))
+        output += f')'
+        return output
+
+    def __eq__(self, other):
+        return repr(self) == repr(other)
 
 
 class FileListBatchIterator(common.BaseCommonClass):
@@ -54,7 +85,7 @@ class FileListBatchIterator(common.BaseCommonClass):
         # Have to call parent after defining attributes
         super().__init__({'_files_obj': files_obj})
 
-        self._files: list = self._files_obj.files
+        self._files: list = self._files_obj
 
         file_pattern = r'^\d{1,10}-\d{4}-\d{2}-\d{2}_\d{2};\d{2};\d{2}\.json$'
         for file_name in self._files:
@@ -190,10 +221,11 @@ class Client(common.BaseCommonClass):
             log.error(f"Lambda invocation failed with status code: {response['StatusCode']}")
 
     def begin_processing(self):
-        output = list(FileListBatchIterator(FileList('shardId-000000000004'), batch_size=5))
+        for files in FileListBatchIterator(FileList('shardId-000000000004'), batch_size=5):
+            self._process_batch(files)
 
-        pvdd(output)
-        pass
+    def _process_batch(self, batch: list):
+        pvd(batch)
 
     def _build_payload(self):
         ref = {

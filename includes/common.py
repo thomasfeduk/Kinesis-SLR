@@ -110,7 +110,7 @@ class RestrictedCollection(ABC):
     def __init__(self, items):
         if not isinstance(items, list):
             raise TypeError(f"Type list is expected. Received:  {type(items)} {repr(items)}")
-        self._last = 0
+        self._current_index = 0
         self._items = items
         for item in self._items:
             self._validate_item(item)
@@ -121,17 +121,21 @@ class RestrictedCollection(ABC):
         return object  # Set your allowed object type here
 
     def __iter__(self):
-        self._last = 0
+        self._current_index = 0
         return self
 
     def __next__(self):
-        if self._last >= len(self._items):
+        if self._current_index >= len(self._items):
             raise StopIteration
-        self._last += 1
-        return self._items[self._last - 1]
+        self._current_index += 1
+        return self._items[self._current_index - 1]
 
     def __getitem__(self, index):
-        return self._items[int(index)]
+        if isinstance(index, slice):
+            start, stop, step = index.indices(len(self._items))
+            return [self._items[i] for i in range(start, stop, step)]
+        else:
+            return self._items[int(index)]
 
     def __len__(self):
         return len(self._items)
