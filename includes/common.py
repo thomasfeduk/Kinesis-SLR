@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 import datetime
 import includes.exceptions as exceptions
 import struct
+from typing import Type
 
 from includes.debug import pvdd, pvd, die
 
@@ -106,19 +107,12 @@ class BaseCommonClass(BaseSuperclass):
         return repr(self) == repr(other)
 
 
-class RestrictedCollection(ABC):
+class Collection(ABC):
     def __init__(self, items):
-        if not isinstance(items, list):
-            raise TypeError(f"Type list is expected. Received:  {type(items)} {repr(items)}")
         self._current_index = 0
+        if not isinstance(items, list):
+            raise TypeError(f'Type "list" is expected. Received:  {type(items)} {repr(items)}')
         self._items = items
-        for item in self._items:
-            self._validate_item(item)
-
-    @property
-    @abstractmethod
-    def expected_type(self):
-        return object  # Set your allowed object type here
 
     def __iter__(self):
         self._current_index = 0
@@ -154,6 +148,18 @@ class RestrictedCollection(ABC):
 
     def __eq__(self, other):
         return repr(self) == repr(other)
+
+
+class RestrictedCollection(Collection):
+    def __init__(self, items):
+        super().__init__(items)
+        for item in self._items:
+            self._validate_item(item)
+
+    @property
+    @abstractmethod
+    def expected_type(self):
+        return object  # Set your allowed object type here
 
     def _validate_item(self, value):
         if isinstance(value, self.expected_type):
@@ -306,6 +312,21 @@ def list_append_upto_n_items_total(base_list: list, from_list: list, upto_item_c
         if upto_item_count is None or (upto_item_count is not None and len(base_list_new) < upto_item_count):
             base_list_new.append(item)
     return base_list_new
+
+
+def require_instance(given_object: object, expected_instance_type: Type,
+                     exception_type: Union[Type[Exception], TypeError] = None):
+    if not isinstance(given_object, expected_instance_type):
+        raise exception_type(
+            f"Instance of type {expected_instance_type} expected. Received: "
+            f"{type(given_object)} {repr(given_object)}")
+
+
+def require_type(given_object: object, expected_type: Type,
+                 exception_type: Union[Type[Exception], TypeError] = None):
+    if type(given_object) != expected_type:
+        raise exception_type(
+            f"Type {expected_type} expected. Received: {type(given_object)} {repr(given_object)}")
 
 
 def to_bytes(s):

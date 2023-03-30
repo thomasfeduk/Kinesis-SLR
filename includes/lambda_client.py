@@ -15,27 +15,22 @@ import includes.exceptions as exceptions
 log = logging.getLogger()
 
 
-class FileList(common.BaseCommonClass):
+class FileList(common.Collection):
     def __init__(self, shard_id: str):
-        self._current_index: int = 0
-        self._items: list = []
-        self._shard_id = None
-        self._proprules = common.PropRules()
-        self._proprules.add_prop("_shard_id", types=[str])
-        self._dir_path = None
-
-        # Have to call parent after defining attributes
-        super().__init__({'shard_id': shard_id})
+        common.require_type(shard_id, str, common.exceptions.InvalidArgumentException)
+        self._shard_id = shard_id
+        self._dir_path = f'scraped_events/{self._shard_id}'
 
         files_unsorted: List[str] = [f for f in os.listdir(self._dir_path)]
-        self._items: List[str] = sorted(files_unsorted,
+        items: List[str] = sorted(files_unsorted,
                                         key=lambda x: (
                                             int(re.search(r'^\d+', x).group()) if re.search(r'^\d+', x) else float(
                                                 'inf'), x))
 
-    def _is_valid(self) -> None:
-        super()._is_valid()
+        # Have to call parent to populate self._items
+        super().__init__(items)
 
+    def _is_valid(self) -> None:
         self._shard_id = re.sub(r'[^A-Za-z0-9-_]', '', self._shard_id)
         self._dir_path = f'scraped_events/{self._shard_id}'
 
