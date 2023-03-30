@@ -224,7 +224,6 @@ class Record(common.BaseCommonClass):
     def PartitionKey(self) -> str:
         return self._PartitionKey
 
-
     @property
     def base64_encoded(self) -> bool:
         return self._base64_encoded
@@ -241,6 +240,9 @@ class Record(common.BaseCommonClass):
             "Data": data,
             "PartitionKey": self.PartitionKey
         }, indent=indent, default=str)
+
+    def _is_valid(self):
+        ...  # TODO: Add validators for Record to confirm the record contains valid info
 
 
 class RecordsCollection(common.RestrictedCollection):
@@ -586,13 +588,12 @@ class ClientConfig(common.BaseCommonClass):
 
     @staticmethod
     def validate_shard_id(shard_id: str = None) -> str:
-        if not isinstance(shard_id, str):
-            raise exceptions.ConfigValidationError(f'Each shard_id must be a string. '
-                                                   f'Value provided: {repr(type(shard_id))} {repr(shard_id)}')
+        common.require_instance(shard_id, str, exceptions.ConfigValidationError)
 
-        if shard_id.strip() == '':
-            raise exceptions.ConfigValidationError(f'Each shard_id must be a populated string. '
-                                                   f'Value provided: {repr(type(shard_id))} {repr(shard_id)}')
+        pattern = r'^shardId-[a-zA-Z0-9]+$'
+        if not re.match(pattern, shard_id):
+            raise exceptions.ConfigValidationError(f"Invalid shard_id format. Expected: {str} 'shardId-XXXXXXX' "
+                                                   f"Received: {common.type_repr(shard_id)}")
         return shard_id
 
 

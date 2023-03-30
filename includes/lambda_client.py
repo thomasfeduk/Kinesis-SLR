@@ -3,6 +3,8 @@ import boto3
 import botocore
 import logging
 import json
+
+import includes.kinesis_client as kinesis_client
 from includes.debug import *
 import random
 import datetime
@@ -13,11 +15,12 @@ from typing import List
 import includes.exceptions as exceptions
 
 log = logging.getLogger()
+log.setLevel("DEBUG")
 
 
 class FileList(common.Collection):
     def __init__(self, shard_id: str):
-        common.require_type(shard_id, str, common.exceptions.InvalidArgumentException)
+        common.require_type(shard_id, str, exceptions.InvalidArgumentException)
         self._shard_id = shard_id
         self._dir_path = f'scraped_events/{self._shard_id}'
         self._is_valid()
@@ -32,10 +35,10 @@ class FileList(common.Collection):
         super().__init__(items)
 
     def _is_valid(self) -> None:
-        pattern = r'^shardId-[a-zA-Z0-9]+$'
-        if not re.match(pattern, self._shard_id):
-            raise exceptions.InvalidArgumentException(f"Invalid shard id format. Expected: {str} 'shardId-XXXXXXX' "
-                                                      f"Received: {common.type_repr(self._shard_id)}")
+        try:
+            kinesis_client.ClientConfig.validate_shard_id(self._shard_id)
+        except exceptions.ConfigValidationError as ex:
+            raise exceptions.InvalidArgumentException(ex)
         if not os.path.exists(self._dir_path):
             raise exceptions.InvalidArgumentException(f"Scrapped shard directory {self._shard_id} does not exist.")
 
@@ -180,11 +183,35 @@ class Client(common.BaseCommonClass):
             log.error(f"Lambda invocation failed with status code: {response['StatusCode']}")
 
     def begin_processing(self):
-        file_iterator = FileListBatchIterator(FileList('shardId-000000000004'), batch_size=2)
-        pvdd(list(file_iterator))
-        for files in file_iterator:
-            self._process_batch(files)
+        shard_id = 'shardId-000000000004'
+        file_list = FileListBatchIterator(FileList(shard_id), batch_size=20)
+        self._precheck_shard_files(shard_id, file_list)
+        # for files in file_list:
+        #     self._process_batch(files)
 
+    def _precheck_shard_files(self, shard_id: str, file_list: FileListBatchIterator):
+        """
+        Reads every single message in the scrapped directory about to be processed to ensure the valid format
+        of every event file. We don't want to begin processing then encounter a bad message on disk halfway through.
+
+        Args: file_iterator (FileListBatchIterator): Files from the shard directory about to be replayed
+
+        Returns: None.
+        """
+        common.require_type(file_list, FileListBatchIterator, exceptions.InvalidArgumentException)
+        try:
+            kinesis_client.ClientConfig.validate_shard_id(shard_id)
+        except exceptions.ConfigValidationError as ex:
+            raise exceptions.InvalidArgumentException(ex)
+
+        log.debug(f"Scanning all files in {shard_id} for integrity before replay begins...")
+        i = 0
+        for file in file_list.items:
+            i += 1
+            with open(f"scraped_events/{shard_id}/{file}", 'r') as f:
+                contents = f.read()
+                kinesis_client.Record(contents)
+        log.debug(f"All {i} files are in valid format.")
     def _process_batch(self, batch: list):
         pvd(batch)
 
