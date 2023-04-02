@@ -18,35 +18,54 @@ log = logging.getLogger()
 log.setLevel("DEBUG")
 
 
-class FileList(common.Collection):
-    def __init__(self, shard_id: str):
-        common.require_type(shard_id, str, exceptions.InvalidArgumentException)
-        self._shard_id = shard_id
-        self._dir_path = f'scraped_events/{self._shard_id}'
-        self._is_valid()
+class Files(common.Collection):
+    def __init__(self, *, shard_id: str = None, file_list: list = None):
+        if (shard_id is None and file_list is None) or (shard_id is not None and file_list is not None):
+            raise exceptions.InvalidArgumentException("Exactly one of `shard_id` or `file_list` must be provided.")
 
-        files_unsorted: List[str] = [f for f in os.listdir(self._dir_path)]
-        items: List[str] = sorted(files_unsorted,
-                                        key=lambda x: (
-                                            int(re.search(r'^\d+', x).group()) if re.search(r'^\d+', x) else float(
-                                                'inf'), x))
+        items = []
+        if shard_id is not None:
+            items = self._init_from_shard_id(shard_id)
+
+        if file_list is not None:
+            items = self._init_from_file_list(file_list)
 
         # Have to call parent to populate self._items
         super().__init__(items)
 
+    def _init_from_shard_id(self, shard_id):
+        common.require_type(shard_id, str, exceptions.InvalidArgumentException)
+        self._shard_id = shard_id
+        self._dir_path = f'scraped_events/{self._shard_id}'
+        self._is_valid()
+        files_unsorted: List[str] = [f for f in os.listdir(self._dir_path)]
+        items: List[str] = sorted(files_unsorted,
+                                  key=lambda x: (
+                                      int(re.search(r'^\d+', x).group()) if re.search(r'^\d+', x) else float(
+                                          'inf'), x))
+        return items
+
+    def _init_from_file_list(self, items: list):
+        common.require_type(items, list)
+        return items
+
     def _is_valid(self) -> None:
         try:
             kinesis_client.ClientConfig.validate_shard_id(self._shard_id)
-        except exceptions.ConfigValidationError as ex:
-            raise exceptions.InvalidArgumentException(ex)
+        except ValueError as ex:
+            raise exceptions.InvalidArgumentException(ex) from ex
         if not os.path.exists(self._dir_path):
             raise exceptions.InvalidArgumentException(f"Scrapped shard directory {self._shard_id} does not exist.")
 
 
 class FileListBatchIterator(common.Collection):
-    def __init__(self, files_obj: FileList, batch_size: int) -> None:
+    def __init__(self, files_obj: Files, shard_id: str, batch_size: int) -> None:
+        common.require_type(files_obj, Files)
+        common.require_type(shard_id, str)
+        common.require_type(batch_size, int)
+
+        self._shard_id: str = shard_id
         self._batch_size: int = batch_size
-        common.require_type(files_obj, FileList)
 
         # Have to call parent to populate self._items
         super().__init__(list(files_obj))
@@ -60,6 +79,10 @@ class FileListBatchIterator(common.Collection):
                                                      f"to begin replaying events.")
 
     @property
+    def shard_id(self) -> str:
+        return self._shard_id
+
+    @property
     def batch_size(self) -> int:
         return self._batch_size
 
@@ -67,13 +90,13 @@ class FileListBatchIterator(common.Collection):
     def items(self):
         return self._items
 
-    def __next__(self) -> List[str]:
+    def __next__(self) -> Files:
         if self._current_index >= len(self._items):
             raise StopIteration
 
         batch: List[str] = self._items[self._current_index:self._current_index + self._batch_size]
         self._current_index += self._batch_size
-        return batch
+        return Files(file_list=batch)
 
 
 class ClientConfig(common.BaseCommonClass):
@@ -183,13 +206,33 @@ class Client(common.BaseCommonClass):
             log.error(f"Lambda invocation failed with status code: {response['StatusCode']}")
 
     def begin_processing(self):
-        shard_id = 'shardId-000000000004'
-        file_list = FileListBatchIterator(FileList(shard_id), batch_size=20)
-        self._precheck_shard_files(shard_id, file_list)
-        # for files in file_list:
-        #     self._process_batch(files)
+        dir_path = "scraped_events"
+        file_list = os.listdir(dir_path)
+        shards_ids = []
+        for shard_id in file_list:
+            filepath = os.path.join(dir_path, shard_id)
+            if os.path.isdir(filepath):
+                shards_ids.append(shard_id)
+                try:
+                    kinesis_client.ClientConfig.validate_shard_id(shard_id)
+                except ValueError as ex:
+                    raise exceptions.FileProcessingError(f"One of more scrapped scraped shard_id directories does not "
+                                                         f"match expected naming convention: {ex}") from ex
+        for shard_id in shards_ids:
+            self._process_shard_dir(shard_id)
+            die('enddsad')
 
-    def _precheck_shard_files(self, shard_id: str, file_list: FileListBatchIterator):
+    def _process_shard_dir(self, shard_id: str):
+        common.require_type(shard_id, str)
+        file_batch_obj = FileListBatchIterator(Files(shard_id=shard_id), shard_id, batch_size=3)
+        self._precheck_shard_files(file_batch_obj)
+
+        pvd(file_batch_obj)
+        for files_batch in file_batch_obj:
+            pvd(files_batch)
+            # self._process_batch(files)
+
+    def _precheck_shard_files(self, file_batch_obj: FileListBatchIterator):
         """
         Reads every single message in the scrapped directory about to be processed to ensure the valid format
         of every event file. We don't want to begin processing then encounter a bad message on disk halfway through.
@@ -198,20 +241,21 @@ class Client(common.BaseCommonClass):
 
         Returns: None.
         """
-        common.require_type(file_list, FileListBatchIterator, exceptions.InvalidArgumentException)
+        common.require_type(file_batch_obj, FileListBatchIterator, exceptions.InvalidArgumentException)
         try:
-            kinesis_client.ClientConfig.validate_shard_id(shard_id)
-        except exceptions.ConfigValidationError as ex:
-            raise exceptions.InvalidArgumentException(ex)
+            kinesis_client.ClientConfig.validate_shard_id(file_batch_obj.shard_id)
+        except ValueError as ex:
+            raise exceptions.InvalidArgumentException(ex) from ex
 
-        log.debug(f"Scanning all files in {shard_id} for integrity before replay begins...")
+        log.debug(f"Scanning all files in {file_batch_obj.shard_id} for integrity before replay begins...")
         i = 0
-        for file in file_list.items:
+        for file in file_batch_obj.items:
             i += 1
-            with open(f"scraped_events/{shard_id}/{file}", 'r') as f:
+            with open(f"scraped_events/{file_batch_obj.shard_id}/{file}", 'r') as f:
                 contents = f.read()
                 kinesis_client.Record(contents)
         log.debug(f"All {i} files are in valid format.")
+
     def _process_batch(self, batch: list):
         pvd(batch)
 

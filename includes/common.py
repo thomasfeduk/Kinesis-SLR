@@ -333,6 +333,22 @@ def type_repr(input: object) -> str:
     return f"{type(input)} {repr(input)}"
 
 
+def format_size(size_bytes):
+    # Define suffixes and their corresponding units
+    suffixes = ["B", "KB", "MB", "GB"]
+    base = 1024
+
+    # Determine the appropriate suffix and scale the size accordingly
+    for i, suffix in enumerate(suffixes):
+        if size_bytes < base ** (i + 1):
+            size = size_bytes / base ** i
+            return f"{size:.2f} {suffix}"
+
+    # If the size is very large, use the largest suffix
+    size = size_bytes / base ** (len(suffixes) - 1)
+    return f"{size:.2f} {suffixes[-1]}"
+
+
 def to_bytes(s):
     if type(s) is bytes:
         return s

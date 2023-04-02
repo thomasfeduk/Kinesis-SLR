@@ -583,7 +583,10 @@ class ClientConfig(common.BaseCommonClass):
             raise exceptions.ConfigValidationError(f'shard_ids must be of type list if specified. Type provided: '
                                                    f'{str(type(shard_ids))} {repr(shard_ids)}')
         for shard_id in shard_ids:
-            ClientConfig.validate_shard_id(shard_id)
+            try:
+                ClientConfig.validate_shard_id(shard_id)
+            except ValueError as ex:
+                raise exceptions.ConfigValidationError(ex)
         return shard_ids
 
     @staticmethod
@@ -592,8 +595,8 @@ class ClientConfig(common.BaseCommonClass):
 
         pattern = r'^shardId-[a-zA-Z0-9]+$'
         if not re.match(pattern, shard_id):
-            raise exceptions.ConfigValidationError(f"Invalid shard_id format. Expected: {str} 'shardId-XXXXXXX' "
-                                                   f"Received: {common.type_repr(shard_id)}")
+            raise ValueError(f"Invalid shard_id format. Expected pattern: {str} 'shardId-XXXXXXX' "
+                             f"Received: {common.type_repr(shard_id)}")
         return shard_id
 
 
