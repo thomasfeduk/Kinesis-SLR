@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Any
 import boto3
 import botocore
 import logging
@@ -57,6 +57,17 @@ class Files(common.Collection):
         if not os.path.exists(self._dir_path):
             raise exceptions.InvalidArgumentException(f"Scrapped shard directory {self._shard_id} does not exist.")
 
+    @staticmethod
+    def validate_file_name(file_name: str):
+        common.require_type(file_name, str)
+        file_pattern = r'^\d{1,10}-\d{4}-\d{2}-\d{2}_\d{2};\d{2};\d{2}\.json$'
+        if not re.match(file_pattern, file_name):
+            raise ValueError(f"Invalid file name format. {Files.expected_pattern_error(file_name)}")
+
+    @staticmethod
+    def expected_pattern_error(file_name: Any):
+        return f"Expected pattern: {str} 'X-YYYY-MM-DD_HH;MM;SS' Received: {common.type_repr(file_name)}"
+
 
 class FileListBatchIterator(common.Collection):
     def __init__(self, files_obj: Files, shard_id: str, batch_size: int) -> None:
@@ -70,13 +81,14 @@ class FileListBatchIterator(common.Collection):
         # Have to call parent to populate self._items
         super().__init__(list(files_obj))
 
-        file_pattern = r'^\d{1,10}-\d{4}-\d{2}-\d{2}_\d{2};\d{2};\d{2}\.json$'
         for file_name in self._items:
-            if not re.match(file_pattern, file_name):
-                raise exceptions.FileProcessingError(f"Cannot begin replaying events: File name \"{file_name}\" does "
-                                                     f"not match the expected pattern for a Kinesis message created "
-                                                     f"by the Kinesis-SLR. Please corrector remove the offending file "
-                                                     f"to begin replaying events.")
+            try:
+                Files.validate_file_name(file_name)
+            except ValueError as ex:
+                raise exceptions.FileProcessingError(
+                    f"Cannot begin replaying events: File name '{file_name}' does not match the expected pattern "
+                    f"for a Kinesis message created by the Kinesis-SLR. Please correct or remove the offending file to "
+                    f"begin replaying events. {Files.expected_pattern_error(file_name)}") from ex
 
     @property
     def shard_id(self) -> str:
@@ -87,8 +99,8 @@ class FileListBatchIterator(common.Collection):
         return self._batch_size
 
     @property
-    def items(self):
-        return self._items
+    def items(self) -> Files:
+        return Files(file_list=self._items)
 
     def __next__(self) -> Files:
         if self._current_index >= len(self._items):
@@ -216,8 +228,13 @@ class Client(common.BaseCommonClass):
                 try:
                     kinesis_client.ClientConfig.validate_shard_id(shard_id)
                 except ValueError as ex:
-                    raise exceptions.FileProcessingError(f"One of more scrapped scraped shard_id directories does not "
-                                                         f"match expected naming convention: {ex}") from ex
+                    raise exceptions.FileProcessingError(
+                        f"Cannot begin replaying events: One of the scrapped shard_id directories does not match the "
+                        f"expected  pattern for a Kinesis message created by the Kinesis-SLR. Please correct or remove "
+                        f"the  offending file to begin replaying events {ex}") from ex
+
+
+
         for shard_id in shards_ids:
             self._process_shard_dir(shard_id)
             die('enddsad')
@@ -225,7 +242,11 @@ class Client(common.BaseCommonClass):
     def _process_shard_dir(self, shard_id: str):
         common.require_type(shard_id, str)
         file_batch_obj = FileListBatchIterator(Files(shard_id=shard_id), shard_id, batch_size=3)
+
+        pvdd(list(file_batch_obj.items))
         self._precheck_shard_files(file_batch_obj)
+
+        pvdd(file_batch_obj.items)
 
         pvd(file_batch_obj)
         for files_batch in file_batch_obj:
@@ -249,7 +270,7 @@ class Client(common.BaseCommonClass):
 
         log.debug(f"Scanning all files in {file_batch_obj.shard_id} for integrity before replay begins...")
         i = 0
-        for file in file_batch_obj.items:
+        for file in list(file_batch_obj.items):
             i += 1
             with open(f"scraped_events/{file_batch_obj.shard_id}/{file}", 'r') as f:
                 contents = f.read()
