@@ -602,17 +602,11 @@ class ClientConfig(common.BaseCommonClass):
 
 class Client:
     def __init__(self, client_config: ClientConfig):
+        common.require_instance(client_config, ClientConfig, exceptions.InvalidArgumentException)
         self._client_config = client_config
-        self._is_valid()
 
         # Setup default attributes
         self._current_shard_iterator = None
-
-    def _is_valid(self):
-        if not isinstance(self._client_config, ClientConfig):
-            raise exceptions.ConfigValidationError(
-                f"client_config must be an instance of ClientConfig. "
-                f"Value provided: {repr(type(self._client_config))} {repr(self._client_config)}")
 
     def _confirm_shards_exist(self, shard_ids_detected: list):
         for shard_id in self._client_config.shard_ids:

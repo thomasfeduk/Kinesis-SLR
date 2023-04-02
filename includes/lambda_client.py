@@ -182,8 +182,9 @@ class ClientConfig(common.BaseCommonClass):
         pass
 
 
-class Client(common.BaseCommonClass):
+class Client:
     def __init__(self, client_config: ClientConfig):
+        common.require_instance(client_config, ClientConfig, exceptions.InvalidArgumentException)
         self._client_config = client_config
 
     def _invoke(self, payload):
@@ -231,29 +232,23 @@ class Client(common.BaseCommonClass):
                     raise exceptions.FileProcessingError(
                         f"Cannot begin replaying events: One of the scrapped shard_id directories does not match the "
                         f"expected  pattern for a Kinesis message created by the Kinesis-SLR. Please correct or remove "
-                        f"the  offending file to begin replaying events {ex}") from ex
-
-
+                        f"the offending file to begin replaying events {ex}") from ex
 
         for shard_id in shards_ids:
             self._process_shard_dir(shard_id)
-            die('enddsad')
 
     def _process_shard_dir(self, shard_id: str):
         common.require_type(shard_id, str)
-        file_batch_obj = FileListBatchIterator(Files(shard_id=shard_id), shard_id, batch_size=3)
+        die('_process_shard_dir')
+        file_batch_obj = FileListBatchIterator(
+            Files(shard_id=shard_id), shard_id, batch_size=self._client_config.batch_size)
 
-        pvdd(list(file_batch_obj.items))
-        self._precheck_shard_files(file_batch_obj)
+        self._precheck_files_batch_iterator(file_batch_obj)
 
-        pvdd(file_batch_obj.items)
-
-        pvd(file_batch_obj)
         for files_batch in file_batch_obj:
-            pvd(files_batch)
-            # self._process_batch(files)
+            self._process_batch(files_batch)
 
-    def _precheck_shard_files(self, file_batch_obj: FileListBatchIterator):
+    def _precheck_files_batch_iterator(self, file_batch_iterator: FileListBatchIterator):
         """
         Reads every single message in the scrapped directory about to be processed to ensure the valid format
         of every event file. We don't want to begin processing then encounter a bad message on disk halfway through.
@@ -262,20 +257,28 @@ class Client(common.BaseCommonClass):
 
         Returns: None.
         """
-        common.require_type(file_batch_obj, FileListBatchIterator, exceptions.InvalidArgumentException)
+        common.require_type(file_batch_iterator, FileListBatchIterator, exceptions.InvalidArgumentException)
         try:
-            kinesis_client.ClientConfig.validate_shard_id(file_batch_obj.shard_id)
+            kinesis_client.ClientConfig.validate_shard_id(file_batch_iterator.shard_id)
         except ValueError as ex:
             raise exceptions.InvalidArgumentException(ex) from ex
 
-        log.debug(f"Scanning all files in {file_batch_obj.shard_id} for integrity before replay begins...")
+        log.debug(f"Verifying integrity of all files for shard {file_batch_iterator.shard_id} before replay begins...")
         i = 0
-        for file in list(file_batch_obj.items):
+        for file in list(file_batch_iterator.items):
             i += 1
-            with open(f"scraped_events/{file_batch_obj.shard_id}/{file}", 'r') as f:
+            with open(f"scraped_events/{file_batch_iterator.shard_id}/{file}", 'r') as f:
                 contents = f.read()
-                kinesis_client.Record(contents)
-        log.debug(f"All {i} files are in valid format.")
+                try:
+                    kinesis_client.Record(contents)
+                except Exception as ex:
+                    raise exceptions.FileProcessingError(
+                        f"Cannot begin replaying events: Scrapped file '{file_batch_iterator.shard_id}/{file}' is not "
+                        f"in the expected format. Please correct or remove the offending file to begin replaying "
+                        f"events. Detailed error: {ex}") from ex
+
+        log.debug(f"Scan complete: All {i} files for shard {file_batch_iterator.shard_id}"
+                  f" are in the expected format.")
 
     def _process_batch(self, batch: list):
         pvd(batch)

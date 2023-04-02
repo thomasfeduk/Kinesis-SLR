@@ -47,7 +47,7 @@ class BaseSuperclass(ABC):
                     if hasattr(self, key) and not callable(getattr(self, key)):
                         setattr(self, key, passed_data[key])
         except Exception as ex:
-            raise ValueError(f"Could not convert passed_data to a dict.\npassed_data: {repr(passed_data)}") from ex
+            raise ValueError(f"Could not convert passed_data to a dict. passed_data: {repr(passed_data)}") from ex
 
 
 class BaseCommonClass(BaseSuperclass):

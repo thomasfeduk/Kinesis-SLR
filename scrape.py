@@ -97,7 +97,20 @@ def main_lambda():
     # die()
     # pvdd(list(file_batch_iterator('scraped_events/shardId-000000000004', batch_size=5)))
 
-    client = includes.lambda_client.Client('sdsadd')
+    import threading
+    import boto3
+
+    # Create a thread-local client object
+    thread_local = threading.local()
+
+    config_yaml = common.read_config('config-lambda_replay.example.yaml')
+
+    test = boto3.client('lambda', 'us-east-1')
+    pvdd(test)
+
+    config_lambda = lambda_client.ClientConfig(config_yaml, boto3.client('lambda', config_yaml['region_name']))
+    pvdd(config_lambda)
+    client = lambda_client.Client(config_lambda)
     client.begin_processing()
 
     die('scrape.py;: main_lambda()')
