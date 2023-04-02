@@ -163,6 +163,7 @@ class ClientConfig(common.BaseCommonClass):
         return self._custom_checkpoints
 
     def _is_valid(self):
+        common.require_instance(self.boto_client, botocore.client.BaseClient)
         if self.function_name == 'function_name_here':
             raise ValueError('config-lambda_replay.yaml: A function name must be set.')
 

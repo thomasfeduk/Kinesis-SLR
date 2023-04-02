@@ -27,30 +27,20 @@ import os
 
 
 def main_lambda():
-    # Create a Lambda client
-    lambda_client = boto3.client('lambda', "us-east-1")
+    # lambda_client = boto3.client('lambda', "us-east-1")
+    # input_payload = {'key1': 'value1', 'key2': 'value2'}
+    # response = lambda_client.invoke(
+    #     FunctionName='kworker',
+    #     Payload=json.dumps(input_payload)
+    # )
+    # print(json.dumps(response, indent=4, default=str))
+    # print(json.dumps(json.loads(response['Payload'].read().decode('utf-8')), indent=4))
+    # die('sdsadad')
 
-    # Define the input payload for the Lambda function
-    input_payload = {
-        'key1': 'value1',
-        'key2': 'value2'
-    }
-
-    # Invoke the Lambda function
-    response = lambda_client.invoke(
-        FunctionName='kworker',
-        Payload=json.dumps(input_payload)
-    )
-
-    # Parse the response from the Lambda function
-    print(json.dumps(response, indent=4, default=str))
-    print(json.dumps(json.loads(response['Payload'].read().decode('utf-8')), indent=4))
-
-
-    # config_lambda = lambda_client.ClientConfig(config_yaml, boto3.client('lambda', config_yaml['region_name']))
-    # pvdd(config_lambda)
-    # client = lambda_client.Client(config_lambda)
-    # client.begin_processing()
+    config_yaml = common.read_config('config-lambda_replay.example.yaml')
+    lambda_config = lambda_client.ClientConfig(config_yaml, boto3.client('lambda', "us-east-1"))
+    client = lambda_client.Client(lambda_config)
+    client.begin_processing()
 
     die('scrape.py;: main_lambda()')
 
