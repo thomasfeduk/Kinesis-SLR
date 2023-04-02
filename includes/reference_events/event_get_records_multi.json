@@ -5,9 +5,7 @@
             "ApproximateArrivalTimestamp": "2023-01-02 21:02:23.513000-05:00",
             "Data": "b'{\"mytimestamp\": \"2023-01-02 21:02:21-1\", \"error\": false, \"unrecoverable\": false}'",
             "PartitionKey": "1"
-        }
-    ]
-}
+        },
         {
             "SequenceNumber": "49636577181771207871059760348652027931493020989608951890",
             "ApproximateArrivalTimestamp": "2023-01-02 21:02:23.515000-05:00",

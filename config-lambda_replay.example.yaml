@@ -28,7 +28,7 @@ function_name: f2unction_name_here
 #  - event.Records[].awsRegion
 #  - event.Records[].eventSourceARN
 #
-batch_size: 100 # Max 10000
+batch_size: 3 # Max 10000
 
 # --------------------
 # Property: local_dlq

@@ -145,29 +145,31 @@ def _strip_proprules_recursively(data):
             data_stripped_new = data_stripped.copy()
         except Exception:
             data_stripped_new = data_stripped
-        for item in data_stripped:
-            try:
-                delattr(data_stripped_new[i], '_proprules')
-            except Exception:
+        try:
+            for item in data_stripped:
+                try:
+                    delattr(data_stripped_new[i], '_proprules')
+                except Exception:
+                    pass
+                try:
+                    delattr(data_stripped_new[item], '_proprules')
+                except Exception:
+                    pass
+                try:
+                    del data_stripped_new[i]._proprules
+                except Exception:
+                    pass
+                try:
+                    data_stripped_new[i] = _strip_proprules_recursively(item)
+                except Exception:
+                    pass
+                i += 1
+                try:
+                    data_stripped = data_stripped_new.copy()
+                except Exception:
+                    data_stripped = data_stripped_new
+        except Exception:
                 pass
-            try:
-                delattr(data_stripped_new[item], '_proprules')
-            except Exception:
-                pass
-            try:
-                del data_stripped_new[i]._proprules
-            except Exception:
-                pass
-            try:
-                data_stripped_new[i] = _strip_proprules_recursively(item)
-            except Exception:
-                pass
-            i += 1
-            try:
-                data_stripped = data_stripped_new.copy()
-            except Exception:
-                data_stripped = data_stripped_new
-
     return data_stripped
 
 

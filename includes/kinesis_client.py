@@ -209,7 +209,7 @@ class Record(common.BaseCommonClass):
         return self._SequenceNumber
 
     @property
-    def ApproximateArrivalTimestamp(self) -> datetime.datetime:
+    def ApproximateArrivalTimestamp(self) -> [datetime.datetime, str]:
         return self._ApproximateArrivalTimestamp
 
     @property

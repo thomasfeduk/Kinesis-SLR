@@ -114,6 +114,7 @@ class FileListBatchIterator(common.Collection):
 class ClientConfig(common.BaseCommonClass):
     def __init__(self, passed_data: Union[dict, str], boto_client: botocore.client.BaseClient):
         self._boto_client = boto_client
+        self._region_name = None
         self._function_name = None
         self._batch_size = None
         self._local_dlq = None
@@ -129,6 +130,10 @@ class ClientConfig(common.BaseCommonClass):
     @property
     def boto_client(self):
         return self._boto_client
+
+    @property
+    def region_name(self):
+        return self._region_name
 
     @property
     def function_name(self):
@@ -187,6 +192,7 @@ class Client:
     def __init__(self, client_config: ClientConfig):
         common.require_instance(client_config, ClientConfig, exceptions.InvalidArgumentException)
         self._client_config = client_config
+        self._account_id = "12345"
 
     def _invoke(self, payload):
         try:
@@ -240,14 +246,14 @@ class Client:
 
     def _process_shard_dir(self, shard_id: str):
         common.require_type(shard_id, str)
-        die('_process_shard_dir')
+
         file_batch_obj = FileListBatchIterator(
             Files(shard_id=shard_id), shard_id, batch_size=self._client_config.batch_size)
 
         self._precheck_files_batch_iterator(file_batch_obj)
 
         for files_batch in file_batch_obj:
-            self._process_batch(files_batch)
+            self._process_batch(shard_id, files_batch)
 
     def _precheck_files_batch_iterator(self, file_batch_iterator: FileListBatchIterator):
         """
@@ -281,10 +287,23 @@ class Client:
         log.debug(f"Scan complete: All {i} files for shard {file_batch_iterator.shard_id}"
                   f" are in the expected format.")
 
-    def _process_batch(self, batch: list):
-        pvd(batch)
+    def _process_batch(self, shard_id: str, file_list: Files):
+        common.require_type(shard_id, str, exceptions.InvalidArgumentException)
+        common.require_type(file_list, Files, exceptions.InvalidArgumentException)
 
-    def _build_payload(self):
+        payload = self._build_payload(shard_id, file_list)
+
+    def _build_payload(self, shard_id: str, file_list: Files):
+        common.require_type(shard_id, str, exceptions.InvalidArgumentException)
+        common.require_type(file_list, Files, exceptions.InvalidArgumentException)
+        final_payload = {"Records": []}
+
+        for file in list(file_list):
+            final_payload["Records"].append(self._build_payload_inner(shard_id, file))
+
+        if shard_id == "shardId-000000000005":
+            jout(final_payload)
+
         ref = {
             "Records": [
                 {
@@ -305,3 +324,30 @@ class Client:
                 }
             ]
         }
+
+    def _build_payload_inner(self, shard_id: str, file: str) -> dict:
+        kinesis_client.ClientConfig.validate_shard_id(shard_id)
+        Files.validate_file_name(file)
+        with open(f"scraped_events/{shard_id}/{file}", 'r') as f:
+            contents = f.read()
+            record = kinesis_client.Record(contents)
+
+        inner_payload = {
+            "kinesis": {
+                "kinesisSchemaVersion": "1.0",
+                "partitionKey": record.PartitionKey,
+                "sequenceNumber": record.SequenceNumber,
+                "data": record.Data,
+                "approximateArrivalTimestamp":
+                    datetime.datetime.fromisoformat(record.ApproximateArrivalTimestamp).timestamp()
+            },
+            "eventSource": "aws:kinesis",
+            "eventVersion": "1.0",
+            "eventID": f"{shard_id}:{record.SequenceNumber}",
+            "eventName": "aws:kinesis:record",
+            "invokeIdentityArn": f"local::kinesis-slr",
+            "awsRegion": self._client_config.region_name,
+            "eventSourceARN": f"arn:aws:kinesis:us-east-1:{self._account_id}:stream/stream_name_here"
+        }
+
+        return inner_payload
