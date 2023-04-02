@@ -154,7 +154,7 @@ class TestCalculateIterationUptoAdd(unittest.TestCase):
         self.config_input = {
             'debug_level': "INFO",
             'stream_name': "user_activities",
-            'shard_ids': ["shard-000000001"],
+            'shard_ids': ["shardId-000000001"],
             'starting_position': "TRIM_HORIZON",
             'starting_timestamp': "2022-12-01 00:00:00",
             'starting_sequence_number': "111111",
@@ -172,7 +172,7 @@ class TestCalculateIterationUptoAdd(unittest.TestCase):
                     'StreamName': '123',
                     'StreamARN': 'arn:123',
                     'Shards': [{
-                        'ShardId': 'shard-00001-test'
+                        'ShardId': 'shardId-00001'
                     }]
                 }
         }
@@ -330,7 +330,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 response_no_records=0,
                 loop_count=15,
                 shard_iterator="abc",
-                shard_id="shard-123"
+                shard_id="shardId-123"
             )
 
         self.assertIn(
@@ -346,7 +346,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 response_no_records='blah',
                 loop_count=15,
                 shard_iterator="abc",
-                shard_id="shard-123"
+                shard_id="shardId-123"
             )
 
         self.assertIn(
@@ -362,7 +362,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 response_no_records=0,
                 loop_count="15",
                 shard_iterator="abc",
-                shard_id="shard-123"
+                shard_id="shardId-123"
             )
 
         self.assertIn(
@@ -378,7 +378,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 response_no_records=0,
                 loop_count=15,
                 shard_iterator=None,
-                shard_id="shard-123"
+                shard_id="shardId-123"
             )
 
         self.assertIn(
@@ -410,7 +410,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 response_no_records=0,
                 loop_count=15,
                 shard_iterator="abc",
-                shard_id="shard-500",
+                shard_id="shardId-500",
             )
 
         self.assertIn("\"total_found_records\" must be a positive numeric value. Received: <class 'int'> -10",
@@ -423,7 +423,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 response_no_records=-2,
                 loop_count=15,
                 shard_iterator="abc",
-                shard_id="shard-500",
+                shard_id="shardId-500",
             )
 
         self.assertIn("\"response_no_records\" must be a positive numeric value. Received: <class 'int'> -2",
@@ -436,7 +436,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 response_no_records=2,
                 loop_count=-15,
                 shard_iterator="abc",
-                shard_id="shard-500",
+                shard_id="shardId-500",
             )
 
         self.assertIn("\"loop_count\" must be a positive numeric value. Received: <class 'int'> -15",
@@ -448,14 +448,14 @@ class TestGetRecordsIterationInput(unittest.TestCase):
             response_no_records=0,
             loop_count=15,
             shard_iterator="abc",
-            shard_id="shard-123"
+            shard_id="shardId-123"
         )
 
         self.assertEqual(iteration_input.total_found_records, 10)
         self.assertEqual(iteration_input.response_no_records, 0)
         self.assertEqual(iteration_input.loop_count, 15)
         self.assertEqual(iteration_input.shard_iterator, "abc")
-        self.assertEqual(iteration_input.shard_id, "shard-123")
+        self.assertEqual(iteration_input.shard_id, "shardId-123")
 
 
 class TestGetRecordsIterationOutput(unittest.TestCase):
@@ -481,7 +481,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 response_no_records=2,
                 loop_count=15,
                 next_shard_iterator="abc",
-                shard_id="shard-123",
+                shard_id="shardId-123",
                 break_iteration=True
             )
 
@@ -499,7 +499,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 response_no_records=2,
                 loop_count=15,
                 next_shard_iterator="abc",
-                shard_id="shard-123",
+                shard_id="shardId-123",
                 break_iteration=True
             )
 
@@ -517,7 +517,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 response_no_records="2",
                 loop_count=15,
                 next_shard_iterator="abc",
-                shard_id="shard-123",
+                shard_id="shardId-123",
                 break_iteration=True
             )
 
@@ -535,7 +535,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 response_no_records=2,
                 loop_count="15",
                 next_shard_iterator="abc",
-                shard_id="shard-123",
+                shard_id="shardId-123",
                 break_iteration=True
             )
 
@@ -553,7 +553,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 response_no_records=2,
                 loop_count=15,
                 next_shard_iterator=5,
-                shard_id="shard-123",
+                shard_id="shardId-123",
                 break_iteration=True
             )
 
@@ -589,7 +589,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 response_no_records=2,
                 loop_count=15,
                 next_shard_iterator="abcc",
-                shard_id="shard-123",
+                shard_id="shardId-123",
                 break_iteration="True"
             )
 
@@ -607,7 +607,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 response_no_records=2,
                 loop_count=15,
                 next_shard_iterator="abcc",
-                shard_id="shard-123",
+                shard_id="shardId-123",
                 break_iteration=True
             )
 
@@ -622,7 +622,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 response_no_records=2,
                 loop_count=15,
                 next_shard_iterator="abcc",
-                shard_id="shard-123",
+                shard_id="shardId-123",
                 break_iteration=True
             )
 
@@ -637,7 +637,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 response_no_records=-2,
                 loop_count=15,
                 next_shard_iterator="abcc",
-                shard_id="shard-123",
+                shard_id="shardId-123",
                 break_iteration=True
             )
 
@@ -652,7 +652,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 response_no_records=2,
                 loop_count=-15,
                 next_shard_iterator="abcc",
-                shard_id="shard-123",
+                shard_id="shardId-123",
                 break_iteration=True
             )
 
@@ -667,7 +667,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 response_no_records=2,
                 loop_count=15,
                 next_shard_iterator="abcc",
-                shard_id="shard-123",
+                shard_id="shardId-123",
                 break_iteration=True
             )
 
@@ -681,7 +681,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
             response_no_records=2,
             loop_count=15,
             next_shard_iterator="abc",
-            shard_id="shard-123",
+            shard_id="shardId-123",
             break_iteration=True
         )
 
@@ -690,7 +690,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         self.assertEqual(iteration_input.response_no_records, 2)
         self.assertEqual(iteration_input.loop_count, 15)
         self.assertEqual(iteration_input.next_shard_iterator, "abc")
-        self.assertEqual(iteration_input.shard_id, "shard-123")
+        self.assertEqual(iteration_input.shard_id, "shardId-123")
         self.assertEqual(iteration_input.break_iteration, True)
 
 
@@ -708,7 +708,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
         self.config_input = {
             'debug_level': "INFO",
             'stream_name': "user_activities",
-            'shard_ids': ["shard-000000001"],
+            'shard_ids': ["shardId-000000001"],
             'starting_position': "TRIM_HORIZON",
             'starting_timestamp': "2022-12-01 00:00:00",
             'starting_sequence_number': "111111",
@@ -726,7 +726,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
                     'StreamName': '123',
                     'StreamARN': 'arn:123',
                     'Shards': [{
-                        'ShardId': 'shard-00001-test'
+                        'ShardId': 'shardId-00001'
                     }]
                 }
         }
@@ -1144,7 +1144,7 @@ class TestClientFullCycle(unittest.TestCase):
         self.config_input = {
             'debug_level': "INFO",
             'stream_name': "user_activities",
-            'shard_ids': ["shard-000000001"],
+            'shard_ids': ["shardId-000000001"],
             'starting_position': "TRIM_HORIZON",
             'starting_timestamp': "2022-12-01 00:00:00",
             'starting_sequence_number': "111111",
@@ -1162,7 +1162,7 @@ class TestClientFullCycle(unittest.TestCase):
                     'StreamName': '123',
                     'StreamARN': 'arn:123',
                     'Shards': [{
-                        'ShardId': 'shard-00001-test'
+                        'ShardId': 'shardId-00001'
                     }]
                 }
         }
@@ -1182,7 +1182,7 @@ class TestClientFullCycle(unittest.TestCase):
                                       mocked_get_records,
                                       mocked_process_records,
                                       ):
-        # mocked_get_shard_ids_of_stream.return_value = ['shard-00000-test']
+        # mocked_get_shard_ids_of_stream.return_value = ['shardId-00000-test']
         mocked_os_path_exists.return_value = False
         mock.seal(mocked_os_path_exists)
 
@@ -1205,7 +1205,7 @@ class TestClientFullCycle(unittest.TestCase):
         mocked_process_records.return_value = 'proc record'
         mock.seal(mocked_process_records)
 
-        self.config_input["shard_ids"] = ["shard-00001-test"]
+        self.config_input["shard_ids"] = ["shardId-00001"]
         client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
         # TODO: finish this unit test
         # client.begin_scraping()
@@ -1229,9 +1229,9 @@ class TestClientFullCycle(unittest.TestCase):
         self.boto_client.describe_stream = mock.Mock()
         self.boto_client.describe_stream.return_value = self.detected_shards
 
-        self.config_input["shard_ids"] = ["abc"]
+        self.config_input["shard_ids"] = ["shardId-12345"]
         client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
         with self.assertRaises(exceptions.ConfigValidationError) as ex:
             client.begin_scraping()
-        self.assertIn("Specified shard_id \"abc\" does not exist in stream \"user_activities\". "
-                      "Detected shards: ['shard-00001-test']", str(ex.exception))
+        self.assertIn("Specified shard_id \"shardId-12345\" does not exist in stream \"user_activities\". "
+                      "Detected shards: ['shardId-00001']", str(ex.exception))

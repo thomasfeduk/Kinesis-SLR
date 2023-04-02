@@ -242,6 +242,7 @@ class Record(common.BaseCommonClass):
         }, indent=indent, default=str)
 
     def _is_valid(self):
+        super()._is_valid()
         ...  # TODO: Add validators for Record to confirm the record contains valid info
 
 
