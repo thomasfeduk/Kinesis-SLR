@@ -585,13 +585,16 @@ class ClientConfig(common.BaseCommonClass):
         for shard_id in shard_ids:
             try:
                 ClientConfig.validate_shard_id(shard_id)
-            except ValueError as ex:
+            except (TypeError, ValueError) as ex:
                 raise exceptions.ConfigValidationError(ex)
         return shard_ids
 
     @staticmethod
     def validate_shard_id(shard_id: str = None) -> str:
-        common.require_instance(shard_id, str, exceptions.ConfigValidationError)
+        try:
+            common.require_type(shard_id, str, TypeError)
+        except TypeError as ex:
+            raise TypeError(f"Each shard_id must be a string. {ex}") from ex
 
         pattern = r'^shardId-[a-zA-Z0-9]+$'
         if not re.match(pattern, shard_id):
