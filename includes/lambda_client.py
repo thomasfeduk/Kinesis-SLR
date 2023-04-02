@@ -14,7 +14,7 @@ import re
 from typing import List
 import includes.exceptions as exceptions
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 log.setLevel("DEBUG")
 
 

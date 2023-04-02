@@ -26,92 +26,31 @@ logging.basicConfig()
 import os
 
 
-class LambdaPayload:
-    def __init__(self):
-        self.records = {}
-
-    def addRecord(self, record, index: str):
-        # validate and transform the record
-        # (in this example, we just add it to the list of records)
-        self.records[index] = record
-
-    def submit(self):
-        # do something with the processed records
-        # print(f"Processed {len(self.records)} records")
-        pvd(self.records)
-
-
-class FileProcessor:
-    def __init__(self, directory_path, batch_size=10):
-        self.directory_path = directory_path
-        self.batch_size = batch_size
-        self.file_paths = [os.path.join(self.directory_path, f) for f in os.listdir(self.directory_path)]
-        pvdd(self.file_paths)
-
-    def read_files_in_batches(self):
-        lambda_payload = LambdaPayload()
-        for i in range(0, len(self.file_paths), self.batch_size):
-
-            # get the current batch of file paths
-            batch = self.file_paths[i:i + self.batch_size]
-            pvdd(batch)
-
-            # process the batch of files
-            for file_path in batch:
-                with open(file_path, 'r') as f:
-                    # read the file contents
-                    file_contents = f.read()
-
-                    # add the file contents to the LambdaPayload object
-                    lambda_payload.addRecord(file_contents, file_path)
-
-            # submit the processed records after processing each batch
-            lambda_payload.submit()
-
-
-def filelist_batch_iterator(directory_path: str, batch_size: int):
-    files = [f for f in os.listdir(directory_path)]
-    files = sorted(files,
-                   key=lambda x: (int(re.search('^\d+', x).group()) if re.search('^\d+', x) else float('inf'), x))
-
-    pattern = r'^\d{1,10}-\d{4}-\d{2}-\d{2}_\d{2};\d{2};\d{2}\.json$'
-    for file_name in files:
-        if not re.match(pattern, file_name):
-            raise ValueError(f"File name \"{file_name}\" does not match the expected pattern for a Kinesis "
-                             f"message created by the Kinesis-SLR.")
-
-    for i in range(0, len(files), batch_size):
-        yield files[i:i + batch_size]
-
-
 def main_lambda():
-    # for num in range(1, 51):
-    #     print(num)
+    # Create a Lambda client
+    lambda_client = boto3.client('lambda', "us-east-1")
 
-    # numbers = list(range(1, 25))
-    # numbers = [str(num) for num in numbers]  # convert integers to strings
-    # numbers.sort()  # sort the list alphabetically
-    # for num in numbers:
-    #     print(num)
-    #
-    # die()
-    # pvdd(list(file_batch_iterator('scraped_events/shardId-000000000004', batch_size=5)))
+    # Define the input payload for the Lambda function
+    input_payload = {
+        'key1': 'value1',
+        'key2': 'value2'
+    }
 
-    import threading
-    import boto3
+    # Invoke the Lambda function
+    response = lambda_client.invoke(
+        FunctionName='kworker',
+        Payload=json.dumps(input_payload)
+    )
 
-    # Create a thread-local client object
-    thread_local = threading.local()
+    # Parse the response from the Lambda function
+    print(json.dumps(response, indent=4, default=str))
+    print(json.dumps(json.loads(response['Payload'].read().decode('utf-8')), indent=4))
 
-    config_yaml = common.read_config('config-lambda_replay.example.yaml')
 
-    test = boto3.client('lambda', 'us-east-1')
-    pvdd(test)
-
-    config_lambda = lambda_client.ClientConfig(config_yaml, boto3.client('lambda', config_yaml['region_name']))
-    pvdd(config_lambda)
-    client = lambda_client.Client(config_lambda)
-    client.begin_processing()
+    # config_lambda = lambda_client.ClientConfig(config_yaml, boto3.client('lambda', config_yaml['region_name']))
+    # pvdd(config_lambda)
+    # client = lambda_client.Client(config_lambda)
+    # client.begin_processing()
 
     die('scrape.py;: main_lambda()')
 
@@ -121,23 +60,6 @@ def main_lambda():
 
 
 
-    processor = FileProcessor('scraped_events/shardId-000000000004', batch_size=20)
-    processor.read_files_in_batches()
-
-    die('scrape.py lambda')
-
-    # boto3response_raw = b'\x80\x04\x95\x1f\x07\x00\x00\x00\x00\x00\x00\x8c\x17includes.kinesis_client\x94\x8c\x17Boto3GetRecordsResponse\x94\x93\x94)\x81\x94}\x94(\x8c\x08_Records\x94h\x00\x8c\x11RecordsCollection\x94\x93\x94)\x81\x94}\x94(\x8c\x05_last\x94K\x00\x8c\x06_items\x94]\x94(h\x00\x8c\x06Record\x94\x93\x94)\x81\x94}\x94(\x8c\x0f_SequenceNumber\x94\x8c849637936497446807206520786095242010868917136376916344898\x94\x8c\x1c_ApproximateArrivalTimestamp\x94\x8c\x08datetime\x94\x8c\x08datetime\x94\x93\x94C\n\x07\xe7\x03\x13\x12\x1e\x06\x022\x80\x94\x8c\x0edateutil.tz.tz\x94\x8c\x07tzlocal\x94\x93\x94)\x81\x94}\x94(\x8c\x0b_std_offset\x94h\x14\x8c\ttimedelta\x94\x93\x94J\xff\xff\xff\xffJ0\x0b\x01\x00K\x00\x87\x94R\x94\x8c\x0b_dst_offset\x94h\x1fJ\xff\xff\xff\xffJ@\x19\x01\x00K\x00\x87\x94R\x94\x8c\n_dst_saved\x94h\x1fK\x00M\x10\x0eK\x00\x87\x94R\x94\x8c\x07_hasdst\x94\x88\x8c\x08_tznames\x94\x8c\x15Eastern Standard Time\x94\x8c\x15Eastern Daylight Time\x94\x86\x94ub\x86\x94R\x94\x8c\x05_Data\x94CP{"mytimestamp": "2023-03-19 18:30:06-1", "error": false, "unrecoverable": false}\x94\x8c\r_PartitionKey\x94\x8c\x011\x94\x8c\n_proprules\x94\x8c\x0fincludes.common\x94\x8c\tPropRules\x94\x93\x94)\x81\x94}\x94(\x8c\x06_types\x94}\x94(\x8c\x0eSequenceNumber\x94]\x94\x8c\x08builtins\x94\x8c\x03str\x94\x93\x94a\x8c\x0cPartitionKey\x94]\x94h?a\x8c\x1bApproximateArrivalTimestamp\x94]\x94(h\x16h?eu\x8c\x08_numeric\x94]\x94\x8c\x11_numeric_positive\x94]\x94ububh\x0e)\x81\x94}\x94(h\x11\x8c849637936497446807206520786095243219794736751006091051074\x94h\x13h\x16C\n\x07\xe7\x03\x13\x12\x1e\x06\x02>8\x94h\x1a)\x81\x94}\x94(h\x1dh\x1fJ\xff\xff\xff\xffJ0\x0b\x01\x00K\x00\x87\x94R\x94h"h\x1fJ\xff\xff\xff\xffJ@\x19\x01\x00K\x00\x87\x94R\x94h%h\x1fK\x00M\x10\x0eK\x00\x87\x94R\x94h(\x88h)h,ub\x86\x94R\x94h/CP{"mytimestamp": "2023-03-19 18:30:06-2", "error": false, "unrecoverable": false}\x94h1h2h3h6)\x81\x94}\x94(h9}\x94(h;]\x94h?ah@]\x94h?ahB]\x94(h\x16h?euhD]\x94hF]\x94ububh\x0e)\x81\x94}\x94(h\x11\x8c849637936497446807206520786095244428720556365635265757250\x94h\x13h\x16C\n\x07\xe7\x03\x13\x12\x1e\x06\x02>8\x94h\x1a)\x81\x94}\x94(h\x1dh\x1fJ\xff\xff\xff\xffJ0\x0b\x01\x00K\x00\x87\x94R\x94h"h\x1fJ\xff\xff\xff\xffJ@\x19\x01\x00K\x00\x87\x94R\x94h%h\x1fK\x00M\x10\x0eK\x00\x87\x94R\x94h(\x88h)h,ub\x86\x94R\x94h/CP{"mytimestamp": "2023-03-19 18:30:06-3", "error": false, "unrecoverable": false}\x94h1h2h3h6)\x81\x94}\x94(h9}\x94(h;]\x94h?ah@]\x94h?ahB]\x94(h\x16h?euhD]\x94hF]\x94ububeub\x8c\x12_NextShardIterator\x94\x8c\xf8AAAAAAAAAAH6zniUzkkCQPr/VW61uveYvRqFOPbmmCGUjSCpWzH1SByRMTeJIF6k/E4VK+mWgrDb3FYFiS98Qnf5RsJHa3Y8zoSpskiNt7L3A5Si6xFfdP4A5EWqTkqzFUuK/q0CR1whQiQUYApWu8TRGZx7XXzvOMzzaQ5X7PUWuwO96sVX6+6isfC8pgprRBuBMoCJYEqSKxExIeAGpF3F9rAUrFC/VSoPTYS3fQIYBvzguDDXhQ==\x94\x8c\x13_MillisBehindLatest\x94K\x00h3h6)\x81\x94}\x94(h9}\x94(\x8c\x07Records\x94]\x94h\x07a\x8c\x11NextShardIterator\x94]\x94h?a\x8c\x12MillisBehindLatest\x94]\x94h=\x8c\x03int\x94\x93\x94auhD]\x94hF]\x94ubub.'
-    #
-    # pvdd(boto3response_raw)
-    #
-    # boto3response_obj = pickle.loads(boto3response_raw)
-    # records_collection = boto3response_obj.Records
-    # print(records_collection.toJson(indent=4))
-    # die('end')
-
-    # lambda_invoker = lambda_client.Client('kworker')
-    # payload = {'key1': 'value1', 'key2': 'value2'}
-    # lambda_invoker.invoke(payload)
 
 
 def main_kinesis():
