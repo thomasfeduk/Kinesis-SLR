@@ -116,6 +116,7 @@ class ClientConfig(common.BaseCommonClass):
         self._boto_client = boto_client
         self._region_name = None
         self._function_name = None
+        self._stream_name = None
         self._batch_size = None
         self._local_dlq = None
         self._local_dlq_fullevent = None
@@ -138,6 +139,10 @@ class ClientConfig(common.BaseCommonClass):
     @property
     def function_name(self):
         return self._function_name
+
+    @property
+    def stream_name(self):
+        return self._stream_name
 
     @property
     def batch_size(self):
@@ -195,17 +200,15 @@ class Client:
         self._account_id = "12345"
 
     def _invoke(self, payload):
-        try:
-            response = self._client_config.boto_client.invoke(FunctionName=self._client_config.function_name,
-                                                              Payload=json.dumps(payload))
-        except Exception as e:
-            log.error(f"Error invoking Lambda function: {e}")
-            return
+        response = self._client_config.boto_client.invoke(FunctionName=self._client_config.function_name,
+                                                          Payload=json.dumps(payload))
 
         jout(response)
-        joutd(response["Payload"].read())
+        jout(json.loads(response["Payload"].read()))
+        return
 
         response_payload = response['Payload'].read()
+        pvddfile('response', response_payload, overwrite=True)
         content_type = response['Payload'].content_type
 
         if content_type == 'application/json':
@@ -215,6 +218,9 @@ class Client:
         else:
             log.warning(f"Lambda response of unknown type: {content_type}")
             response_payload = None
+
+        print(response_payload)
+        die('eid')
 
         if response['StatusCode'] == 200:
             log.info('Lambda invoked successfully.')
@@ -293,7 +299,9 @@ class Client:
 
         payload = self._build_payload(shard_id, file_list)
 
-    def _build_payload(self, shard_id: str, file_list: Files):
+        self._invoke(payload)
+
+    def _build_payload(self, shard_id: str, file_list: Files) -> dict:
         common.require_type(shard_id, str, exceptions.InvalidArgumentException)
         common.require_type(file_list, Files, exceptions.InvalidArgumentException)
         final_payload = {"Records": []}
@@ -301,29 +309,7 @@ class Client:
         for file in list(file_list):
             final_payload["Records"].append(self._build_payload_inner(shard_id, file))
 
-        if shard_id == "shardId-000000000005":
-            jout(final_payload)
-
-        ref = {
-            "Records": [
-                {
-                    "kinesis": {
-                        "kinesisSchemaVersion": "1.0",
-                        "partitionKey": "testfail",
-                        "sequenceNumber": "49634871856207391309887373936488347325069951854572470306",
-                        "data": "eyJudW1iZXIiOiAyLCAiZXJyb3IiOiBmYWxzZX0=",
-                        "approximateArrivalTimestamp": 1667723578.271
-                    },
-                    "eventSource": "aws:kinesis",
-                    "eventVersion": "1.0",
-                    "eventID": "shardId-000000000002:49634871856207391309887373936488347325069951854572470306",
-                    "eventName": "aws:kinesis:record",
-                    "invokeIdentityArn": "arn:aws:iam::443035303084:role/service-role/kworker-role-douez4hk",
-                    "awsRegion": "us-east-1",
-                    "eventSourceARN": "arn:aws:kinesis:us-east-1:443035303084:stream/user-activities"
-                }
-            ]
-        }
+        return final_payload
 
     def _build_payload_inner(self, shard_id: str, file: str) -> dict:
         kinesis_client.ClientConfig.validate_shard_id(shard_id)
@@ -347,7 +333,7 @@ class Client:
             "eventName": "aws:kinesis:record",
             "invokeIdentityArn": f"local::kinesis-slr",
             "awsRegion": self._client_config.region_name,
-            "eventSourceARN": f"arn:aws:kinesis:us-east-1:{self._account_id}:stream/stream_name_here"
+            "eventSourceARN": f"arn:aws:kinesis:us-east-1:{self._account_id}:stream/{self._client_config.stream_name}"
         }
 
         return inner_payload

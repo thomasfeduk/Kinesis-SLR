@@ -78,8 +78,8 @@ def pvdfile(filename: str, data, *, overwrite: bool = False):
         raise FileExistsError(f'The debug output file "{filename}" already exists.') from ex
 
 
-def pvddfile(filename, data):
-    pvdfile(filename, data)
+def pvddfile(filename, data, *, overwrite: bool = False):
+    pvdfile(filename, data, overwrite=overwrite)
     die()
 
 
