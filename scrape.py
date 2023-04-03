@@ -37,7 +37,7 @@ def main_lambda():
     # print(json.dumps(json.loads(response['Payload'].read().decode('utf-8')), indent=4))
     # die('sdsadad')
 
-    config_yaml = common.read_config('config-lambda_replay.example.yaml')
+    config_yaml = common.read_config('config-lambda_replay.yaml')
     lambda_config = lambda_client.ClientConfig(config_yaml, boto3.client('lambda', "us-east-1"))
     client = lambda_client.Client(lambda_config)
     client.begin_processing()
@@ -121,7 +121,7 @@ def main_kinesis():
     # except FileNotFoundError as ex:
     #     print(f'No old scraped events to delete...: {repr(ex)}')
 
-    config_yaml = common.read_config('config-kinesis_scraper.example.yaml')
+    config_yaml = common.read_config('config-kinesis_scraper.yaml')
     kinesis_config = kinesis.ClientConfig(config_yaml, boto3.client('kinesis', config_yaml['region_name']))
 
     output = None

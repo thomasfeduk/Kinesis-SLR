@@ -29,7 +29,7 @@ function_name: kworker
 # Property: stream_name
 # ----------------------
 # Description: The name of the stream you want to replay.
-# Needed to properly rebuild the payload eventSourceARN payload metadata sent to the lambda.
+# Needed to properly rebuild the event.Records[].eventSourceARN payload metadata sent to the lambda.
 #
 stream_name: user-activities3
 
