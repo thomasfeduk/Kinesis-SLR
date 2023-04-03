@@ -8,7 +8,7 @@
 # Description: The debug output level. INFO is the default and provides general status logging
 # Possible values: DEBUG|INFO|WARNING|ERROR
 #
-debug_level: INFO
+debug_level: DEBUG
 
 
 # ----------------------
@@ -29,7 +29,7 @@ function_name: kworker
 # Property: stream_name
 # ----------------------
 # Description: The name of the stream you want to replay.
-# Needed to properly rebuild the payload eventSourceARN payload metadata sent to the lambda.
+# Needed to properly rebuild the event.Records[].eventSourceARN payload metadata sent to the lambda.
 #
 stream_name: user-activities3
 
