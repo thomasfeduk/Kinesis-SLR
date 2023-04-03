@@ -114,6 +114,7 @@ class FileListBatchIterator(common.Collection):
 class ClientConfig(common.BaseCommonClass):
     def __init__(self, passed_data: Union[dict, str], boto_client: botocore.client.BaseClient):
         self._boto_client = boto_client
+        self._debug_level = None
         self._region_name = None
         self._function_name = None
         self._stream_name = None
@@ -131,6 +132,10 @@ class ClientConfig(common.BaseCommonClass):
     @property
     def boto_client(self):
         return self._boto_client
+
+    @property
+    def debug_level(self):
+        return self._debug_level
 
     @property
     def region_name(self):
@@ -190,7 +195,9 @@ class ClientConfig(common.BaseCommonClass):
             raise ValueError('config-lambda_replay.yaml: custom_checkpoints is not yet supported!')
 
     def _post_init_processing(self):
-        pass
+        super()._post_init_processing()
+        # Setup logging
+        log.setLevel(self._debug_level)
 
 
 class Client:
@@ -203,8 +210,13 @@ class Client:
         response = self._client_config.boto_client.invoke(FunctionName=self._client_config.function_name,
                                                           Payload=json.dumps(payload))
 
-        jout(response)
-        jout(json.loads(response["Payload"].read()))
+        status = "Success"
+        if "FunctionError" in response.keys():
+            status = "Failed"
+
+        log.info(f'Invocation request ID: {response["ResponseMetadata"]["RequestId"]} - {status}')
+        log.debug("Invocation Status: " + json.dumps(response, indent=4, default=str))
+        log.debug("Invocation Response: " + json.dumps(json.loads(response["Payload"].read()), indent=4))
         return
 
         response_payload = response['Payload'].read()
@@ -256,6 +268,10 @@ class Client:
         file_batch_obj = FileListBatchIterator(
             Files(shard_id=shard_id), shard_id, batch_size=self._client_config.batch_size)
 
+        if len(list(file_batch_obj)) < 1:
+            log.info(f"Shard directory {shard_id} contains no records. Skipping.")
+            return
+
         self._precheck_files_batch_iterator(file_batch_obj)
 
         for files_batch in file_batch_obj:
@@ -276,7 +292,7 @@ class Client:
         except ValueError as ex:
             raise exceptions.InvalidArgumentException(ex) from ex
 
-        log.debug(f"Verifying integrity of all files for shard {file_batch_iterator.shard_id} before replay begins...")
+        log.info(f"Verifying integrity of all files for shard {file_batch_iterator.shard_id} before replay begins...")
         i = 0
         for file in list(file_batch_iterator.items):
             i += 1
@@ -290,14 +306,18 @@ class Client:
                         f"in the expected format. Please correct or remove the offending file to begin replaying "
                         f"events. Detailed error: {ex}") from ex
 
-        log.debug(f"Scan complete: All {i} files for shard {file_batch_iterator.shard_id}"
-                  f" are in the expected format.")
+        log.info(f"Scan complete: All {i} files for shard {file_batch_iterator.shard_id}"
+                 f" are in the expected format.")
 
     def _process_batch(self, shard_id: str, file_list: Files):
         common.require_type(shard_id, str, exceptions.InvalidArgumentException)
         common.require_type(file_list, Files, exceptions.InvalidArgumentException)
 
         payload = self._build_payload(shard_id, file_list)
+        batch_range_label = file_list[0]
+        if len(list(file_list)) > 1:
+            batch_range_label = f"{file_list[0]}..{file_list[-1]}"
+        log.info(f"Processing batch: '{shard_id}/[{batch_range_label}]'")
 
         self._invoke(payload)
 

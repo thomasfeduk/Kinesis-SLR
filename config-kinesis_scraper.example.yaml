@@ -3,13 +3,6 @@
 ###################################
 
 # ----------------------
-# Property: region_name
-# ----------------------
-# Description: The AWS region
-#
-region_name: 'us-east-1'
-
-# ----------------------
 # Property: debug_level
 # ----------------------
 # Description: The debug output level. INFO is the default and provides general status logging
@@ -18,12 +11,19 @@ region_name: 'us-east-1'
 debug_level: DEBUG
 
 # ----------------------
+# Property: region_name
+# ----------------------
+# Description: The AWS region
+#
+region_name: 'us-east-1'
+
+# ----------------------
 # Property: stream_name
 # ----------------------
 # Description: The name of the stream you want to scrape
 # Example value: user-activities
 #
-stream_name: user-activities
+stream_name: user-activities3
 
 # -------------------
 # Property: shardIds
@@ -40,7 +40,7 @@ stream_name: user-activities
 #  - shardId-000000000001
 #
 #shard_ids: ['shardId-000000000005']
-shard_ids: ['shardId-000000000004']
+shard_ids: []
 
 ###################################
 ## Section: Stream Scrape Range  ##
@@ -157,7 +157,7 @@ total_records_per_shard: 10000
 #   - Each read transaction can provide up to 10,000 records with an upper quota of 10 MB per transaction.
 # Therefore, if you have 1MB messages, this value cannot be greater than 10
 #
-poll_batch_size: 250 # Max 500
+poll_batch_size: 10 # Max 500
 
 # --------------------
 # Property: poll_delay

@@ -3,6 +3,15 @@
 ###################################
 
 # ----------------------
+# Property: debug_level
+# ----------------------
+# Description: The debug output level. INFO is the default and provides general status logging
+# Possible values: DEBUG|INFO|WARNING|ERROR
+#
+debug_level: INFO
+
+
+# ----------------------
 # Property: region_name
 # ----------------------
 # Description: The AWS region
@@ -22,7 +31,7 @@ function_name: kworker
 # Description: The name of the stream you want to replay.
 # Needed to properly rebuild the payload eventSourceARN payload metadata sent to the lambda.
 #
-stream_name: user-activities
+stream_name: user-activities3
 
 
 # --------------------
@@ -37,7 +46,7 @@ stream_name: user-activities
 #  - event.Records[].awsRegion
 #  - event.Records[].eventSourceARN
 #
-batch_size: 100 # Max 10000
+batch_size: 10 # Max 10000
 
 # --------------------
 # Property: local_dlq
