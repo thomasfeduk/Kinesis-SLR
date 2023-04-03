@@ -39,6 +39,15 @@ class _readoutputbuffer(list):
         sys.stdout = self._stdout
 
 
+def jout(data):
+    print(json.dumps(data, indent=4, default=str))
+
+
+def joutd(data):
+    jout(data)
+    die()
+
+
 def pvd(data):
     var_dump(_strip_proprules_recursively(data))
 
@@ -69,8 +78,8 @@ def pvdfile(filename: str, data, *, overwrite: bool = False):
         raise FileExistsError(f'The debug output file "{filename}" already exists.') from ex
 
 
-def pvddfile(filename, data):
-    pvdfile(filename, data)
+def pvddfile(filename, data, *, overwrite: bool = False):
+    pvdfile(filename, data, overwrite=overwrite)
     die()
 
 
@@ -79,6 +88,7 @@ def called_from_where():
     filename = frame.f_code.co_filename
     line_number = frame.f_lineno
     print(f"Called from {filename} line {line_number}")
+
 
 # Blindly and with the power of Thor's hammer, recursively delete from a deep copy all occurrences of _proprules
 # from any object/type to be used in var_dump, so we don't clutter the output
@@ -135,29 +145,31 @@ def _strip_proprules_recursively(data):
             data_stripped_new = data_stripped.copy()
         except Exception:
             data_stripped_new = data_stripped
-        for item in data_stripped:
-            try:
-                delattr(data_stripped_new[i], '_proprules')
-            except Exception:
+        try:
+            for item in data_stripped:
+                try:
+                    delattr(data_stripped_new[i], '_proprules')
+                except Exception:
+                    pass
+                try:
+                    delattr(data_stripped_new[item], '_proprules')
+                except Exception:
+                    pass
+                try:
+                    del data_stripped_new[i]._proprules
+                except Exception:
+                    pass
+                try:
+                    data_stripped_new[i] = _strip_proprules_recursively(item)
+                except Exception:
+                    pass
+                i += 1
+                try:
+                    data_stripped = data_stripped_new.copy()
+                except Exception:
+                    data_stripped = data_stripped_new
+        except Exception:
                 pass
-            try:
-                delattr(data_stripped_new[item], '_proprules')
-            except Exception:
-                pass
-            try:
-                del data_stripped_new[i]._proprules
-            except Exception:
-                pass
-            try:
-                data_stripped_new[i] = _strip_proprules_recursively(item)
-            except Exception:
-                pass
-            i += 1
-            try:
-                data_stripped = data_stripped_new.copy()
-            except Exception:
-                data_stripped = data_stripped_new
-
     return data_stripped
 
 

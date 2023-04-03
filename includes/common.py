@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 import datetime
 import includes.exceptions as exceptions
 import struct
+from typing import Type
 
 from includes.debug import pvdd, pvd, die
 
@@ -46,10 +47,10 @@ class BaseSuperclass(ABC):
                     if hasattr(self, key) and not callable(getattr(self, key)):
                         setattr(self, key, passed_data[key])
         except Exception as ex:
-            raise ValueError(f"Could not convert passed_data to a dict.\npassed_data: {repr(passed_data)}") from ex
+            raise ValueError(f"Could not convert passed_data to a dict. passed_data: {repr(passed_data)}") from ex
 
 
-class BaseCommonClass(BaseSuperclass, ABC):
+class BaseCommonClass(BaseSuperclass):
     # TODO: Add decorator here to require a dict/str or exception and pass in a dict
     @abstractmethod
     def __init__(self, passed_data: Union[dict, str] = None):
@@ -106,32 +107,29 @@ class BaseCommonClass(BaseSuperclass, ABC):
         return repr(self) == repr(other)
 
 
-class RestrictedCollection(ABC):
+class Collection(ABC):
     def __init__(self, items):
+        self._current_index = 0
         if not isinstance(items, list):
-            raise TypeError(f"Type list is expected. Received:  {type(items)} {repr(items)}")
-        self._last = 0
+            raise TypeError(f'Type "list" is expected. Received:  {type(items)} {repr(items)}')
         self._items = items
-        for item in self._items:
-            self._validate_item(item)
-
-    @property
-    @abstractmethod
-    def expected_type(self):
-        return object  # Set your allowed object type here
 
     def __iter__(self):
-        self._last = 0
+        self._current_index = 0
         return self
 
     def __next__(self):
-        if self._last >= len(self._items):
+        if self._current_index >= len(self._items):
             raise StopIteration
-        self._last += 1
-        return self._items[self._last - 1]
+        self._current_index += 1
+        return self._items[self._current_index - 1]
 
     def __getitem__(self, index):
-        return self._items[int(index)]
+        if isinstance(index, slice):
+            start, stop, step = index.indices(len(self._items))
+            return [self._items[i] for i in range(start, stop, step)]
+        else:
+            return self._items[int(index)]
 
     def __len__(self):
         return len(self._items)
@@ -150,6 +148,18 @@ class RestrictedCollection(ABC):
 
     def __eq__(self, other):
         return repr(self) == repr(other)
+
+
+class RestrictedCollection(Collection):
+    def __init__(self, items):
+        super().__init__(items)
+        for item in self._items:
+            self._validate_item(item)
+
+    @property
+    @abstractmethod
+    def expected_type(self):
+        return object  # Set your allowed object type here
 
     def _validate_item(self, value):
         if isinstance(value, self.expected_type):
@@ -302,6 +312,41 @@ def list_append_upto_n_items_total(base_list: list, from_list: list, upto_item_c
         if upto_item_count is None or (upto_item_count is not None and len(base_list_new) < upto_item_count):
             base_list_new.append(item)
     return base_list_new
+
+
+def require_instance(given_object: object, expected_instance_type: Type,
+                     exception_type: Union[Type[Exception], TypeError] = None):
+    if not isinstance(given_object, expected_instance_type):
+        raise exception_type(
+            f"Instance of type {expected_instance_type} expected. Received: "
+            f"{type(given_object)} {repr(given_object)}")
+
+
+def require_type(given_object: object, expected_type: Type,
+                 exception_type: Union[Type[Exception], TypeError] = None):
+    if type(given_object) != expected_type:
+        raise exception_type(
+            f"Type {expected_type} expected. Received: {type(given_object)} {repr(given_object)}")
+
+
+def type_repr(input: object) -> str:
+    return f"{type(input)} {repr(input)}"
+
+
+def format_size(size_bytes):
+    # Define suffixes and their corresponding units
+    suffixes = ["B", "KB", "MB", "GB"]
+    base = 1024
+
+    # Determine the appropriate suffix and scale the size accordingly
+    for i, suffix in enumerate(suffixes):
+        if size_bytes < base ** (i + 1):
+            size = size_bytes / base ** i
+            return f"{size:.2f} {suffix}"
+
+    # If the size is very large, use the largest suffix
+    size = size_bytes / base ** (len(suffixes) - 1)
+    return f"{size:.2f} {suffixes[-1]}"
 
 
 def to_bytes(s):

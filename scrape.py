@@ -1,3 +1,5 @@
+import jsonpickle
+
 from includes.debug import *
 from datetime import datetime
 import shutil
@@ -10,18 +12,47 @@ import includes.kinesis_client as kinesis
 import includes.lambda_client as lambda_client
 import logging
 import includes.common as common
+import re
 import pickle
 import datetime
 from dateutil.tz import tzlocal
 from tests.test_kinesis_client import generate_Boto3GetRecordsResponse
 import uuid
 from var_dump import var_dump
+
 # Initialize logger
 logging.basicConfig()
 
+import os
 
-def main():
 
+def main_lambda():
+    # lambda_client = boto3.client('lambda', "us-east-1")
+    # input_payload = {'key1': 'value1', 'key2': 'value2'}
+    # response = lambda_client.invoke(
+    #     FunctionName='kworker',
+    #     Payload=json.dumps(input_payload)
+    # )
+    # print(json.dumps(response, indent=4, default=str))
+    # print(json.dumps(json.loads(response['Payload'].read().decode('utf-8')), indent=4))
+    # die('sdsadad')
+
+    config_yaml = common.read_config('config-lambda_replay.example.yaml')
+    lambda_config = lambda_client.ClientConfig(config_yaml, boto3.client('lambda', "us-east-1"))
+    client = lambda_client.Client(lambda_config)
+    client.begin_processing()
+
+    die('scrape.py;: main_lambda()')
+
+    # client = boto3.client("sts")
+    # var = client.get_caller_identity()
+    # pvdd(var)
+
+
+
+
+
+def main_kinesis():
     # pvdd([
     #     generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter1"),
     #     generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator_prefix="iter2"),
@@ -84,16 +115,14 @@ def main():
     # pvdd(obj.total_found_records)
 
     # Delete any existing local files
-    try:
-        dir_path = 'scraped_events/shardId-000000000005'
-        shutil.rmtree(dir_path)
-    except FileNotFoundError as ex:
-        print(f'No old scraped events to delete...: {repr(ex)}')
+    # try:
+    #     dir_path = 'scraped_events/shardId-000000000005'
+    #     shutil.rmtree(dir_path)
+    # except FileNotFoundError as ex:
+    #     print(f'No old scraped events to delete...: {repr(ex)}')
 
-    kinesis_config = kinesis.ClientConfig(
-        common.read_config('config-kinesis_scraper.example.yaml'),
-        boto3.client('kinesis')
-    )
+    config_yaml = common.read_config('config-kinesis_scraper.example.yaml')
+    kinesis_config = kinesis.ClientConfig(config_yaml, boto3.client('kinesis', config_yaml['region_name']))
 
     output = None
     kinesis_client = kinesis.Client(kinesis_config)

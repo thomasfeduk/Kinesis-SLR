@@ -21,7 +21,7 @@ class ClientConfig(unittest.TestCase):
         self.config_input = {
             'debug_level': "INFO",
             'stream_name': "user_activities",
-            'shard_ids': ["shard-000000001"],
+            'shard_ids': ["shardId-000000001"],
             'starting_position': "TRIM_HORIZON",
             'starting_timestamp': "2022-12-01 00:00:00",
             'starting_sequence_number': "111111",
@@ -240,15 +240,16 @@ class ClientConfig(unittest.TestCase):
                       str(ex.exception))
 
     def test_valid_validate_shard_ids_none_void(self):
-        self.assertEqual([],kinesis.ClientConfig.validate_shard_ids())
-        self.assertEqual([],kinesis.ClientConfig.validate_shard_ids(None))
+        self.assertEqual([], kinesis.ClientConfig.validate_shard_ids())
+        self.assertEqual([], kinesis.ClientConfig.validate_shard_ids(None))
 
     def test_invalid_shard_ids_empty_element(self):
         self.config_input["shard_ids"] = [""]
         with self.assertRaises(exceptions.ConfigValidationError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
-        self.assertIn("Each shard_id must be a populated string. Value provided: <class 'str'> ''",
-                      str(ex.exception))
+        self.assertIn(
+            "Invalid shard_id format. Expected pattern: <class 'str'> 'shardId-XXXXXXX' Received: <class 'str'> ''",
+            str(ex.exception))
 
     def test_invalid_sequence_number_no_shard_ids(self):
         positions_complete = {
@@ -297,7 +298,7 @@ class ClientConfig(unittest.TestCase):
 
         positions = list(positions_complete.keys())
 
-        self.config_input["shard_ids"] = ["shard1", "shard2"]
+        self.config_input["shard_ids"] = ["shardId-1", "shardId-2"]
         for position in positions:
             for sequence_index in positions_complete[position]:
                 self.config_input[f"{position}_position"] = sequence_index
@@ -311,7 +312,7 @@ class ClientConfig(unittest.TestCase):
                 self.assertIn(
                     f"config-kinesis_scraper.yaml: If \"{position}_position\" is *_SEQUENCE_NUMBER, "
                     "exactly 1 shard_id must be specified as the sequence numbers are unique per shard."
-                    "\nValue provided: <class 'list'> ['shard1', 'shard2']",
+                    "\nValue provided: <class 'list'> ['shardId-1', 'shardId-2']",
                     str(ex.exception))
 
     def test_invalid_sequence_number_positions(self):
@@ -404,25 +405,28 @@ class ClientConfig(unittest.TestCase):
         self.config_input["shard_ids"] = 5
         with self.assertRaises(exceptions.ConfigValidationError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
-        self.assertEqual("shard_ids must be of type list if specified. Type provided: <class 'int'> 5", str(ex.exception))
+        self.assertEqual("shard_ids must be of type list if specified. Type provided: <class 'int'> 5",
+                         str(ex.exception))
 
     def test_shard_ids_invalid_list_int(self):
         self.config_input["shard_ids"] = [7]
         with self.assertRaises(exceptions.ConfigValidationError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
-        self.assertEqual("Each shard_id must be a string. Value provided: <class 'int'> 7", str(ex.exception))
+        self.assertEqual("Each shard_id must be a string. Type <class 'str'> expected. Received: <class 'int'> 7",
+                         str(ex.exception))
 
     def test_shard_ids_valid_empty_shard_ids(self):
         self.config_input["shard_ids"] = []
         self.assertEqual([], kinesis.ClientConfig(self.config_input, self.boto_client).shard_ids)
 
     def test_shard_ids_valid_single_value(self):
-        self.config_input["shard_ids"] = ["shard-01"]
-        self.assertEqual(["shard-01"], kinesis.ClientConfig(self.config_input, self.boto_client).shard_ids)
+        self.config_input["shard_ids"] = ["shardId-01"]
+        self.assertEqual(["shardId-01"], kinesis.ClientConfig(self.config_input, self.boto_client).shard_ids)
 
     def test_shard_ids_valid_single_multi_value(self):
-        self.config_input["shard_ids"] = ["shard-01", "shard-05"]
-        self.assertEqual(["shard-01", "shard-05"], kinesis.ClientConfig(self.config_input, self.boto_client).shard_ids)
+        self.config_input["shard_ids"] = ["shardId-01", "shardId-05"]
+        self.assertEqual(["shardId-01", "shardId-05"],
+                         kinesis.ClientConfig(self.config_input, self.boto_client).shard_ids)
 
     def test_poll_batch_size_invalid_string(self):
         self.config_input["poll_batch_size"] = "abc"

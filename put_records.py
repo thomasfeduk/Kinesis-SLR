@@ -4,13 +4,14 @@ import json
 import random
 import datetime
 from includes.debug import *
-stream_name = 'user-activities'
+
+stream_name = 'user-activities3'
 
 # Boot
-kinesis = boto3.client('kinesis')
+kinesis = boto3.client('kinesis', "us-east-1")
 
 # Config
-events_total = 10  # Max 500
+events_total = 100  # Max 500
 errors = []
 errors_unrecoverable = []
 randomize_shards = False
@@ -18,7 +19,6 @@ randomize_shards = False
 
 def publish_to_stream():
     events = generate_events()
-
     response = kinesis.put_records(
         Records=events,
         StreamName=stream_name
@@ -43,10 +43,11 @@ def generate_events():
         events.append({
             'Data': json.dumps({
                 "mytimestamp": f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}-{i + 1}",
+                "number": i + 1,
                 "error": error,
                 "unrecoverable": unrecoverable,
             }),
-            'ExplicitHashKey': '0',
+            **({'ExplicitHashKey': '0'} if not randomize_shards else {}),
             # 'ExplicitHashKey': '170141183460469231731687303715884105728',
             'PartitionKey': partition_key
         })

@@ -3,6 +3,11 @@ class ConfigValidationError(Exception):
     pass
 
 
+class FileProcessingError(Exception):
+    """Raised when a configuration parameter is invalid."""
+    pass
+
+
 class InternalError(Exception):
     """Raised when an internal exception occurs. Could be connections, logic issues, conditions etc."""
     pass
@@ -24,6 +29,11 @@ class UnexpectedInternalHostResponse(InternalError):
 
 
 class AwsError(Exception):
+    """Sub-base exception for errors related to aws (unexpected response, permission denied etc)"""
+    pass
+
+
+class AwsErrorLambdaInvocationFailed(Exception):
     """Sub-base exception for errors related to aws (unexpected response, permission denied etc)"""
     pass
 
