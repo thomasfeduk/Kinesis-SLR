@@ -319,7 +319,7 @@ class Client:
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
-        log.info(f"Writing the following messages to dlq: {', '.join(list(file_list))}")
+        log.info(f"Writing the following {len(list(file_list))} messages to dlq: {', '.join(list(file_list))}")
 
         # Copy the files to the destination directory
         for file in file_list:

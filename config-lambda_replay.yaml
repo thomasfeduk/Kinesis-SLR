@@ -8,7 +8,7 @@
 # Description: The debug output level. INFO is the default and provides general status logging
 # Possible values: DEBUG|INFO|WARNING|ERROR
 #
-debug_level: DEBUG
+debug_level: INFO
 
 
 # ----------------------
@@ -43,7 +43,7 @@ stream_name: user-activities3
 # possible. However, the following value will be set to local::kinesis-slr due to the Kinesis-SLR not having this information.
 #  - event.Records[].invokeIdentityArn
 #
-batch_size: 10 # Max 10000
+batch_size: 20 # Max 10000
 
 # --------------------
 # Property: local_dlq
