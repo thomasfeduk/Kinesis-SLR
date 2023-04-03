@@ -52,7 +52,11 @@ shard_ids: []
 # Description: At which point in the stream should the scraper begin reading from? This value is used directly
 # as the ShardIteratorType= value in the boto3 get_shard_iterator() call
 #
-# Possible values: AT_SEQUENCE_NUMBER|AFTER_SEQUENCE_NUMBER|TRIM_HORIZON|LATEST|AT_TIMESTAMP
+# Possible values: AT_SEQUENCE_NUMBER
+#                  AFTER_SEQUENCE_NUMBER
+#                  TRIM_HORIZON
+#                  LATEST
+#                  AT_TIMESTAMP
 #
 # Note: TRIM_HORIZON = Start with the oldest record in the stream
 #
