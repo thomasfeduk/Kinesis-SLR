@@ -33,6 +33,11 @@ class AwsError(Exception):
     pass
 
 
+class AwsErrorLambdaInvocationFailed(Exception):
+    """Sub-base exception for errors related to aws (unexpected response, permission denied etc)"""
+    pass
+
+
 class AwsConnectionError(AwsError):
     """Raised when data from an AWS service system could not connect"""
     pass

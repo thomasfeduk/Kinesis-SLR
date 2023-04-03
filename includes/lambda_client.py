@@ -1,3 +1,4 @@
+import shutil
 from typing import Union, Any
 import boto3
 import botocore
@@ -210,38 +211,19 @@ class Client:
         response = self._client_config.boto_client.invoke(FunctionName=self._client_config.function_name,
                                                           Payload=json.dumps(payload))
 
+        error_occurred = False
         status = "Success"
         if "FunctionError" in response.keys():
+            log.error(f"Invocation failed: {response}")
+            error_occurred = True
             status = "Failed"
 
         log.info(f'Invocation request ID: {response["ResponseMetadata"]["RequestId"]} - {status}')
         log.debug("Invocation Status: " + json.dumps(response, indent=4, default=str))
         log.debug("Invocation Response: " + json.dumps(json.loads(response["Payload"].read()), indent=4))
-        return
 
-        response_payload = response['Payload'].read()
-        pvddfile('response', response_payload, overwrite=True)
-        content_type = response['Payload'].content_type
-
-        if content_type == 'application/json':
-            response_payload = json.loads(response_payload)
-        elif content_type == 'text/plain':
-            response_payload = response_payload.decode('utf-8')
-        else:
-            log.warning(f"Lambda response of unknown type: {content_type}")
-            response_payload = None
-
-        print(response_payload)
-        die('eid')
-
-        if response['StatusCode'] == 200:
-            log.info('Lambda invoked successfully.')
-            if 'errorMessage' in response_payload:
-                log.error(f"Lambda function returned an error: {response_payload['errorMessage']}")
-            else:
-                log.info(f"Lambda response: {response_payload}")
-        else:
-            log.error(f"Lambda invocation failed with status code: {response['StatusCode']}")
+        if error_occurred:
+            raise exceptions.AwsErrorLambdaInvocationFailed(response["ResponseMetadata"]["RequestId"])
 
     def begin_processing(self):
         dir_path = "scraped_events"
@@ -253,7 +235,7 @@ class Client:
                 shards_ids.append(shard_id)
                 try:
                     kinesis_client.ClientConfig.validate_shard_id(shard_id)
-                except ValueError as ex:
+                except [TypeError, ValueError] as ex:
                     raise exceptions.FileProcessingError(
                         f"Cannot begin replaying events: One of the scrapped shard_id directories does not match the "
                         f"expected  pattern for a Kinesis message created by the Kinesis-SLR. Please correct or remove "
@@ -289,7 +271,7 @@ class Client:
         common.require_type(file_batch_iterator, FileListBatchIterator, exceptions.InvalidArgumentException)
         try:
             kinesis_client.ClientConfig.validate_shard_id(file_batch_iterator.shard_id)
-        except ValueError as ex:
+        except [TypeError, ValueError] as ex:
             raise exceptions.InvalidArgumentException(ex) from ex
 
         log.info(f"Verifying integrity of all files for shard {file_batch_iterator.shard_id} before replay begins...")
@@ -319,7 +301,30 @@ class Client:
             batch_range_label = f"{file_list[0]}..{file_list[-1]}"
         log.info(f"Processing batch: '{shard_id}/[{batch_range_label}]'")
 
-        self._invoke(payload)
+        try:
+            self._invoke(payload)
+        except exceptions.AwsErrorLambdaInvocationFailed as ex:
+            log.info(f"Detected failed invocation for batch. Writing to local dlq...")
+            self._dlq(shard_id, file_list)
+
+    def _dlq(self, shard_id: str, file_list: Files):
+        try:
+            kinesis_client.ClientConfig.validate_shard_id(shard_id)
+        except [TypeError, ValueError] as ex:
+            raise exceptions.InvalidArgumentException(ex) from ex
+        common.require_type(file_list, Files, exceptions.InvalidArgumentException)
+
+        dir_path = f'dlq/{shard_id}'
+        log.debug(f'mkdirs path: {dir_path}')
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+        log.info(f"Writing the following messages to dlq: {', '.join(list(file_list))}")
+
+        # Copy the files to the destination directory
+        for file in file_list:
+            shutil.copy(f"scraped_events/{shard_id}/{file}", dir_path)
+        log.info(f"{len(list(file_list))} files written to dlq successfully.")
 
     def _build_payload(self, shard_id: str, file_list: Files) -> dict:
         common.require_type(shard_id, str, exceptions.InvalidArgumentException)
@@ -332,8 +337,12 @@ class Client:
         return final_payload
 
     def _build_payload_inner(self, shard_id: str, file: str) -> dict:
-        kinesis_client.ClientConfig.validate_shard_id(shard_id)
+        try:
+            kinesis_client.ClientConfig.validate_shard_id(shard_id)
+        except [TypeError, ValueError] as ex:
+            raise exceptions.InvalidArgumentException(ex) from ex
         Files.validate_file_name(file)
+
         with open(f"scraped_events/{shard_id}/{file}", 'r') as f:
             contents = f.read()
             record = kinesis_client.Record(contents)
