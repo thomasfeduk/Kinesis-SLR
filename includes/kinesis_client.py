@@ -181,7 +181,7 @@ class GetRecordsIterationResponse(GetRecordsIteration):
     def _is_valid(self):
         super()._is_valid()
         if self.found_records > self.total_found_records:
-            raise exceptions.InvalidArgumentException(f"Calculation fault: found_records ({self.found_records}) cannot"
+            raise exceptions.InvalidFunctionArgumentException(f"Calculation fault: found_records ({self.found_records}) cannot"
                                                       f" exceed total_found_records ({self.total_found_records}).")
 
 
@@ -390,7 +390,7 @@ class ClientConfig(common.BaseCommonClass):
 
     def _validate_boto_client(self):
         if not isinstance(self.boto_client, botocore.client.BaseClient):
-            raise exceptions.InvalidArgumentException(
+            raise exceptions.InvalidFunctionArgumentException(
                 f"A boto3 Kinesis client object is required. Example: \"boto3.client('kinesis')\". "
                 f"Value provided: {str(type(self.boto_client))} {repr(self.boto_client)}")
 
@@ -398,13 +398,13 @@ class ClientConfig(common.BaseCommonClass):
         try:
             common.validate_numeric_pos(self._poll_batch_size)
         except (TypeError, ValueError) as e:
-            raise exceptions.ConfigValidationError(
+            raise exceptions.CommandLineArgumentError(
                 f"If config-kinesis_scraper.yaml: \"poll_batch_size\" must be a positive numeric "
                 f"string, or an integer.\nValue provided: "
                 f"{repr(type(self._poll_batch_size))} {repr(self._poll_batch_size)}"
             ) from e
         if int(self._poll_batch_size) > 500:
-            raise exceptions.ConfigValidationError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
+            raise exceptions.CommandLineArgumentError('config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500')
 
     def _validate_debug_level(self):
         debug_levels = [
@@ -414,16 +414,16 @@ class ClientConfig(common.BaseCommonClass):
             "ERROR",
         ]
         if self.debug_level not in debug_levels:
-            raise exceptions.ConfigValidationError(
+            raise exceptions.CommandLineArgumentError(
                 f"config-kinesis_scraper.yaml: debug_level must be one of: {repr(debug_levels)}\nValue provided: "
                 f"{repr(type(self.debug_level))} {repr(self.debug_level)}")
 
     def _validate_stream_name(self):
         if not isinstance(self._stream_name, str):
-            raise exceptions.ConfigValidationError(
+            raise exceptions.CommandLineArgumentError(
                 f"stream_name must be a string. Type provided: {str(type(self._stream_name))}")
         if self._stream_name == '' or self._stream_name == 'stream_name_here':
-            raise exceptions.ConfigValidationError('config-kinesis_scraper.yaml: A stream name must be set.')
+            raise exceptions.CommandLineArgumentError('config-kinesis_scraper.yaml: A stream name must be set.')
 
     def _validate_required_configs(self):
         required_configs = [
@@ -443,27 +443,27 @@ class ClientConfig(common.BaseCommonClass):
         ]
         for req_conf in required_configs:
             if getattr(self, req_conf) is None:
-                raise exceptions.ConfigValidationError(
+                raise exceptions.CommandLineArgumentError(
                     f"config-kinesis_scraper.yaml: Missing config parameter: {req_conf}")
 
     def _validate_max_empty_polls(self):
         try:
             common.validate_numeric_pos(self._max_empty_polls)
         except (TypeError, ValueError) as e:
-            raise exceptions.ConfigValidationError(
+            raise exceptions.CommandLineArgumentError(
                 f"If config-kinesis_scraper.yaml: \"max_empty_polls\" must be a positive numeric "
                 f"string, or an integer.\nValue provided: "
                 f"{repr(type(self._max_empty_polls))} {repr(self._max_empty_polls)}"
             ) from e
         if int(self._max_empty_polls) > 2000:
-            raise exceptions.ConfigValidationError('config-kinesis_scraper.yaml: max_empty_polls cannot exceed 2000')
+            raise exceptions.CommandLineArgumentError('config-kinesis_scraper.yaml: max_empty_polls cannot exceed 2000')
 
     def _validate_total_records_per_shard(self):
         if self.ending_position == 'TOTAL_RECORDS_PER_SHARD':
             try:
                 common.validate_numeric_pos(self._total_records_per_shard)
             except (TypeError, ValueError) as e:
-                raise exceptions.ConfigValidationError(
+                raise exceptions.CommandLineArgumentError(
                     f"If config-kinesis_scraper.yaml: \"total_records_per_shard\" must be a positive numeric "
                     f"string, or an integer.\nValue provided: {repr(type(self._total_records_per_shard))} "
                     f"{repr(self._total_records_per_shard)}"
@@ -474,13 +474,13 @@ class ClientConfig(common.BaseCommonClass):
         try:
             common.validate_numeric_pos(self.poll_delay)
         except (TypeError, ValueError) as e:
-            raise exceptions.ConfigValidationError(
+            raise exceptions.CommandLineArgumentError(
                 f"If config-kinesis_scraper.yaml: \"poll_delay\" must be a positive numeric "
                 f"string, a float, or an integer.\nValue provided: "
                 f"{repr(type(self.poll_delay))} {repr(self.poll_delay)}"
             ) from e
         if float(self.poll_delay) < 0 or float(self.poll_delay) > 10:
-            raise exceptions.ConfigValidationError('config-kinesis_scraper.yaml: poll_delay must be between 0-10')
+            raise exceptions.CommandLineArgumentError('config-kinesis_scraper.yaml: poll_delay must be between 0-10')
 
     def _post_init_processing(self):
         super()._post_init_processing()
@@ -512,7 +512,7 @@ class ClientConfig(common.BaseCommonClass):
             if len(self._shard_ids) != 1:
                 value_provided_type = repr(type(self._shard_ids))
                 value_provided = repr(self._shard_ids)
-                raise exceptions.ConfigValidationError(
+                raise exceptions.CommandLineArgumentError(
                     f"config-kinesis_scraper.yaml: If \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
                     f"exactly 1 shard_id must be specified as the sequence numbers are unique per shard."
                     f"\nValue provided: {value_provided_type} {value_provided}"
@@ -522,7 +522,7 @@ class ClientConfig(common.BaseCommonClass):
             except (TypeError, ValueError) as e:
                 value_provided_type = repr(type(getattr(self, f"{position_type}_sequence_number")))
                 value_provided = repr(getattr(self, f"{position_type}_sequence_number"))
-                raise exceptions.ConfigValidationError(
+                raise exceptions.CommandLineArgumentError(
                     f"config-kinesis_scraper.yaml: If \"{position_type}_position\" is *_SEQUENCE_NUMBER, "
                     f"the value must be a positive numeric string, float or an integer."
                     f"\nValue provided: {value_provided_type} {value_provided}"
@@ -540,7 +540,7 @@ class ClientConfig(common.BaseCommonClass):
             try:
                 common.validate_datetime(timestamp)
             except (ValueError, TypeError) as e:
-                raise exceptions.ConfigValidationError(
+                raise exceptions.CommandLineArgumentError(
                     f"config-kinesis_scraper.yaml: Invalid format for config parameter \"{position_type}_timestamp\".\n"
                     f"Format should be YYYY-MM-DD HH:MM:SS. "
                     f"Value provided: {str(type(timestamp))} {repr(timestamp)}") from e
@@ -569,7 +569,7 @@ class ClientConfig(common.BaseCommonClass):
         valid_positions = positions[position_type]
         value_provided = getattr(self, f"{position_type}_position")
         if value_provided not in valid_positions:
-            raise exceptions.ConfigValidationError(
+            raise exceptions.CommandLineArgumentError(
                 f"config-kinesis_scraper.yaml: {position_type}_position "
                 f"must be one of: {repr(valid_positions)}\n"
                 f"Value provided: {str(type(value_provided))} {repr(value_provided)}")
@@ -581,13 +581,13 @@ class ClientConfig(common.BaseCommonClass):
         if shard_ids is None:
             return []
         if not isinstance(shard_ids, list):
-            raise exceptions.ConfigValidationError(f'shard_ids must be of type list if specified. Type provided: '
+            raise exceptions.CommandLineArgumentError(f'shard_ids must be of type list if specified. Type provided: '
                                                    f'{str(type(shard_ids))} {repr(shard_ids)}')
         for shard_id in shard_ids:
             try:
                 ClientConfig.validate_shard_id(shard_id)
             except (TypeError, ValueError) as ex:
-                raise exceptions.ConfigValidationError(ex)
+                raise exceptions.CommandLineArgumentError(ex)
         return shard_ids
 
     @staticmethod
@@ -606,7 +606,7 @@ class ClientConfig(common.BaseCommonClass):
 
 class Client:
     def __init__(self, client_config: ClientConfig):
-        common.require_instance(client_config, ClientConfig, exceptions.InvalidArgumentException)
+        common.require_instance(client_config, ClientConfig, exceptions.InvalidFunctionArgumentException)
         self._client_config = client_config
 
         # Setup default attributes
@@ -615,7 +615,7 @@ class Client:
     def _confirm_shards_exist(self, shard_ids_detected: list):
         for shard_id in self._client_config.shard_ids:
             if shard_id not in shard_ids_detected:
-                raise exceptions.ConfigValidationError(
+                raise exceptions.CommandLineArgumentError(
                     f'Specified shard_id "{shard_id}" does not exist in stream '
                     f'"{self._client_config.stream_name}". Detected shards: {repr(shard_ids_detected)}')
 
@@ -645,7 +645,7 @@ class Client:
 
     def _scrape_shards(self, shard_ids=None):
         if shard_ids is None:
-            raise exceptions.InvalidArgumentException('_scrape_shards called with None.')
+            raise exceptions.InvalidFunctionArgumentException('_scrape_shards called with None.')
 
         for shard_id in shard_ids:
             self._scrape_records_for_shard(shard_id)
@@ -798,7 +798,7 @@ class Client:
     # If we don't have an existing/current shard iterator, we grab a new one, otherwise return the current one
     def _shard_iterator(self, shard_id: str) -> str:
         if not isinstance(shard_id, str):
-            raise exceptions.InvalidArgumentException(
+            raise exceptions.InvalidFunctionArgumentException(
                 f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
 
         if self._current_shard_iterator is not None:
@@ -808,7 +808,7 @@ class Client:
 
     def _get_new_shard_iterator(self, shard_id: str) -> str:
         if not isinstance(shard_id, str):
-            raise exceptions.InvalidArgumentException(
+            raise exceptions.InvalidFunctionArgumentException(
                 f"shard_id must be a string.\nType provided: {repr(type(shard_id))}")
 
         # If we have a timestamp specified, we call client.get_shard_iterator with the timestamp,
@@ -890,11 +890,11 @@ class Client:
     @staticmethod
     def _process_records(shard_id: str, records: RecordsCollection):
         if not isinstance(shard_id, str):
-            raise exceptions.InvalidArgumentException(
+            raise exceptions.InvalidFunctionArgumentException(
                 f'"shard_id" must be of type str. Received: {repr(type(shard_id))} {repr(shard_id)}')
 
         if not isinstance(records, RecordsCollection):
-            raise exceptions.InvalidArgumentException(
+            raise exceptions.InvalidFunctionArgumentException(
                 f'"records" must be of type RecordsCollection. Received: {repr(type(records))} {repr(records)}')
 
         # Safety: We strip all but safe characters before creating any files/dirs

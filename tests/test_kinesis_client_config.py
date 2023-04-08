@@ -126,12 +126,12 @@ class ClientConfig(unittest.TestCase):
     def test_invalid_starting_at_timestamp_type(self):
         self.config_input["starting_position"] = "AT_TIMESTAMP"
         self.config_input["starting_timestamp"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"starting_timestamp\".\n"
                       "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'str'> 'abc'", str(ex.exception))
         self.config_input["starting_timestamp"] = 5.5
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"starting_timestamp\".\n"
                       "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'float'> 5.5", str(ex.exception))
@@ -139,14 +139,14 @@ class ClientConfig(unittest.TestCase):
     def test_invalid_starting_at_sequence_number_type(self):
         self.config_input["starting_position"] = "AT_SEQUENCE_NUMBER"
         self.config_input["starting_sequence_number"] = {}
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: If \"starting_position\" is *_SEQUENCE_NUMBER, the value must be "
                       "a positive numeric string, float or an integer.\nValue provided: <class 'dict'> {}",
                       str(ex.exception))
         self.config_input["starting_position"] = "AT_SEQUENCE_NUMBER"
         self.config_input["starting_sequence_number"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: If \"starting_position\" is *_SEQUENCE_NUMBER, the value must be "
                       "a positive numeric string, float or an integer.\nValue provided: <class 'str'> 'abc'",
@@ -155,7 +155,7 @@ class ClientConfig(unittest.TestCase):
     def test_invalid_starting_before_sequence_number_type(self):
         self.config_input["starting_position"] = "AFTER_SEQUENCE_NUMBER"
         self.config_input["starting_sequence_number"] = {}
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: If \"starting_position\" is *_SEQUENCE_NUMBER, the value must be "
                       "a positive numeric string, float or an integer.\nValue provided: <class 'dict'> {}",
@@ -164,7 +164,7 @@ class ClientConfig(unittest.TestCase):
     def test_invalid_ending_at_timestamp_type(self):
         self.config_input["ending_position"] = "AT_TIMESTAMP"
         self.config_input["ending_timestamp"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"ending_timestamp\".\n"
                       "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'str'> 'abc'", str(ex.exception))
@@ -172,7 +172,7 @@ class ClientConfig(unittest.TestCase):
     def test_invalid_ending_before_timestamp_type(self):
         self.config_input["ending_position"] = "BEFORE_TIMESTAMP"
         self.config_input["ending_timestamp"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"ending_timestamp\".\n"
                       "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'str'> 'abc'", str(ex.exception))
@@ -180,13 +180,13 @@ class ClientConfig(unittest.TestCase):
     def test_invalid_ending_after_timestamp_type(self):
         self.config_input["ending_position"] = "AFTER_TIMESTAMP"
         self.config_input["ending_timestamp"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"ending_timestamp\".\n"
                       "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'str'> 'abc'", str(ex.exception))
         self.config_input["ending_position"] = "AFTER_TIMESTAMP"
         self.config_input["ending_timestamp"] = []
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: Invalid format for config parameter \"ending_timestamp\".\n"
                       "Format should be YYYY-MM-DD HH:MM:SS. Value provided: <class 'list'> []", str(ex.exception))
@@ -194,14 +194,14 @@ class ClientConfig(unittest.TestCase):
     def test_invalid_ending_at_sequence_number_type(self):
         self.config_input["ending_position"] = "AT_SEQUENCE_NUMBER"
         self.config_input["ending_sequence_number"] = {}
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
                       "a positive numeric string, float or an integer.\nValue provided: <class 'dict'> {}",
                       str(ex.exception))
         self.config_input["ending_position"] = "AT_SEQUENCE_NUMBER"
         self.config_input["ending_sequence_number"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
                       "a positive numeric string, float or an integer.\nValue provided: <class 'str'> 'abc'",
@@ -210,14 +210,14 @@ class ClientConfig(unittest.TestCase):
     def test_invalid_ending_before_sequence_number_type(self):
         self.config_input["ending_position"] = "BEFORE_SEQUENCE_NUMBER"
         self.config_input["ending_sequence_number"] = {}
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
                       "a positive numeric string, float or an integer.\nValue provided: <class 'dict'> {}",
                       str(ex.exception))
         self.config_input["ending_position"] = "BEFORE_SEQUENCE_NUMBER"
         self.config_input["ending_sequence_number"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
                       "a positive numeric string, float or an integer.\nValue provided: <class 'str'> 'abc'",
@@ -226,14 +226,14 @@ class ClientConfig(unittest.TestCase):
     def test_invalid_ending_after_sequence_number_type(self):
         self.config_input["ending_position"] = "AFTER_SEQUENCE_NUMBER"
         self.config_input["ending_sequence_number"] = {}
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
                       "a positive numeric string, float or an integer.\nValue provided: <class 'dict'> {}",
                       str(ex.exception))
         self.config_input["ending_position"] = "AFTER_SEQUENCE_NUMBER"
         self.config_input["ending_sequence_number"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("config-kinesis_scraper.yaml: If \"ending_position\" is *_SEQUENCE_NUMBER, the value must be "
                       "a positive numeric string, float or an integer.\nValue provided: <class 'str'> 'abc'",
@@ -245,7 +245,7 @@ class ClientConfig(unittest.TestCase):
 
     def test_invalid_shard_ids_empty_element(self):
         self.config_input["shard_ids"] = [""]
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn(
             "Invalid shard_id format. Expected pattern: <class 'str'> 'shardId-XXXXXXX' Received: <class 'str'> ''",
@@ -275,7 +275,7 @@ class ClientConfig(unittest.TestCase):
                 else:
                     self.config_input["starting_position"] = "LATEST"
 
-                with self.assertRaises(exceptions.ConfigValidationError) as ex:
+                with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
                     kinesis.ClientConfig(self.config_input, self.boto_client)
                 self.assertIn(
                     f"config-kinesis_scraper.yaml: If \"{position}_position\" is *_SEQUENCE_NUMBER, "
@@ -307,7 +307,7 @@ class ClientConfig(unittest.TestCase):
                 else:
                     self.config_input["starting_position"] = "LATEST"
 
-                with self.assertRaises(exceptions.ConfigValidationError) as ex:
+                with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
                     kinesis.ClientConfig(self.config_input, self.boto_client)
                 self.assertIn(
                     f"config-kinesis_scraper.yaml: If \"{position}_position\" is *_SEQUENCE_NUMBER, "
@@ -321,7 +321,7 @@ class ClientConfig(unittest.TestCase):
             self.config_input["starting_position"] = "LATEST"
             self.config_input["ending_position"] = "LATEST"
             self.config_input[f"{position}_position"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn(f"config-kinesis_scraper.yaml: {position}_position must be one of: ['TOTAL_RECORDS_PER_SHARD', "
                       "'AT_SEQUENCE_NUMBER', 'AFTER_SEQUENCE_NUMBER', 'BEFORE_SEQUENCE_NUMBER', 'AT_TIMESTAMP', "
@@ -331,7 +331,7 @@ class ClientConfig(unittest.TestCase):
     def test_boto3_invalid_object(self):
         # Run the test once with an empty input config list to simulate no configs set
         config_input = {}
-        with self.assertRaises(expected_exception=exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(expected_exception=exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.ClientConfig(config_input, object)
         self.assertEqual(
             "A boto3 Kinesis client object is required. Example: \"boto3.client('kinesis')\". "
@@ -342,7 +342,7 @@ class ClientConfig(unittest.TestCase):
     def test_ReqConfigs_empty(self):
         # Run the test once with an empty input config list to simulate no configs set
         config_input = {}
-        with self.assertRaises(expected_exception=exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(expected_exception=exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(config_input, self.boto_client)
         self.assertEqual(
             'config-kinesis_scraper.yaml: Missing config parameter: debug_level',
@@ -367,7 +367,7 @@ class ClientConfig(unittest.TestCase):
             if i == len(required_configs) - 1:
                 return
             config_input[current_conf] = "x"
-            with self.assertRaises(exceptions.ConfigValidationError) as ex:
+            with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
                 kinesis.ClientConfig(config_input, self.boto_client)
             self.assertEqual(
                 f'config-kinesis_scraper.yaml: Missing config parameter: {required_configs[i + 1]}',
@@ -377,7 +377,7 @@ class ClientConfig(unittest.TestCase):
 
     def test_debug_level_invalid_wrong_value(self):
         self.config_input["debug_level"] = "amazing"
-        with self.assertRaises(expected_exception=exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(expected_exception=exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual(f"config-kinesis_scraper.yaml: debug_level must be one of: "
                          f"['DEBUG', 'INFO', 'WARNING', 'ERROR']\nValue provided: <class 'str'> 'amazing'",
@@ -385,32 +385,32 @@ class ClientConfig(unittest.TestCase):
 
     def test_stream_name_invalid_int(self):
         self.config_input["stream_name"] = 5
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("stream_name must be a string. Type provided: <class 'int'>", str(ex.exception))
 
     def test_stream_name_invalid_blank(self):
         self.config_input["stream_name"] = ""
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("config-kinesis_scraper.yaml: A stream name must be set.", str(ex.exception))
 
     def test_stream_name_invalid_default_name(self):
         self.config_input["stream_name"] = "stream_name_here"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("config-kinesis_scraper.yaml: A stream name must be set.", str(ex.exception))
 
     def test_shard_ids_invalid_int(self):
         self.config_input["shard_ids"] = 5
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("shard_ids must be of type list if specified. Type provided: <class 'int'> 5",
                          str(ex.exception))
 
     def test_shard_ids_invalid_list_int(self):
         self.config_input["shard_ids"] = [7]
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("Each shard_id must be a string. Type <class 'str'> expected. Received: <class 'int'> 7",
                          str(ex.exception))
@@ -430,54 +430,54 @@ class ClientConfig(unittest.TestCase):
 
     def test_poll_batch_size_invalid_string(self):
         self.config_input["poll_batch_size"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("If config-kinesis_scraper.yaml: \"poll_batch_size\" must be a positive numeric "
                       "string, or an integer.\nValue provided: <class 'str'> 'abc'", str(ex.exception))
 
     def test_poll_batch_size_invalid_over_max(self):
         self.config_input["poll_batch_size"] = 501
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("config-kinesis_scraper.yaml: poll_batch_size cannot exceed 500", str(ex.exception))
 
     def test_max_empty_polls_invalid_string(self):
         self.config_input["max_empty_polls"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("If config-kinesis_scraper.yaml: \"max_empty_polls\" must be a positive numeric "
                       "string, or an integer.\nValue provided: <class 'str'> 'abc'", str(ex.exception))
 
     def test_max_empty_polls_invalid_over_max(self):
         self.config_input["max_empty_polls"] = 2001
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("config-kinesis_scraper.yaml: max_empty_polls cannot exceed 2000", str(ex.exception))
 
     def test_total_records_per_shard_invalid_string(self):
         self.config_input["total_records_per_shard"] = "abc"
         self.config_input["ending_position"] = "TOTAL_RECORDS_PER_SHARD"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("If config-kinesis_scraper.yaml: \"total_records_per_shard\" must be a positive numeric "
                       "string, or an integer.\nValue provided: <class 'str'> 'abc'", str(ex.exception))
 
     def test_poll_delay_invalid_string(self):
         self.config_input["poll_delay"] = "abc"
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("If config-kinesis_scraper.yaml: \"poll_delay\" must be a positive numeric "
                       "string, a float, or an integer.\nValue provided: <class 'str'> 'abc'", str(ex.exception))
 
     def test_poll_delay_invalid_over_max(self):
         self.config_input["poll_delay"] = 2001
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertEqual("config-kinesis_scraper.yaml: poll_delay must be between 0-10", str(ex.exception))
 
     def test_poll_delay_invalid_under_max(self):
         self.config_input["poll_delay"] = -5
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             kinesis.ClientConfig(self.config_input, self.boto_client)
         self.assertIn("If config-kinesis_scraper.yaml: \"poll_delay\" must be a positive numeric "
                       "string, a float, or an integer.\nValue provided: <class 'int'> -5", str(ex.exception))

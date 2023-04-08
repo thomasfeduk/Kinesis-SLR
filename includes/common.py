@@ -192,7 +192,7 @@ class PropRules:
             self._types[prop_name] = types
 
         if numeric is not None and numeric_positive is not None:
-            raise exceptions.InvalidArgumentException("numeric and numeric_positive cannot both be specified.")
+            raise exceptions.InvalidFunctionArgumentException("numeric and numeric_positive cannot both be specified.")
 
         if numeric is not None:
             self._numeric.append(prop_name)
@@ -223,7 +223,7 @@ class PropRules:
     def is_valid_types(self, attrib, attribs, debug_passed_data):
         self.is_valid_exists(attrib, attribs, debug_passed_data)
         if type(attribs[attrib]) not in self._types[attrib]:
-            raise exceptions.InvalidArgumentException(
+            raise exceptions.InvalidFunctionArgumentException(
                 f'"{attrib}" attribute must be of type: {str(self._types[attrib])}'
                 f'\nReceived: {repr(type(attribs[attrib]))} {repr(attribs[attrib])}'
                 f'{debug_passed_data}')
@@ -234,7 +234,7 @@ class PropRules:
         try:
             validate_numeric(attribs[attrib])
         except (TypeError, ValueError) as ex:
-            raise exceptions.InvalidArgumentException(
+            raise exceptions.InvalidFunctionArgumentException(
                 f'"{attrib}" must be a numeric value. Received: '
                 f'{type(attribs[attrib])} {repr(attribs[attrib])}') from ex
 
@@ -244,7 +244,7 @@ class PropRules:
         try:
             validate_numeric_pos(attribs[attrib])
         except (TypeError, ValueError) as ex:
-            raise exceptions.InvalidArgumentException(
+            raise exceptions.InvalidFunctionArgumentException(
                 f'"{attrib}" must be a positive numeric value. Received: '
                 f'{type(attribs[attrib])} {repr(attribs[attrib])}') from ex
 

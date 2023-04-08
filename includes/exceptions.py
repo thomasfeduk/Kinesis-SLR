@@ -1,9 +1,14 @@
-class ConfigValidationError(Exception):
+class ExternalError(Exception):
+    """Raised when an external exception occurs. Invalid passed argument, incorrect config file values."""
+    pass
+
+
+class ConfigValidationError(ExternalError):
     """Raised when a configuration parameter is invalid."""
     pass
 
 
-class FileProcessingError(Exception):
+class CommandLineArgumentError(ExternalError):
     """Raised when a configuration parameter is invalid."""
     pass
 
@@ -13,7 +18,12 @@ class InternalError(Exception):
     pass
 
 
-class InvalidArgumentException(InternalError):
+class FileProcessingError(InternalError):
+    """Raised when a configuration parameter is invalid."""
+    pass
+
+
+class InvalidFunctionArgumentException(InternalError):
     """Raised when an invalid argument is passed to a method. If it got this far, validation was missed"""
     pass
 

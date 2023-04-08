@@ -79,7 +79,7 @@ class TestRecord(unittest.TestCase):
 
     def test_record_invalid_empty(self):
         record_raw = {}
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.Record(record_raw)
         self.assertIn(
             "\"SequenceNumber\" attribute must be of type: [<class 'str'>]\n"
@@ -91,7 +91,7 @@ class TestRecord(unittest.TestCase):
         record_raw = generate_record_raw_dict()
         # Cant have an int for sequence number
         record_raw["SequenceNumber"] = 5
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.Record(record_raw)
         self.assertIn(
             "\"SequenceNumber\" attribute must be of type: [<class 'str'>]\nReceived: <class 'int'> 5",
@@ -102,7 +102,7 @@ class TestRecord(unittest.TestCase):
         record_raw = generate_record_raw_dict()
         # Cant have an int for sequence number
         record_raw["PartitionKey"] = 1
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.Record(record_raw)
         self.assertIn(
             "\"PartitionKey\" attribute must be of type: [<class 'str'>]\nReceived: <class 'int'> 1",
@@ -113,7 +113,7 @@ class TestRecord(unittest.TestCase):
         record_raw = generate_record_raw_dict()
         # Cant have an int for sequence number
         record_raw["ApproximateArrivalTimestamp"] = []
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.Record(record_raw)
         self.assertIn(
             "\"ApproximateArrivalTimestamp\" attribute must be of type: "
@@ -324,7 +324,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
         pass
 
     def test_invalid_type_total_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records="10",
                 response_no_records=0,
@@ -340,7 +340,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
         )
 
     def test_invalid_type_response_no_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records='blah',
@@ -356,7 +356,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
         )
 
     def test_invalid_type_loop_count(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records=0,
@@ -372,7 +372,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
         )
 
     def test_invalid_type_shard_iterator(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records=0,
@@ -388,7 +388,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
         )
 
     def test_invalid_type_shard_id(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records=0,
@@ -404,7 +404,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
         )
 
     def test_invalid_negative_numeric_total_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=-10,
                 response_no_records=0,
@@ -417,7 +417,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                       str(ex.exception))
 
     def test_invalid_negative_numeric_response_no_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records=-2,
@@ -430,7 +430,7 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                       str(ex.exception))
 
     def test_invalid_negative_numeric_loop_count(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records=2,
@@ -474,7 +474,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         pass
 
     def test_invalid_type_total_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records="10",
                 found_records=50,
@@ -492,7 +492,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         )
 
     def test_invalid_type_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records="50",
@@ -510,7 +510,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         )
 
     def test_invalid_type_response_no_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -528,7 +528,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         )
 
     def test_invalid_type_loop_count(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -546,7 +546,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         )
 
     def test_invalid_type_next_shard_iterator(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -564,7 +564,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         )
 
     def test_invalid_type_next_shard_id(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -582,7 +582,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         )
 
     def test_invalid_type_break_iteration(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -600,7 +600,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         )
 
     def test_invalid_negative_numeric_total_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=-10,
                 found_records=50,
@@ -615,7 +615,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                       str(ex.exception))
 
     def test_invalid_negative_numeric_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=-50,
@@ -630,7 +630,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                       str(ex.exception))
 
     def test_invalid_negative_numeric_response_no_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -645,7 +645,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                       str(ex.exception))
 
     def test_invalid_negative_numeric_loop_count(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.InvalidFunctionArgumentException) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -1231,7 +1231,7 @@ class TestClientFullCycle(unittest.TestCase):
 
         self.config_input["shard_ids"] = ["shardId-12345"]
         client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
-        with self.assertRaises(exceptions.ConfigValidationError) as ex:
+        with self.assertRaises(exceptions.CommandLineArgumentError) as ex:
             client.begin_scraping()
         self.assertIn("Specified shard_id \"shardId-12345\" does not exist in stream \"user_activities\". "
                       "Detected shards: ['shardId-00001']", str(ex.exception))

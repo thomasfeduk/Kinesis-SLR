@@ -22,7 +22,7 @@ log.setLevel("DEBUG")
 class Files(common.Collection):
     def __init__(self, *, shard_id: str = None, file_list: list = None):
         if (shard_id is None and file_list is None) or (shard_id is not None and file_list is not None):
-            raise exceptions.InvalidArgumentException("Exactly one of `shard_id` or `file_list` must be provided.")
+            raise exceptions.InvalidFunctionArgumentException("Exactly one of `shard_id` or `file_list` must be provided.")
 
         items = []
         if shard_id is not None:
@@ -35,7 +35,7 @@ class Files(common.Collection):
         super().__init__(items)
 
     def _init_from_shard_id(self, shard_id):
-        common.require_type(shard_id, str, exceptions.InvalidArgumentException)
+        common.require_type(shard_id, str, exceptions.InvalidFunctionArgumentException)
         self._shard_id = shard_id
         self._dir_path = f'scraped_events/{self._shard_id}'
         self._is_valid()
@@ -54,9 +54,9 @@ class Files(common.Collection):
         try:
             kinesis_client.ClientConfig.validate_shard_id(self._shard_id)
         except ValueError as ex:
-            raise exceptions.InvalidArgumentException(ex) from ex
+            raise exceptions.InvalidFunctionArgumentException(ex) from ex
         if not os.path.exists(self._dir_path):
-            raise exceptions.InvalidArgumentException(f"Scrapped shard directory {self._shard_id} does not exist.")
+            raise exceptions.InvalidFunctionArgumentException(f"Scrapped shard directory {self._shard_id} does not exist.")
 
     @staticmethod
     def validate_file_name(file_name: str):
@@ -203,7 +203,7 @@ class ClientConfig(common.BaseCommonClass):
 
 class Client:
     def __init__(self, client_config: ClientConfig):
-        common.require_instance(client_config, ClientConfig, exceptions.InvalidArgumentException)
+        common.require_instance(client_config, ClientConfig, exceptions.InvalidFunctionArgumentException)
         self._client_config = client_config
         self._account_id = "12345"
 
@@ -268,11 +268,11 @@ class Client:
 
         Returns: None.
         """
-        common.require_type(file_batch_iterator, FileListBatchIterator, exceptions.InvalidArgumentException)
+        common.require_type(file_batch_iterator, FileListBatchIterator, exceptions.InvalidFunctionArgumentException)
         try:
             kinesis_client.ClientConfig.validate_shard_id(file_batch_iterator.shard_id)
         except [TypeError, ValueError] as ex:
-            raise exceptions.InvalidArgumentException(ex) from ex
+            raise exceptions.InvalidFunctionArgumentException(ex) from ex
 
         log.info(f"Verifying integrity of all files for shard {file_batch_iterator.shard_id} before replay begins...")
         i = 0
@@ -292,8 +292,8 @@ class Client:
                  f" are in the expected format.")
 
     def _process_batch(self, shard_id: str, file_list: Files):
-        common.require_type(shard_id, str, exceptions.InvalidArgumentException)
-        common.require_type(file_list, Files, exceptions.InvalidArgumentException)
+        common.require_type(shard_id, str, exceptions.InvalidFunctionArgumentException)
+        common.require_type(file_list, Files, exceptions.InvalidFunctionArgumentException)
 
         payload = self._build_payload(shard_id, file_list)
         batch_range_label = file_list[0]
@@ -311,8 +311,8 @@ class Client:
         try:
             kinesis_client.ClientConfig.validate_shard_id(shard_id)
         except [TypeError, ValueError] as ex:
-            raise exceptions.InvalidArgumentException(ex) from ex
-        common.require_type(file_list, Files, exceptions.InvalidArgumentException)
+            raise exceptions.InvalidFunctionArgumentException(ex) from ex
+        common.require_type(file_list, Files, exceptions.InvalidFunctionArgumentException)
 
         dir_path = f'dlq/{shard_id}'
         log.debug(f'mkdirs path: {dir_path}')
@@ -327,8 +327,8 @@ class Client:
         log.info(f"{len(list(file_list))} files written to dlq successfully.")
 
     def _build_payload(self, shard_id: str, file_list: Files) -> dict:
-        common.require_type(shard_id, str, exceptions.InvalidArgumentException)
-        common.require_type(file_list, Files, exceptions.InvalidArgumentException)
+        common.require_type(shard_id, str, exceptions.InvalidFunctionArgumentException)
+        common.require_type(file_list, Files, exceptions.InvalidFunctionArgumentException)
         final_payload = {"Records": []}
 
         for file in list(file_list):
@@ -340,7 +340,7 @@ class Client:
         try:
             kinesis_client.ClientConfig.validate_shard_id(shard_id)
         except [TypeError, ValueError] as ex:
-            raise exceptions.InvalidArgumentException(ex) from ex
+            raise exceptions.InvalidFunctionArgumentException(ex) from ex
         Files.validate_file_name(file)
 
         with open(f"scraped_events/{shard_id}/{file}", 'r') as f:

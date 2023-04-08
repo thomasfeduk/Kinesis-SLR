@@ -9,6 +9,10 @@ from includes import common
 from includes import kinesis_client as kinesis
 from includes import lambda_client
 import argparse
+from typing import TypeVar
+import includes.exceptions as exceptions
+
+Self = TypeVar('Self')
 
 # Initialize logger
 logging.basicConfig()
@@ -105,7 +109,7 @@ def print_wrapped(text: str, *, width: int = 100):
         print(line)
 
 
-def main():
+def menu():
     clear_screen()
     display_logo()
 
@@ -136,29 +140,39 @@ def main():
         print("Exiting...")
 
 
-if __name__ == "__main__":
-    # create a new argparse object
+class Arguments:
+    def __init__(self, mode: str = None):
+        if mode not in [None, 'menu', 'scrape', 'replay']:
+            raise exceptions.CommandLineArgumentError(f'Invalid mode specified: {common.type_repr(mode)}')
+        self._mode = mode
+
+    @property
+    def mode(self):
+        return self._mode
+
+
+def process_args() -> Arguments:
     parser = argparse.ArgumentParser()
-
-    # add an argument for the --mode option
-    parser.add_argument('--mode', dest='option', metavar='',
+    parser.add_argument('--mode', dest='mode', metavar='',
                         help='option : The mode which Kinesis-SLR should run. ')
-
-    # add a subparser for the specified option
     subparsers = parser.add_subparsers(title='--mode={option} : The available modes are', dest='subcommand', metavar='')
+    subparsers.add_parser('menu', help='(Default) Opens the main menu.')
+    subparsers.add_parser('scrape', help='Scrapes messages from the configured stream.')
+    subparsers.add_parser('replay',
+                          help='Replays the locally stored scraped messages to the configured lambda.')
 
-    # add a parser for the 'faulthandler' option
-    parser_faulthandler = subparsers.add_parser('faulthandler', help='Description of option')
+    passed_args = parser.parse_args()
+    return Arguments(mode=passed_args.mode)
 
-    # add a parser for the 'showrefcount' option
-    parser_showrefcount = subparsers.add_parser('showrefcount', help='Description of option')
 
-    # add a parser for the 'tracemalloc' option
-    parser_tracemalloc = subparsers.add_parser('tracemalloc', help='Description of option')
-    parser_tracemalloc.add_argument('NFRAME', type=int, nargs='?', help='traceback limit of NFRAME frames')
+if __name__ == "__main__":
+    args = process_args()
+    if args.mode == "scrape":
+        begin_scraping()
+        sys.exit()
+    if args.mode == "replay":
+        begin_replaying()
+        sys.exit()
 
-    # set the default subcommand to 'showrefcount'
-    parser.set_defaults(subcommand='showrefcount')
-
-    # parse the command line arguments
-    args = parser.parse_args()
+    menu()
+    sys.exit()
