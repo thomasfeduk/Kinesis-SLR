@@ -8,8 +8,7 @@
 # Description: The debug output level. INFO is the default and provides general status logging
 # Possible values: DEBUG|INFO|WARNING|ERROR
 #
-debug_level: INFO
-
+debug_level: DEBUG
 
 # ----------------------
 # Property: region_name
@@ -31,7 +30,7 @@ function_name: kworker
 # Description: The name of the stream you want to replay.
 # Needed to properly rebuild the event.Records[].eventSourceARN payload metadata sent to the lambda.
 #
-stream_name: user-activities3
+stream_name: user-activities-new
 
 
 # --------------------
@@ -43,7 +42,7 @@ stream_name: user-activities3
 # possible. However, the following value will be set to local::kinesis-slr due to the Kinesis-SLR not having this information.
 #  - event.Records[].invokeIdentityArn
 #
-batch_size: 20 # Max 10000
+batch_size: 10 # Max 10000
 
 # --------------------
 # Property: local_dlq

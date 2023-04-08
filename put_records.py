@@ -5,20 +5,22 @@ import random
 import datetime
 from includes.debug import *
 
-stream_name = 'user-activities3'
+stream_name = 'user-activities-new'
 
 # Boot
 kinesis = boto3.client('kinesis', "us-east-1")
 
 # Config
-events_total = 100  # Max 500
-errors = []
+events_total = 10  # Max 500
+errors = list(range(1, events_total+1))
+
 errors_unrecoverable = []
 randomize_shards = False
 
 
 def publish_to_stream():
     events = generate_events()
+
     response = kinesis.put_records(
         Records=events,
         StreamName=stream_name

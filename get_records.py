@@ -7,8 +7,6 @@ import datetime
 s3 = boto3.resource('s3')
 bucket_name = 'thomasfeduk-kinesis1'
 
-sqs = boto3.resource('sqs')
-queue = sqs.Queue('https://sqs.us-east-1.amazonaws.com/443035303084/kworker-dlq-manual')
 
 def lambda_handler(event, context):
     try:
@@ -16,33 +14,25 @@ def lambda_handler(event, context):
     except Exception:
         pass
 
-    print(f"Records length: {len(event['Records'])}")
-    # print("Event:")
-    # print(event)
-
     i = 1
     for record in event['Records']:
         payload = base64.b64decode(record["kinesis"]["data"])
         data = json.loads(payload)
-        print("Data: ")
-        print(data)
-        filename = ',K-Starting #' + str(data["number"]).zfill(2) + ' (Order #' + str(i).zfill(2) + ') - ' \
+        filename = ',Starting #' + str(data["number"]).zfill(2) + ' (Order #' + str(i).zfill(2) + ') - ' \
                    + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' - '\
                    + str(random.randrange(1, 99999))
-        # s3.Object(bucket_name, filename).put(Body=json.dumps(event))
+        s3.Object(bucket_name, filename).put(Body=json.dumps(event))
 
         if data["error"]:
-            print("Writing message to sqs dlq: " + str(data["number"]))
-            filename = '~K-Error #' + str(data["number"]).zfill(2) + ' (Order #' + str(i).zfill(2) + ') - ' \
+            filename = '~Error #' + str(data["number"]).zfill(2) + ' (Order #' + str(i).zfill(2) + ') - ' \
                        + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' - ' \
                        + str(random.randrange(1, 99999))
             s3.Object(bucket_name, filename).put(Body=json.dumps(event))
-            response = queue.send_message(
-                MessageBody=json.dumps(record),
-            )
-            # raise Exception("Error for event #" + str(data["number"]).zfill(2))
-            continue
-        filename = '.K-Success! #' + str(data["number"]).zfill(2) + ' (Order #' + str(i).zfill(2) + ') - ' \
+            raise Exception("Error for event #" + str(data["number"]).zfill(2))
+            # print("Print Error for event #" + str(data["number"]).zfill(2))
+            # return {"batchItemFailures": [{"itemIdentifier": record["kinesis"]["sequenceNumber"]}]}
+
+        filename = '.Success! #' + str(data["number"]).zfill(2) + ' (Order #' + str(i).zfill(2) + ') - ' \
                    + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' - '\
                    + str(random.randrange(1, 99999))
         s3.Object(bucket_name, filename).put(Body=json.dumps(event))

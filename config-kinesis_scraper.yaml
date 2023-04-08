@@ -23,7 +23,7 @@ region_name: 'us-east-1'
 # Description: The name of the stream you want to scrape
 # Example value: user-activities
 #
-stream_name: user-activities3
+stream_name: user-activities-new
 
 # -------------------
 # Property: shardIds
@@ -202,4 +202,4 @@ poll_delay: "0.0"
 # in the stream from the oldest message until now. From my testing, a 24 hour gap between messages resulted
 # in upto 104 empty polls
 #
-max_empty_polls: 250 # Max 5000
+max_empty_polls: 50 # Max 5000
