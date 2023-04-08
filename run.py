@@ -9,6 +9,9 @@ from includes import common
 from includes import kinesis_client as kinesis
 from includes import lambda_client
 
+import argparse
+
+
 # Initialize logger
 logging.basicConfig()
 
@@ -136,4 +139,57 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+
+    # create a new argparse object
+    parser = argparse.ArgumentParser()
+
+    # add a subparser for the -X option
+    subparsers = parser.add_subparsers(
+        title='-X opt : set implementation-specific option. The following options are available:', dest='option',
+        metavar='')
+
+    # add a parser for the 'faulthandler' option
+    parser_faulthandler = subparsers.add_parser('faulthandler', help='enable faulthandler')
+
+    # add a parser for the 'showrefcount' option
+    parser_showrefcount = subparsers.add_parser('showrefcount',
+                                                help='output the total reference count and number of used memory blocks when the program finishes or after each statement in the interactive interpreter. This only works on debug builds')
+
+    # add a parser for the 'tracemalloc' option
+    parser_tracemalloc = subparsers.add_parser('tracemalloc',
+                                               help='start tracing Python memory allocations using the tracemalloc module. By default, only the most recent frame is stored in a traceback of a trace. Use -X tracemalloc=NFRAME to start tracing with a traceback limit of NFRAME frames')
+    parser_tracemalloc.add_argument('NFRAME', type=int, nargs='?', help='traceback limit of NFRAME frames')
+
+    # add a group for file options
+    file_group = parser.add_argument_group(title='File Options', description='specify file options')
+    file_group.add_argument('--mode', type=str, choices=['upload-file', 'download-file', 'generate-file'],
+                            default='download-file', help='specify mode (default: download-file)')
+    file_group.add_argument('--region', type=str, help='specify the AWS region to use')
+    file_group.add_argument('--exclude', type=str, help='specify the file to exclude')
+
+    # parse the command line arguments
+    args = parser.parse_args()
+
+    # use the option argument
+    option = args.option
+    if option == 'faulthandler':
+        print('enabling faulthandler')
+    elif option == 'showrefcount':
+        print('outputting total reference count and number of used memory blocks')
+    elif option == 'tracemalloc':
+        if args.NFRAME:
+            print(f'starting tracing with a traceback limit of {args.NFRAME} frames')
+        else:
+            print('starting tracing')
+
+    # use the file options
+    mode = args.mode
+    region = args.region
+    exclude = args.exclude
+    print(f"Using mode '{mode}'")
+    if region:
+        print(f"Using region '{region}'")
+    if exclude:
+        print(f"Excluding file '{exclude}'")
+        
