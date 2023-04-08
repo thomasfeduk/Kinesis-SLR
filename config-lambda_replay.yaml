@@ -70,7 +70,7 @@ local_dlq_fullevent: True
 # and move to a local dlq (if set) then aborting
 #
 # Note: If set to 0, no retries will occur. Only a single attempt will be made.
-retry_attempts: 0 # Max 5
+retry_attempts: 2 # Max 5
 
 # -------------------------
 # Property: bisect_on_error

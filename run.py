@@ -8,6 +8,7 @@ import logging
 from includes import common
 from includes import kinesis_client as kinesis
 from includes import lambda_client
+import argparse
 
 # Initialize logger
 logging.basicConfig()
@@ -136,4 +137,28 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # create a new argparse object
+    parser = argparse.ArgumentParser()
+
+    # add an argument for the --mode option
+    parser.add_argument('--mode', dest='option', metavar='',
+                        help='option : The mode which Kinesis-SLR should run. ')
+
+    # add a subparser for the specified option
+    subparsers = parser.add_subparsers(title='--mode={option} : The available modes are', dest='subcommand', metavar='')
+
+    # add a parser for the 'faulthandler' option
+    parser_faulthandler = subparsers.add_parser('faulthandler', help='Description of option')
+
+    # add a parser for the 'showrefcount' option
+    parser_showrefcount = subparsers.add_parser('showrefcount', help='Description of option')
+
+    # add a parser for the 'tracemalloc' option
+    parser_tracemalloc = subparsers.add_parser('tracemalloc', help='Description of option')
+    parser_tracemalloc.add_argument('NFRAME', type=int, nargs='?', help='traceback limit of NFRAME frames')
+
+    # set the default subcommand to 'showrefcount'
+    parser.set_defaults(subcommand='showrefcount')
+
+    # parse the command line arguments
+    args = parser.parse_args()
