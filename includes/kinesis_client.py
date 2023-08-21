@@ -692,19 +692,30 @@ class Client:
             iterator_obj.total_found_records += len(response.Records)
             log.debug(f'Found {len(response.Records)} in batch.')
 
+            # Reset no found records counter
             log.info(
                 f"\n\n{len(response.Records)} records found in current get_records() response for shard:"
                 f" {iterator_obj.shard_id}. Total found records: "
                 f"{iterator_obj.total_found_records}\n")
             iterator_obj.response_no_records = 0
 
+            # Begin break iteration checks
+            break_iteration = False
+
             # If ending_position is total records per shard, append upto X records to found_records
             records_count_upto_to_add = None
             records_to_process = []
+
+            # If we are at the total per shard, we terminate the loop
             if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD' \
                     and self._client_config.total_records_per_shard <= iterator_obj.total_found_records:
+                log.info(f'Reached {self._client_config.total_records_per_shard} max records per shard '
+                         f'limit for shard {iterator_obj.shard_id}\n')
+
+                break_iteration = True
                 records_count_upto_to_add = self._calculate_iteration_upto_add(
                     iterator_obj.total_found_records - len(response.Records), len(response.Records))
+
 
             records_to_process = RecordsCollection(common.list_append_upto_n_items_from_new_list(
                 records_to_process,
@@ -713,13 +724,6 @@ class Client:
             )
             self._process_records(iterator_obj.shard_id, records_to_process)
 
-            # If we are at the total per shard, we terminate the loop
-            break_iteration = False
-            if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD' \
-                    and self._client_config.total_records_per_shard <= iterator_obj.total_found_records:
-                break_iteration = True
-                log.info(f'Reached {self._client_config.total_records_per_shard} max records per shard '
-                         f'limit for shard {iterator_obj.shard_id}\n')
 
             iterator_response = GetRecordsIterationResponse(
                 total_found_records=iterator_obj.total_found_records,

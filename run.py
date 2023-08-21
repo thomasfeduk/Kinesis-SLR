@@ -105,6 +105,10 @@ def print_wrapped(text: str, *, width: int = 100):
 
 
 def main():
+
+    begin_scraping()
+    die('End run.py')
+
     clear_screen()
     display_logo()
 
