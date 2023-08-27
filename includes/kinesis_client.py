@@ -687,7 +687,6 @@ class Client:
 
         # Make the boto3 call
         response = self._get_records(iterator_obj.shard_iterator)
-        pvdd(len(response.Records))
 
         if len(response.Records) > 0:
             iterator_obj.total_found_records += len(response.Records)
@@ -702,7 +701,7 @@ class Client:
 
             # Begin break iteration checks
             break_iteration = False
-            records_to_process = RecordsCollection([])
+            records_to_process = response.Records
             # If ending_position is total records per shard, append appropriate records remaining from the current iter
             if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD' \
                     and self._client_config.total_records_per_shard <= iterator_obj.total_found_records:
@@ -710,7 +709,7 @@ class Client:
                 log.info(f'Reached {self._client_config.total_records_per_shard} max records per shard '
                          f'limit for shard {iterator_obj.shard_id}\n')
 
-                records_to_process = self._getcheck_ending_at_timestamp(iterator_obj, response)
+                records_to_process = self._select_records_ending_at_timestamp(iterator_obj, response)
 
             self._process_records(iterator_obj.shard_id, records_to_process)
 
@@ -750,7 +749,7 @@ class Client:
         )
         return iterator_response
 
-    def _getcheck_ending_at_timestamp(self, iterator_obj: GetRecordsIterationInput, response: Boto3GetRecordsResponse):
+    def _select_records_ending_at_timestamp(self, iterator_obj: GetRecordsIterationInput, response: Boto3GetRecordsResponse):
         common.require_instance(iterator_obj, GetRecordsIterationInput)
         common.require_instance(response, Boto3GetRecordsResponse)
 

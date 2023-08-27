@@ -966,7 +966,6 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
         # print(repr(args_list[1][0][1]) == repr(generated_get_records[1].Records))
         # print(repr(args_list[2][0][1]) == repr(generated_get_records[3].Records))
 
-
         calls = []
         calls.append(call(shard_id, generated_get_records[0].Records))
         calls.append(call(shard_id, generated_get_records[1].Records))
