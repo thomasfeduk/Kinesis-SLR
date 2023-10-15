@@ -1,4 +1,3 @@
-from typing import Union
 import botocore
 import uuid
 import datetime
@@ -19,7 +18,7 @@ def generate_records(num: int, contents: dict = None) -> list:
 
 def generate_record_raw_dict(*,
                              sequence_number: str = uuid.uuid4().hex,
-                             timestamp: Union[str, datetime.datetime] = datetime.datetime.now(),
+                             timestamp: str | datetime.datetime = datetime.datetime.now(),
                              data="dataHere",
                              pkey: str = 'sample_event',
                              ) -> dict:

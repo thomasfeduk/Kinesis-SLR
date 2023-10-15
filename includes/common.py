@@ -1,5 +1,5 @@
-from typing import Union
 import os
+import re
 from os import path
 import json
 import logging
@@ -17,7 +17,7 @@ log = logging.getLogger()
 # Abstract class that allows population of pre-defined attributes from a passed dict or json
 class BaseSuperclass(ABC):
     @abstractmethod
-    def __init__(self, passed_data: Union[dict, str] = None):
+    def __init__(self, passed_data: dict | str = None):
         # No attributes at superclass level
 
         # Superclass only:
@@ -28,7 +28,7 @@ class BaseSuperclass(ABC):
     # as a mapping attribute, we set that attribute to the value of the key
     # This allows us to define the known attributes ahead of time on a per-class basis, then just throw
     # data at it, and it smartly populates the attributes if they exist without having to do it manually.
-    def _load_base_superclass_data(self, passed_data: Union[dict, str]):
+    def _load_base_superclass_data(self, passed_data: dict | str):
         if passed_data is None:
             return
         try:
@@ -51,7 +51,7 @@ class BaseSuperclass(ABC):
 class BaseCommonClass(BaseSuperclass):
     # TODO: Add decorator here to require a dict/str or exception and pass in a dict
     @abstractmethod
-    def __init__(self, passed_data: Union[dict, str] = None):
+    def __init__(self, passed_data: dict | str = None):
         # Define the default attributes
         if not hasattr(self, '_proprules'):
             self._proprules = PropRules()
@@ -63,17 +63,14 @@ class BaseCommonClass(BaseSuperclass):
     def _is_valid(self):
         self._is_valid_proprules()
 
-    # Class can use this to implement any post-init processing of properties (ie uppercaseing values,
-    # setting defaults etc.)
-    def _post_init_processing(self):
-        del self._base_superclass_passed_data
-
     def _is_valid_proprules(self) -> None:
         attribs = {}
         for item in dir(self):
             if not callable(getattr(self, item)):
                 attribs[item] = getattr(self, item)
         self._proprules.validate(attribs)
+    def _post_init_processing(self):
+        del self._base_superclass_passed_data
 
     def __str__(self):
         attribs = []
@@ -162,40 +159,75 @@ class RestrictedCollection(Collection):
     def _validate_item(self, value):
         if isinstance(value, self.expected_type):
             return value
-        raise TypeError(f"Each item in the list must be of type {repr(self.expected_type)}. "
-                        f"Received: {type(value)} {repr(value)}\nPassed data: {repr(self._items)}")
+        raise TypeError(f"Each item in the list must be of type {repr(self.expected_type)}. Received:"
+                        f"{type(value)} {repr(value)}\nPassed data: {repr(self._items)}")
 
 
 class PropRules:
     def __init__(self):
-        """
-        types: [{"attrib1", [int, float]}]
-        numeric: ["attrib1", "attrib2"]
-        numeric_positive: ["attrib1", "attrib2"]
-        """
+        self._enums: dict = {}
+        self._types: dict = {}
+        self._numeric: dict = {}
+        self._numeric_positive: dict = {}
+        self._populated: dict = {}
+        self._regexp: dict = {}
 
-        self._types = {}
-        self._numeric = []
-        self._numeric_positive = []
-
-    def add_prop(self, prop_name: str, *,
-                 types=None,
+    def add_prop(self, prop_name: str,
+                 enums: list | None = None,
+                 types: list | None = None,
                  numeric: bool = None,
-                 numeric_positive: bool = None,
+                 numeric_positive: bool | None = None,
+                 populated: bool | None = None,
+                 regexp: str | None = None,
                  ):
-        if types is None:
-            types = []
+        """
+        Add a new property to the object validation rules with the specified name and optional validation criteria.
+
+        :param enums: (Optional[Iterable[str]]) A list of acceptable str enums.
+
+        :param prop_name: (str): The name of the property to add.
+
+        :param types: (Optional[Iterable[type]]): A list of types that the property value must be an instance of and
+            must exist.
+            If not specified, any type of value is allowed unless another rule adds a condition.
+
+        :param numeric: (Optional[bool]): If True, the property value must exist and be a numeric type
+            (int, float, etc.).
+            If False, the property value must not be a numeric type.
+            If not specified, any type of value is allowed unless another rule adds a condition.
+
+        :param numeric_positive: (Optional[bool]): If True, the property value must exist and be a positive numeric type
+            (int, float, etc.). Note: 0 is counted as a positive value.
+            If False, the property value must not be a positive numeric type. Example: A negative numeric value or
+            string value will be permitted.
+            If not specified, any type of value is allowed unless another rule adds a condition.
+
+        :param populated: (Optional[bool]): If True, the property must exist, and it's value must not be None,
+            an empty string, or an empty collection.
+            If False, the property must exist, and it's value must be None, an empty string, or an empty collection.
+            If not specified, any value is allowed unless another rule adds a condition.
+
+        :param regexp: (Optional[str]): A regular expression pattern that the property value must match.
+            If not specified, any value is allowed unless another rule adds a condition.
+        """
+
+        if enums is not None:
+            self._enums[prop_name] = enums
 
         if types is not None:
             self._types[prop_name] = types
 
-        if numeric is not None and numeric_positive is not None:
-            raise exceptions.InvalidArgumentException("numeric and numeric_positive cannot both be specified.")
+        if populated is not None:
+            self._populated[prop_name] = populated
+
+        if regexp is not None:
+            self._regexp[prop_name] = regexp
 
         if numeric is not None:
-            self._numeric.append(prop_name)
+            self._numeric[prop_name] = numeric
+
         if numeric_positive is not None:
-            self._numeric_positive.append(prop_name)
+            self._numeric_positive[prop_name] = numeric_positive
 
     def validate(self, attribs=None, orig_passed_data: str = None):
         # Drop the special attribs if set
@@ -207,49 +239,191 @@ class PropRules:
         if attribs is None:
             attribs = {}
 
-        debug_passed_data = ""
-        if orig_passed_data is not None:
-            debug_passed_data = f"\nOriginal passed data: {orig_passed_data}"
+        debug_passed_data = f" Original passed data: {repr(orig_passed_data)}"
 
+        for attrib in self._populated:
+            if self._populated[attrib] is False:
+                self._is_valid_not_populated(attrib, attribs, debug_passed_data)
+            else:
+                self._is_valid_populated(attrib, attribs, debug_passed_data)
+        for attrib in self._enums:
+            self.is_valid_enums(attrib, attribs, debug_passed_data)
         for attrib in self._types:
             self.is_valid_types(attrib, attribs, debug_passed_data)
         for attrib in self._numeric:
             self._is_valid_numeric(attrib, attribs, debug_passed_data)
         for attrib in self._numeric_positive:
-            self._is_valid_numeric_pos(attrib, attribs, debug_passed_data)
+            self._is_valid_numeric_positive(attrib, attribs, debug_passed_data)
+        for attrib in self._regexp:
+            self._is_valid_regexp(attrib, attribs, debug_passed_data)
+
+    def is_valid_enums(self, attrib, attribs, debug_passed_data):
+        self._is_valid_exists(attrib, attribs, debug_passed_data)
+        if attribs[attrib] not in self._enums[attrib]:
+            raise exceptions.ValidationError(
+                f"'{attrib}' attribute must be of the following string enums: {str(self._enums[attrib])}. Received:"
+                f"{repr(type(attribs[attrib]))} {repr(attribs[attrib])}")
 
     def is_valid_types(self, attrib, attribs, debug_passed_data):
-        self.is_valid_exists(attrib, attribs, debug_passed_data)
+        self._is_valid_exists(attrib, attribs, debug_passed_data)
         if type(attribs[attrib]) not in self._types[attrib]:
-            raise exceptions.InvalidArgumentException(
-                f'"{attrib}" attribute must be of type: {str(self._types[attrib])}'
-                f'\nReceived: {repr(type(attribs[attrib]))} {repr(attribs[attrib])}'
-                f'{debug_passed_data}')
+            raise exceptions.ValidationError(
+                f"'{attrib}' attribute must be of type: {str(self._types[attrib])}. Received:"
+                f"{repr(type(attribs[attrib]))} {repr(attribs[attrib])}")
 
     def _is_valid_numeric(self, attrib, attribs, debug_passed_data):
-        self.is_valid_exists(attrib, attribs, debug_passed_data)
+        self._is_valid_exists(attrib, attribs, debug_passed_data)
+        error_msg_not_numeric = f"'{attrib}' must be a numeric value. " \
+                                f"Received: {type(attribs[attrib])} {repr(attribs[attrib])}"
+
+        # If is numeric for this attrib is true, require a numeric value. If false, ensure its not numeric
+        if self._numeric[attrib]:
+            # Bools are not considered numeric for our PropRules
+            if attribs[attrib] is True or attribs[attrib] is False:
+                raise exceptions.ValidationError(error_msg_not_numeric)
+
+            try:
+                validate_numeric(attribs[attrib])
+            except (TypeError, ValueError) as ex:
+                raise exceptions.ValidationError(error_msg_not_numeric) from ex
+            return
+
+        # Bools are not considered numeric for our PropRules
+        if attribs[attrib] is True or attribs[attrib] is False:
+            return
 
         try:
             validate_numeric(attribs[attrib])
+            raise exceptions.ValidationError(
+                f"'{attrib}' cannot be a numeric value. Received: {type(attribs[attrib])} {repr(attribs[attrib])}")
         except (TypeError, ValueError) as ex:
-            raise exceptions.InvalidArgumentException(
-                f'"{attrib}" must be a numeric value. Received: '
-                f'{type(attribs[attrib])} {repr(attribs[attrib])}') from ex
+            return
 
-    def _is_valid_numeric_pos(self, attrib, attribs, debug_passed_data):
-        self.is_valid_exists(attrib, attribs, debug_passed_data)
+    def _is_valid_numeric_positive(self, attrib, attribs, debug_passed_data):
+        self._is_valid_exists(attrib, attribs, debug_passed_data)
+        error_msg_not_numeric = f"'{attrib}' must be a positive numeric value. " \
+                                f"Received: {type(attribs[attrib])} {repr(attribs[attrib])}"
+        # If is numeric for this attrib is true, require a numeric value. If false, ensure its not numeric
+        if self._numeric_positive[attrib]:
+            # Bools are not considered numeric for our PropRules,
+            if attribs[attrib] is True or attribs[attrib] is False:
+                raise exceptions.ValidationError(error_msg_not_numeric)
+            try:
+                validate_numeric_pos(attribs[attrib])
+            except (TypeError, ValueError) as ex:
+                raise exceptions.ValidationError(error_msg_not_numeric) from ex
+            return
+
+        # Bools are not considered numeric for our PropRules
+        if attribs[attrib] is True or attribs[attrib] is False:
+            return
 
         try:
             validate_numeric_pos(attribs[attrib])
+            raise exceptions.ValidationError(
+                f"'{attrib}' cannot be a positive numeric value. "
+                f"Received: {type(attribs[attrib])} {repr(attribs[attrib])}")
         except (TypeError, ValueError) as ex:
-            raise exceptions.InvalidArgumentException(
-                f'"{attrib}" must be a positive numeric value. Received: '
-                f'{type(attribs[attrib])} {repr(attribs[attrib])}') from ex
+            return
 
-    def is_valid_exists(self, attrib, attribs, debug_passed_data):
+    def _is_valid_not_populated(self, attrib, attribs, debug_passed_data):
+        self._is_valid_exists(attrib, attribs, debug_passed_data)
+
+        if attribs[attrib] is None:
+            return
+
+        if isinstance(attribs[attrib], str) and attribs[attrib] == "":
+            return
+
+        if isinstance(attribs[attrib], (dict, list)) and len(attribs[attrib]) == 0:
+            return
+
+        raise exceptions.ValidationError(
+            f"'{attrib}' is a required attribute but must be null, an empty string, "
+            f"or empty collection. Received: {type(attribs[attrib])} {repr(attribs[attrib])}")
+
+    def _is_valid_populated(self, attrib, attribs, debug_passed_data):
+        self._is_valid_exists(attrib, attribs, debug_passed_data)
+
+        if isinstance(attribs[attrib], str) and attribs[attrib].strip() != "":
+            return
+
+        if isinstance(attribs[attrib], (int, float)):
+            return
+
+        if isinstance(attribs[attrib], (dict, list)) and len(attribs[attrib]) > 0:
+            return
+
+        raise exceptions.ValidationError(
+            f"'{attrib}' is a required attribute that must be populated (empty collections or whitespace characters are"
+            f" not considered populated). Received: {type(attribs[attrib])} {repr(attribs[attrib])}")
+
+    def _is_valid_regexp(self, attrib, attribs, debug_passed_data):
+        self._is_valid_exists(attrib, attribs, debug_passed_data)
+
+        pattern = self._regexp[attrib]
+        error_msg_not_pattern = f"'{attrib}' must be a string and match the pattern: '{pattern}'. Received: " \
+                                f"{type(attribs[attrib])} {repr(attribs[attrib])}"
+
+        if not isinstance(attribs[attrib], str):
+            raise exceptions.ValidationError(error_msg_not_pattern)
+
+        if not re.match(pattern, attribs[attrib]):
+            raise exceptions.ValidationError(error_msg_not_pattern)
+
+    def _is_valid_exists(self, attrib, attribs, debug_passed_data):
         if attrib not in attribs.keys():
-            raise exceptions.InternalError(
-                f'"{attrib}" is a required attribute and does not exist in attributes list.{debug_passed_data}')
+            raise exceptions.ValidationError(
+                f"'{attrib}' is a required attribute and does not exist in attributes received.{debug_passed_data}")
+
+
+def create_class(class_name, attributes, init_args, base_class, init_code_str):
+    """
+    Create a new Python class dynamically, primarily to aid in unit testing when creating adhoc classes
+
+    Args:
+        class_name (str): Name of the new class to be created.
+        attributes (dict): Dictionary containing the attributes of the new class.
+        init_args (list[str]): List of argument names for the constructor of the new class.
+        base_class (class): The base class from which the new class will inherit.
+        init_code_str (str): Code string to be executed in the constructor of the new class.
+
+    Returns:
+        A new type object which is a new class. The new class inherits from `base_class`
+        and has the attributes specified in `attributes`. The new class also has the
+        constructor defined in `__init__`.
+
+    Raises:
+        Any exceptions that may occur during the execution of `init_code_str`.
+
+    Example:
+        To create a new class dynamically with attributes `a` and `b`, and a custom constructor:
+
+            init_code_str = '''
+            def init_code(self):
+                self.a = 1
+                self.b = 2
+            '''
+
+            MyClass = create_class('MyClass', {'c': 3}, ['x', 'y'], object, init_code_str)
+            obj = MyClass(4, y=5)
+            print(obj.a, obj.b, obj.c, obj.x, obj.y)  # prints: 1 2 3 4 5
+    """
+    namespace = {}
+    exec(init_code_str, namespace)
+    init_func = namespace['init_code']
+
+    def __init__(self, *args, **kwargs):
+        for name, value in zip(init_args, args):
+            setattr(self, name, value)
+        for name, value in kwargs.items():
+            setattr(self, name, value)
+        init_func(self)
+
+    return type(class_name, (base_class,), {
+        **attributes,
+        '__init__': __init__,
+    })
 
 
 def validate_list_append_upto_n_items_inputs(base_list: list, from_list: list, upto_item_count=None):
@@ -289,6 +463,12 @@ def list_append_upto_n_items_from_new_list(base_list: list, from_list: list, upt
     return base_list_new
 
 
+def get_class_attribs_non_callable(obj: object) -> dict:
+    attribs = {}
+    for item in dir(obj):
+        if not callable(getattr(obj, item)):
+            attribs[item] = getattr(obj, item)
+        return attribs
 def list_append_upto_n_items_total(base_list: list, from_list: list, upto_item_count=None):
     """
     Appends upto X items in the from_list to the base_list but ensure the base_list never exceeds the upto_item_count
@@ -313,7 +493,7 @@ def list_append_upto_n_items_total(base_list: list, from_list: list, upto_item_c
 
 
 def require_instance(given_object: object, expected_instance_type: Type,
-                     exception_type: Union[Type[Exception], TypeError] = None):
+                     exception_type: Type[Exception] | TypeError = None):
     if not isinstance(given_object, expected_instance_type):
         raise exception_type(
             f"Instance of type {expected_instance_type} expected. Received: "
@@ -321,7 +501,7 @@ def require_instance(given_object: object, expected_instance_type: Type,
 
 
 def require_type(given_object: object, expected_type: Type,
-                 exception_type: Union[Type[Exception], TypeError] = None):
+                 exception_type: Type[Exception] | TypeError = None):
     if type(given_object) != expected_type:
         raise exception_type(
             f"Type {expected_type} expected. Received: {type(given_object)} {repr(given_object)}")
@@ -385,18 +565,18 @@ def read_config(filename: str) -> dict:
     return yaml_data
 
 
-def validate_numeric(check_value: Union[str, int, float]) -> float:
-    if not isinstance(check_value, str) and not isinstance(check_value, int) and not isinstance(check_value, float):
+def validate_numeric(check_value: str | int | float) -> float:
+    if not isinstance(check_value, (str, int, float)):
         raise TypeError(
             f'Value must be a numeric string, float or int. Passed value: {type(check_value)} {repr(check_value)}')
     try:
         float(check_value)
-    except ValueError:
-        raise ValueError(f'String value must be numeric. Passed value: {type(check_value)} {repr(check_value)}')
+    except ValueError as ex:
+        raise ValueError(f'String value must be numeric. Passed value: {type(check_value)} {repr(check_value)}') from ex
     return float(check_value)
 
 
-def validate_numeric_pos(check_value: Union[str, int, float]) -> float:
+def validate_numeric_pos(check_value: str | int | float) -> float:
     float_val = validate_numeric(check_value)
     if float_val < 0:
         raise ValueError(f'Value must be 0 or greater. Passed value: {type(check_value)} {repr(check_value)}')
@@ -404,7 +584,7 @@ def validate_numeric_pos(check_value: Union[str, int, float]) -> float:
 
 
 # If passed a number, it returns upto max, or the input if it's less, otherwise return max as the default
-def get_max_of(input_val: Union[int, str, float], max_val: Union[int, str, float]) -> float:
+def get_max_of(input_val: int | str | float, max_val: int | str | float) -> float:
     input_val = validate_numeric_pos(input_val)
     max_val = validate_numeric_pos(max_val)
     if input_val <= max_val:
@@ -412,7 +592,7 @@ def get_max_of(input_val: Union[int, str, float], max_val: Union[int, str, float
     return max_val
 
 
-def json_or_dict_or_obj_to_dict(data: Union[dict, str, object]) -> dict:
+def json_or_dict_or_obj_to_dict(data: dict | str | object) -> dict:
     data_orig = data
     # If data is a json string, convert it to a dict
     if isinstance(data_orig, str):

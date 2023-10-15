@@ -9,6 +9,7 @@ import botocore
 import os
 from abc import ABC, abstractmethod
 import base64
+import boto3
 
 log = logging.getLogger(__name__)
 
