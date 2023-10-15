@@ -1,8 +1,5 @@
 import unittest
-import unittest.mock as mock
-from unittest.mock import patch
 from includes.common import list_append_upto_n_items_total, list_append_upto_n_items_from_new_list
-from includes.debug import *
 
 
 class ListAppendUptoNItemsFromNewList(unittest.TestCase):

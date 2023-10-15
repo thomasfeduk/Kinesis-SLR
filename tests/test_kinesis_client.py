@@ -2,17 +2,12 @@ from typing import Union
 import botocore
 import uuid
 import datetime
-import json
-import importlib
 import unittest
 import unittest.mock as mock
 from unittest.mock import patch, call
 import os
 import includes.kinesis_client as kinesis
 import includes.exceptions as exceptions
-import sys
-from includes.debug import *
-import includes.common as common
 
 
 def generate_records(num: int, contents: dict = None) -> list:
@@ -824,7 +819,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
 
             # Break the test if we exceeded our defined loop count
             if iterator_response_obj.break_iteration:
-                pvdd('break out')
+                break
 
             # Set the variables for the next iteration
             total_found_records = iterator_response_obj.total_found_records
@@ -894,7 +889,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
 
             # Break the test if we exceeded our defined loop count
             if iterator_response_obj.break_iteration:
-                pvdd('break out')
+                break
 
             # Set the variables for the next iteration
             total_found_records = iterator_response_obj.total_found_records
