@@ -17,7 +17,7 @@ import base64
 import includes.debug as debug
 
 log = logging.getLogger(__name__)
-
+log.setLevel(self._debug_level)
 
 class GetRecordsIteration(ABC):
     @abstractmethod
@@ -702,12 +702,22 @@ class Client:
             # Begin break iteration checks
             break_iteration = False
             records_to_process = response.Records
-            # If ending_position is total records per shard, append appropriate records remaining from the current iter
+
+            # If ending_position is TOTAL_RECORDS_PER_SHARD, append appropriate records remaining from the current iter
             if self._client_config.ending_position == 'TOTAL_RECORDS_PER_SHARD' \
                     and self._client_config.total_records_per_shard <= iterator_obj.total_found_records:
                 break_iteration = True
                 log.info(f'Reached {self._client_config.total_records_per_shard} max records per shard '
                          f'limit for shard {iterator_obj.shard_id}\n')
+
+                records_to_process = self._select_records_ending_at_timestamp(iterator_obj, response)
+
+            # If ending_position is AT_SEQUENCE_NUMBER, append appropriate records remaining from the current iter
+            if self._client_config.ending_position == 'AT_SEQUENCE_NUMBER' \
+                    and self._client_config.total_records_per_shard <= iterator_obj.total_found_records:
+                break_iteration = True
+                log.info(f'Reached SEQUENCE_NUMBER {self._client_config.total_records_per_shard} AT_SEQUENCE_NUMBER '
+                         f'for shard {iterator_obj.shard_id}\n')
 
                 records_to_process = self._select_records_ending_at_timestamp(iterator_obj, response)
 
