@@ -377,55 +377,6 @@ class PropRules:
                 f"'{attrib}' is a required attribute and does not exist in attributes received.{debug_passed_data}")
 
 
-def create_class(class_name, attributes, init_args, base_class, init_code_str):
-    """
-    Create a new Python class dynamically, primarily to aid in unit testing when creating adhoc classes
-
-    Args:
-        class_name (str): Name of the new class to be created.
-        attributes (dict): Dictionary containing the attributes of the new class.
-        init_args (list[str]): List of argument names for the constructor of the new class.
-        base_class (class): The base class from which the new class will inherit.
-        init_code_str (str): Code string to be executed in the constructor of the new class.
-
-    Returns:
-        A new type object which is a new class. The new class inherits from `base_class`
-        and has the attributes specified in `attributes`. The new class also has the
-        constructor defined in `__init__`.
-
-    Raises:
-        Any exceptions that may occur during the execution of `init_code_str`.
-
-    Example:
-        To create a new class dynamically with attributes `a` and `b`, and a custom constructor:
-
-            init_code_str = '''
-            def init_code(self):
-                self.a = 1
-                self.b = 2
-            '''
-
-            MyClass = create_class('MyClass', {'c': 3}, ['x', 'y'], object, init_code_str)
-            obj = MyClass(4, y=5)
-            print(obj.a, obj.b, obj.c, obj.x, obj.y)  # prints: 1 2 3 4 5
-    """
-    namespace = {}
-    exec(init_code_str, namespace)
-    init_func = namespace['init_code']
-
-    def __init__(self, *args, **kwargs):
-        for name, value in zip(init_args, args):
-            setattr(self, name, value)
-        for name, value in kwargs.items():
-            setattr(self, name, value)
-        init_func(self)
-
-    return type(class_name, (base_class,), {
-        **attributes,
-        '__init__': __init__,
-    })
-
-
 def validate_list_append_upto_n_items_inputs(base_list: list, from_list: list, upto_item_count=None):
     if upto_item_count is not None:
         validate_numeric_pos(upto_item_count)

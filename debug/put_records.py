@@ -3,9 +3,9 @@ import boto3
 import json
 import random
 import datetime
-from includes.debug import *
+from debug import *
 
-stream_name = 'user-activities3'
+stream_name = 'user-activities-new'
 
 # Boot
 kinesis = boto3.client('kinesis', "us-east-1")

@@ -73,11 +73,9 @@ class TestRecord(unittest.TestCase):
 
     def test_record_invalid_empty(self):
         record_raw = {}
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.Record(record_raw)
-        self.assertIn(
-            "\"SequenceNumber\" attribute must be of type: [<class 'str'>]\n"
-            "Received: <class 'NoneType'> None",
+        self.assertIn("'SequenceNumber' attribute must be of type: [<class 'str'>]. Received:<class 'NoneType'> None",
             str(ex.exception)
         )
 
@@ -85,10 +83,9 @@ class TestRecord(unittest.TestCase):
         record_raw = generate_record_raw_dict()
         # Cant have an int for sequence number
         record_raw["SequenceNumber"] = 5
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.Record(record_raw)
-        self.assertIn(
-            "\"SequenceNumber\" attribute must be of type: [<class 'str'>]\nReceived: <class 'int'> 5",
+        self.assertIn("'SequenceNumber' attribute must be of type: [<class 'str'>]. Received:<class 'int'> 5",
             str(ex.exception)
         )
 
@@ -96,10 +93,9 @@ class TestRecord(unittest.TestCase):
         record_raw = generate_record_raw_dict()
         # Cant have an int for sequence number
         record_raw["PartitionKey"] = 1
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.Record(record_raw)
-        self.assertIn(
-            "\"PartitionKey\" attribute must be of type: [<class 'str'>]\nReceived: <class 'int'> 1",
+        self.assertIn("'PartitionKey' attribute must be of type: [<class 'str'>]. Received:<class 'int'> 1",
             str(ex.exception)
         )
 
@@ -107,11 +103,9 @@ class TestRecord(unittest.TestCase):
         record_raw = generate_record_raw_dict()
         # Cant have an int for sequence number
         record_raw["ApproximateArrivalTimestamp"] = []
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.Record(record_raw)
-        self.assertIn(
-            "\"ApproximateArrivalTimestamp\" attribute must be of type: "
-            "[<class 'datetime.datetime'>, <class 'str'>]\nReceived: <class 'list'> []",
+        self.assertIn("'ApproximateArrivalTimestamp' attribute must be of type: [<class 'datetime.datetime'>, <class 'str'>]. Received:<class 'list'> []",
             str(ex.exception)
         )
 
@@ -317,8 +311,8 @@ class TestGetRecordsIterationInput(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_invalid_type_total_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+    def test_input_invalid_type_total_found_records(self):
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records="10",
                 response_no_records=0,
@@ -327,14 +321,12 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 shard_id="shardId-123"
             )
 
-        self.assertIn(
-            "\"total_found_records\" attribute must be of type: [<class 'int'>]\n"
-            "Received: <class 'str'> '10'",
+        self.assertIn("'total_found_records' attribute must be of type: [<class 'int'>]. Received:<class 'str'> '10'",
             str(ex.exception)
         )
 
-    def test_invalid_type_response_no_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+    def test_input_invalid_type_response_no_records(self):
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records='blah',
@@ -343,14 +335,12 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 shard_id="shardId-123"
             )
 
-        self.assertIn(
-            "\"response_no_records\" attribute must be of type: [<class 'int'>]\n"
-            "Received: <class 'str'> 'blah'",
+        self.assertIn("'response_no_records' attribute must be of type: [<class 'int'>]. Received:<class 'str'> 'blah'",
             str(ex.exception)
         )
 
-    def test_invalid_type_loop_count(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+    def test_input_invalid_type_loop_count(self):
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records=0,
@@ -359,14 +349,12 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 shard_id="shardId-123"
             )
 
-        self.assertIn(
-            "\"loop_count\" attribute must be of type: [<class 'int'>]\n"
-            "Received: <class 'str'> '15'",
+        self.assertIn("'loop_count' attribute must be of type: [<class 'int'>]. Received:<class 'str'> '15'",
             str(ex.exception)
         )
 
-    def test_invalid_type_shard_iterator(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+    def test_input_invalid_type_shard_iterator(self):
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records=0,
@@ -375,14 +363,12 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 shard_id="shardId-123"
             )
 
-        self.assertIn(
-            "\"shard_iterator\" attribute must be of type: [<class 'str'>]\n"
-            "Received: <class 'NoneType'> None",
+        self.assertIn("'shard_iterator' attribute must be of type: [<class 'str'>]. Received:<class 'NoneType'> None",
             str(ex.exception)
         )
 
-    def test_invalid_type_shard_id(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+    def test_input_invalid_type_shard_id(self):
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records=0,
@@ -391,14 +377,12 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 shard_id=500,
             )
 
-        self.assertIn(
-            "\"shard_id\" attribute must be of type: [<class 'str'>]\n"
-            "Received: <class 'int'> 500",
+        self.assertIn("'shard_id' attribute must be of type: [<class 'str'>]. Received:<class 'int'> 500",
             str(ex.exception)
         )
 
-    def test_invalid_negative_numeric_total_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+    def test_input_invalid_negative_numeric_total_found_records(self):
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=-10,
                 response_no_records=0,
@@ -407,11 +391,11 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 shard_id="shardId-500",
             )
 
-        self.assertIn("\"total_found_records\" must be a positive numeric value. Received: <class 'int'> -10",
+        self.assertIn("'total_found_records' must be a positive numeric value. Received: <class 'int'> -10",
                       str(ex.exception))
 
-    def test_invalid_negative_numeric_response_no_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+    def test_input_invalid_negative_numeric_response_no_records(self):
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records=-2,
@@ -420,11 +404,11 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 shard_id="shardId-500",
             )
 
-        self.assertIn("\"response_no_records\" must be a positive numeric value. Received: <class 'int'> -2",
+        self.assertIn("'response_no_records' must be a positive numeric value. Received: <class 'int'> -2",
                       str(ex.exception))
 
-    def test_invalid_negative_numeric_loop_count(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+    def test_input_invalid_negative_numeric_loop_count(self):
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationInput(
                 total_found_records=10,
                 response_no_records=2,
@@ -433,10 +417,10 @@ class TestGetRecordsIterationInput(unittest.TestCase):
                 shard_id="shardId-500",
             )
 
-        self.assertIn("\"loop_count\" must be a positive numeric value. Received: <class 'int'> -15",
+        self.assertIn("'loop_count' must be a positive numeric value. Received: <class 'int'> -15",
                       str(ex.exception))
 
-    def test_valid(self):
+    def test_input_valid(self):
         iteration_input = kinesis.GetRecordsIterationInput(
             total_found_records=10,
             response_no_records=0,
@@ -468,7 +452,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
         pass
 
     def test_invalid_type_total_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records="10",
                 found_records=50,
@@ -479,14 +463,12 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 break_iteration=True
             )
 
-        self.assertIn(
-            "\"total_found_records\" attribute must be of type: [<class 'int'>]\n"
-            "Received: <class 'str'> '10'",
+        self.assertIn("'total_found_records' attribute must be of type: [<class 'int'>]. Received:<class 'str'> '10'",
             str(ex.exception)
         )
 
     def test_invalid_type_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records="50",
@@ -497,14 +479,12 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 break_iteration=True
             )
 
-        self.assertIn(
-            "\"found_records\" attribute must be of type: [<class 'int'>]\n"
-            "Received: <class 'str'> '50'",
+        self.assertIn("'found_records' attribute must be of type: [<class 'int'>]. Received:<class 'str'> '50'",
             str(ex.exception)
         )
 
     def test_invalid_type_response_no_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -515,14 +495,12 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 break_iteration=True
             )
 
-        self.assertIn(
-            "\"response_no_records\" attribute must be of type: [<class 'int'>]\n"
-            "Received: <class 'str'> '2'",
+        self.assertIn("'response_no_records' attribute must be of type: [<class 'int'>]. Received:<class 'str'> '2'",
             str(ex.exception)
         )
 
     def test_invalid_type_loop_count(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -533,14 +511,12 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 break_iteration=True
             )
 
-        self.assertIn(
-            "\"loop_count\" attribute must be of type: [<class 'int'>]\n"
-            "Received: <class 'str'> '15'",
+        self.assertIn("'loop_count' attribute must be of type: [<class 'int'>]. Received:<class 'str'> '15'",
             str(ex.exception)
         )
 
     def test_invalid_type_next_shard_iterator(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -551,14 +527,12 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 break_iteration=True
             )
 
-        self.assertIn(
-            "\"next_shard_iterator\" attribute must be of type: [<class 'str'>]\n"
-            "Received: <class 'int'> 5",
+        self.assertIn("'next_shard_iterator' attribute must be of type: [<class 'str'>]. Received:<class 'int'> 5",
             str(ex.exception)
         )
 
     def test_invalid_type_next_shard_id(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -569,14 +543,12 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 break_iteration=True
             )
 
-        self.assertIn(
-            "\"shard_id\" attribute must be of type: [<class 'str'>]\n"
-            "Received: <class 'int'> 123",
+        self.assertIn("'shard_id' attribute must be of type: [<class 'str'>]. Received:<class 'int'> 123",
             str(ex.exception)
         )
 
     def test_invalid_type_break_iteration(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -587,14 +559,12 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 break_iteration="True"
             )
 
-        self.assertIn(
-            "\"break_iteration\" attribute must be of type: [<class 'bool'>]\n"
-            "Received: <class 'str'> 'True'",
+        self.assertIn("'break_iteration' attribute must be of type: [<class 'bool'>]. Received:<class 'str'> 'True'",
             str(ex.exception)
         )
 
     def test_invalid_negative_numeric_total_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=-10,
                 found_records=50,
@@ -605,11 +575,11 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 break_iteration=True
             )
 
-        self.assertIn("\"total_found_records\" must be a positive numeric value. Received: <class 'int'> -10",
+        self.assertIn("'total_found_records' must be a positive numeric value. Received: <class 'int'> -10",
                       str(ex.exception))
 
     def test_invalid_negative_numeric_found_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=-50,
@@ -620,11 +590,11 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 break_iteration=True
             )
 
-        self.assertIn("\"found_records\" must be a positive numeric value. Received: <class 'int'> -50",
+        self.assertIn("'found_records' must be a positive numeric value. Received: <class 'int'> -50",
                       str(ex.exception))
 
     def test_invalid_negative_numeric_response_no_records(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -635,11 +605,11 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 break_iteration=True
             )
 
-        self.assertIn("\"response_no_records\" must be a positive numeric value. Received: <class 'int'> -2",
+        self.assertIn("'response_no_records' must be a positive numeric value. Received: <class 'int'> -2",
                       str(ex.exception))
 
     def test_invalid_negative_numeric_loop_count(self):
-        with self.assertRaises(exceptions.InvalidArgumentException) as ex:
+        with self.assertRaises(exceptions.ValidationError) as ex:
             kinesis.GetRecordsIterationResponse(
                 total_found_records=10,
                 found_records=50,
@@ -650,7 +620,7 @@ class TestGetRecordsIterationOutput(unittest.TestCase):
                 break_iteration=True
             )
 
-        self.assertIn("\"loop_count\" must be a positive numeric value. Received: <class 'int'> -15",
+        self.assertIn("'loop_count' must be a positive numeric value. Received: <class 'int'> -15",
                       str(ex.exception))
 
     def test_invalid_total_found_less_than_found(self):
@@ -816,7 +786,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
             self.assertEqual(iterator_response_obj.next_shard_iterator, expected_response[i]["next_shard_iterator"])
             self.assertEqual(iterator_response_obj.shard_id, expected_response[i]["shard_id"])
 
-            # Break the test if we exceeded our defined loop count
+            # Break the test if we meet our defined loop count
             if iterator_response_obj.break_iteration:
                 break
 
@@ -886,7 +856,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
             self.assertEqual(iterator_response_obj.next_shard_iterator, expected_response[i]["next_shard_iterator"])
             self.assertEqual(iterator_response_obj.shard_id, expected_response[i]["shard_id"])
 
-            # Break the test if we exceeded our defined loop count
+            # Break the test if we meet our defined loop count
             if iterator_response_obj.break_iteration:
                 break
 
@@ -950,7 +920,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
             next_shard_iterator = iterator_response_obj.next_shard_iterator
             loop_count = iterator_response_obj.loop_count
 
-            # Break the test if we exceeded our defined loop count
+            # Break the test if we meet our defined loop count
             if iterator_response_obj.break_iteration:
                 break
 
@@ -1024,7 +994,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
             next_shard_iterator = iterator_response_obj.next_shard_iterator
             loop_count = iterator_response_obj.loop_count
 
-            # Break the test if we exceeded our defined loop count
+            # Break the test if we meet our defined loop count
             if iterator_response_obj.break_iteration:
                 break
 
@@ -1084,7 +1054,6 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
                 shard_id=shard_id
             ))
 
-            # pvddfile('test.txt', common.serialize(generated_get_records[i].Records))
             self.assertEqual(iterator_response_obj.found_records, expected_response[i]["found_records"])
             self.assertEqual(iterator_response_obj.total_found_records, expected_response[i]["total_found_records"])
             self.assertEqual(iterator_response_obj.loop_count, expected_response[i]["loop_count"])
@@ -1098,7 +1067,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
             next_shard_iterator = iterator_response_obj.next_shard_iterator
             loop_count = iterator_response_obj.loop_count
 
-            # Break the test if we exceeded our defined loop count
+            # Break the test if we meet our defined loop count
             if iterator_response_obj.break_iteration:
                 break
 
@@ -1113,7 +1082,7 @@ class TestScrapeRecordsForShardIterator(unittest.TestCase):
         calls.append(call(shard_id, generated_get_records[0].Records))
         calls.append(call(shard_id, generated_get_records[2].Records))
         # Since we only use a subset of the records returned to the last get_records call,
-        # we extrac the expected records from the last result set we will be writing
+        # we extract the expected records from the last result set we will be writing
         # (ie if we only want to write 3 of the 10 records)
         subset_records = generated_get_records[3].Records._items[0:5]
         subset_records_collection = generated_get_records[3]
@@ -1164,47 +1133,45 @@ class TestClientFullCycle(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @patch('includes.kinesis_client.Client._process_records', spec_set=kinesis.Client._process_records)
-    @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
-    @patch('includes.kinesis_client.Client._shard_iterator', spec_set=kinesis.Client._shard_iterator)
-    @patch('os.path.exists', spec_set=os.path.exists)
-    def test_end_to_end_found_records(self,
-                                      # mocked_get_shard_ids_of_stream,
-                                      # mocked_confirm_shards_exist,
-                                      mocked_os_path_exists,
-                                      mocked_shard_iterator,
-                                      mocked_get_records,
-                                      mocked_process_records,
-                                      ):
-        # mocked_get_shard_ids_of_stream.return_value = ['shardId-00000-test']
-        mocked_os_path_exists.return_value = False
-        mock.seal(mocked_os_path_exists)
-
-        mocked_shard_iterator.return_value = 'the_iter_id'
-        mock.seal(mocked_shard_iterator)
-
-        mocked_get_records.side_effect = [
-            generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator="iter1"),
-            generate_Boto3GetRecordsResponse(10, data_prefix="boto3resp", iterator="iter2"),
-            generate_Boto3GetRecordsResponse(0, data_prefix="boto3resp", iterator="iter3"),
-            generate_Boto3GetRecordsResponse(0, data_prefix="boto3resp", iterator="iter4"),
-            generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator="iter5"),
-        ]
-        mock.seal(mocked_get_records)
-
-        self.boto_client.describe_stream = mock.Mock()
-        self.boto_client.describe_stream.return_value = self.detected_shards
-        mock.seal(self.boto_client.describe_stream)
-
-        mocked_process_records.return_value = 'proc record'
-        mock.seal(mocked_process_records)
-
-        self.config_input["shard_ids"] = ["shardId-00001"]
-        client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
-        # TODO: finish this unit test
-        # client.begin_scraping()
-
-        self.assertEqual(1, 1)
+    # @patch('includes.kinesis_client.Client._process_records', spec_set=kinesis.Client._process_records)
+    # @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
+    # @patch('includes.kinesis_client.Client._shard_iterator', spec_set=kinesis.Client._shard_iterator)
+    # @patch('os.path.exists', spec_set=os.path.exists)
+    # def test_end_to_end_found_records(self,
+    #                                   # mocked_get_shard_ids_of_stream,
+    #                                   # mocked_confirm_shards_exist,
+    #                                   mocked_os_path_exists,
+    #                                   mocked_shard_iterator,
+    #                                   mocked_get_records,
+    #                                   mocked_process_records,
+    #                                   ):
+    #     # mocked_get_shard_ids_of_stream.return_value = ['shardId-00000-test']
+    #     mocked_os_path_exists.return_value = False
+    #     mock.seal(mocked_os_path_exists)
+    #
+    #     mocked_shard_iterator.return_value = 'the_iter_id'
+    #     mock.seal(mocked_shard_iterator)
+    #
+    #     mocked_get_records.side_effect = [
+    #         generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator="iter1"),
+    #         generate_Boto3GetRecordsResponse(10, data_prefix="boto3resp", iterator="iter2"),
+    #         generate_Boto3GetRecordsResponse(0, data_prefix="boto3resp", iterator="iter3"),
+    #         generate_Boto3GetRecordsResponse(0, data_prefix="boto3resp", iterator="iter4"),
+    #         generate_Boto3GetRecordsResponse(3, data_prefix="boto3resp", iterator="iter5"),
+    #     ]
+    #     mock.seal(mocked_get_records)
+    #
+    #     self.boto_client.describe_stream = mock.Mock()
+    #     self.boto_client.describe_stream.return_value = self.detected_shards
+    #     mock.seal(self.boto_client.describe_stream)
+    #
+    #     mocked_process_records.return_value = 'proc record'
+    #     mock.seal(mocked_process_records)
+    #
+    #     self.config_input["shard_ids"] = ["shardId-00001"]
+    #     client = kinesis.Client(kinesis.ClientConfig(self.config_input, self.boto_client))
+    #     # TODO: finish this unit test
+    #     # client.begin_scraping()
 
     @patch('includes.kinesis_client.Client._get_records', spec_set=kinesis.Client._get_records)
     @patch('includes.kinesis_client.Client._shard_iterator', spec_set=kinesis.Client._shard_iterator)
