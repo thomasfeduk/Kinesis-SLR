@@ -11,9 +11,10 @@ from abc import ABC, abstractmethod
 import base64
 import boto3
 import json
+from debug.debug import *
+
 
 log = logging.getLogger(__name__)
-log.setLevel(self._debug_level)
 
 class GetRecordsIteration(ABC):
     @abstractmethod
@@ -250,9 +251,6 @@ class RecordsCollection(common.RestrictedCollection):
     # Override get item so we can typehint the explicit type
     def __getitem__(self, index) -> Record:
         return self._items[int(index)]
-
-    def __setitem__(self, key, value):
-        self._items[key] = value
 
     def __len__(self):
         return len(self._items)
@@ -625,11 +623,10 @@ class Client:
             dir_path = f'scraped_events/{shard_id}'
             log.debug(dir_path)
             log.debug(f'Checking if shard dir exists {dir_path}: {os.path.exists(dir_path)}')
-            # TODO: Re-add this check
-            # if os.path.exists(dir_path):
-            #     raise FileExistsError(f'Scrapped shard directory {dir_path} currently exists. To prevent '
-            #                           f'conflicts/overwriting existing data, please move any previously scrapped '
-            #                           f'messages and their shard id directory elsewhere and re-run this tool. ')
+            if os.path.exists(dir_path):
+                raise FileExistsError(f'Scrapped shard directory {dir_path} currently exists. To prevent '
+                                      f'conflicts/overwriting existing data, please move any previously scrapped '
+                                      f'messages and their shard id directory elsewhere and re-run this tool. ')
 
         # Passed all checks, now we iterate through each shard id specified by the config (or all if not specified)
         shard_ids_to_scrape = shard_ids_detected
@@ -706,16 +703,17 @@ class Client:
                 log.info(f'Reached {self._client_config.total_records_per_shard} max records per shard '
                          f'limit for shard {iterator_obj.shard_id}\n')
 
-                records_to_process = self._select_records_ending_at_timestamp(iterator_obj, response)
+                records_to_process = self._select_records_ending_at_total_found(iterator_obj, response)
 
-            # If ending_position is AT_SEQUENCE_NUMBER, append appropriate records remaining from the current iter
-            if self._client_config.ending_position == 'AT_SEQUENCE_NUMBER' \
-                    and self._client_config.total_records_per_shard <= iterator_obj.total_found_records:
+            # If ending_position is AT_TIMESTAMP, append appropriate records remaining from the current iter
+            if self._client_config.ending_position == 'AT_TIMESTAMP':
+                self._select_records_ending_at_timestamp(iterator_obj, response)
+                die('sadasd')
                 break_iteration = True
-                log.info(f'Reached SEQUENCE_NUMBER {self._client_config.total_records_per_shard} AT_SEQUENCE_NUMBER '
+                log.info(f'Reached TIMESTAMP {self._client_config.total_records_per_shard} AT_SEQUENCE_NUMBER '
                          f'for shard {iterator_obj.shard_id}\n')
 
-                records_to_process = self._select_records_ending_at_timestamp(iterator_obj, response)
+                records_to_process = self._select_records_ending_at_total_found(iterator_obj, response)
 
             self._process_records(iterator_obj.shard_id, records_to_process)
 
@@ -755,17 +753,79 @@ class Client:
         )
         return iterator_response
 
-    def _select_records_ending_at_timestamp(self, iterator_obj: GetRecordsIterationInput, response: Boto3GetRecordsResponse):
+    def _select_records_ending_at_total_found(self, iterator_obj: GetRecordsIterationInput,
+                                              response: Boto3GetRecordsResponse) -> RecordsCollection:
+        """
+        Given the current iterator object state and the raw Boto3GetRecordsResponse object, calculate
+        how many of the returned records should be selected from the Boto3GetRecordsResponse object and return just
+        those records.
+
+        e.g. If :
+            the config total_records_per_shard is 15
+            GetRecordsIterationInput.total_found_records = 10
+            the current Boto3GetRecordsResponse has 10 records
+        this will return a RecordsCollection containing just the first 5 records from Boto3GetRecordsResponse
+
+        :param GetRecordsIterationInput iterator_obj: The current iterator object being used
+        :param Boto3GetRecordsResponse response: The response from AWS get records
+        :return: RecordsCollection
+        """
         common.require_instance(iterator_obj, GetRecordsIterationInput)
         common.require_instance(response, Boto3GetRecordsResponse)
 
         records_count_upto_to_add = self._calculate_iteration_upto_add(
-            iterator_obj.total_found_records - len(response.Records), len(response.Records))
+            iterator_obj.total_found_records - len(response.Records), len(response.Records)
+        )
         records_to_process = RecordsCollection(common.list_append_upto_n_items_from_new_list(
             [],
             [i for i in response.Records],
             records_count_upto_to_add)
         )
+        return records_to_process
+
+    def _select_records_ending_at_timestamp(self, iterator_obj: GetRecordsIterationInput,
+                                            response: Boto3GetRecordsResponse) -> RecordsCollection:
+        """
+        Given the current iterator object state and the raw Boto3GetRecordsResponse object, calculate
+        how many of the returned records should be selected from the Boto3GetRecordsResponse object and return just
+        those records.
+
+        e.g. If :
+            the config ending_position = AT_TIMESTAMP
+            the config ending_timestamp = "2022-12-03 05:00:00"
+            the current Boto3GetRecordsResponse has 5 messages with timestamps:
+                2022-12-01 00:00:00
+                2022-12-03 00:00:00
+                2022-12-03 05:00:00
+                2022-12-03 05:01:00
+                2022-12-04 00:00:00
+        this will return a RecordsCollection containing just the first 3 records from Boto3GetRecordsResponse
+
+        :param GetRecordsIterationInput iterator_obj: The current iterator object being used
+        :param Boto3GetRecordsResponse response: The response from AWS get records
+        :return: RecordsCollection
+        """
+        common.require_instance(iterator_obj, GetRecordsIterationInput)
+        common.require_instance(response, Boto3GetRecordsResponse)
+
+        myvar = []
+        myvar = myvar + 5
+        pvdd(myvar)
+
+
+        records_to_process = RecordsCollection([])
+        records_to_process2 = RecordsCollection(['hello'])
+
+        records_to_proces3 = records_to_process + records_to_process2
+        pvdd(records_to_proces3)
+        # response.Records[1] = response.Records[1]
+        pvdd(response.Records[1])
+        # pvdd(response.Records)
+        pvdd('got here')
+
+
+
+
         return records_to_process
 
     def _calculate_iteration_upto_add(self, total_found_records_without_records_count: int, records_count: int) -> int:
@@ -836,7 +896,7 @@ class Client:
                 StreamName=self._client_config.stream_name,
                 ShardId=shard_id,
                 ShardIteratorType=self._client_config.starting_position,
-                Timestamp=self._client_config.starting_timestamp
+                Timestamp=str(self._client_config.starting_timestamp)
             )
         elif self._client_config.starting_sequence_number is not None:
             log.debug(f'Calling get_shard_iterator() with: '
@@ -849,7 +909,7 @@ class Client:
                 StreamName=self._client_config.stream_name,
                 ShardId=shard_id,
                 ShardIteratorType=self._client_config.starting_position,
-                StartingSequenceNumber=self._client_config.starting_sequence_number,
+                StartingSequenceNumber=str(self._client_config.starting_sequence_number),
             )
         else:
             log.debug(f'Calling get_shard_iterator() with: '

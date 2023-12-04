@@ -15,7 +15,7 @@ debug_level: DEBUG
 # ----------------------
 # Description: The AWS region
 #
-region_name: 'us-east-1'
+region_name: us-east-1
 
 # ----------------------
 # Property: stream_name
@@ -40,7 +40,8 @@ stream_name: user-activities-new
 #  - shardId-000000000001
 #
 #shard_ids: ['shardId-000000000005']
-shard_ids: []
+#shard_ids: []
+shard_ids: ['shardId-000000000000']
 
 ###################################
 ## Section: Stream Scrape Range  ##
@@ -64,7 +65,7 @@ shard_ids: []
 # as sequence ids are unique per-shard
 #
 #starting_position: "AT_SEQUENCE_NUMBER"
-starting_position: TRIM_HORIZON
+starting_position: AT_SEQUENCE_NUMBER
 
 # ---------------------------
 # Property: timestamp
@@ -79,7 +80,7 @@ starting_timestamp: "2022-12-01 00:00:00"
 # ---------------------------
 # Description: Only used if starting_position = AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER
 #
-starting_sequence_number: 49634793967732681113891714384157638505909056619063279650
+starting_sequence_number: 49643934656360832602609658368764233620663174847046615042
 
 # ---------------------------
 # Property: ending_position
@@ -117,7 +118,7 @@ starting_sequence_number: 496347939677326811138917143841576385059090566190632796
 #              max_empty_polls limit is reached
 #
 #
-ending_position: LATEST
+ending_position: AT_TIMESTAMP
 
 # ---------------------------
 # Property: timestamp
@@ -125,7 +126,7 @@ ending_position: LATEST
 # Description: Only used if ending_position = *_TIMESTAMP
 # Format (UTC): YYYY-MM-DD HH:MM:SS
 #
-ending_timestamp: "2022-12-01 00:00:0"
+ending_timestamp: "2022-12-01 00:00:00"
 
 # --------------------------------
 # Property: ending_sequence_number

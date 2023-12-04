@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import re
 from os import path
@@ -103,7 +105,7 @@ class BaseCommonClass(BaseSuperclass):
 
 
 class Collection(ABC):
-    def __init__(self, items):
+    def __init__(self, items: list):
         self._current_index = 0
         if not isinstance(items, list):
             raise TypeError(f'Type "list" is expected. Received:  {type(items)} {repr(items)}')
@@ -125,6 +127,12 @@ class Collection(ABC):
             return [self._items[i] for i in range(start, stop, step)]
         else:
             return self._items[int(index)]
+
+    def __setitem__(self, key, value):
+        self._items[key] = value
+
+    def __add__(self, value: list | self):
+        self._items.append(value)
 
     def __len__(self):
         return len(self._items)
@@ -151,6 +159,10 @@ class RestrictedCollection(Collection):
         for item in self._items:
             self._validate_item(item)
 
+    def __setitem__(self, key, value):
+        self._validate_item(value)
+        self._items[key] = value
+
     @property
     @abstractmethod
     def expected_type(self):
@@ -159,8 +171,8 @@ class RestrictedCollection(Collection):
     def _validate_item(self, value):
         if isinstance(value, self.expected_type):
             return value
-        raise TypeError(f"Each item in the list must be of type {repr(self.expected_type)}. Received:"
-                        f"{type(value)} {repr(value)}\nPassed data: {repr(self._items)}")
+        raise TypeError(f"Each item in the list must be of type {repr(self.expected_type)}. Received: "
+                        f"{type(value)} {repr(value)}")
 
 
 class PropRules:
