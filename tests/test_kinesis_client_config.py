@@ -4,7 +4,6 @@ import unittest
 import unittest.mock as mock
 from unittest.mock import patch
 import includes.kinesis_client as kinesis
-from includes.debug import *
 
 
 class ClientConfig(unittest.TestCase):

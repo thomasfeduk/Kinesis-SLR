@@ -1,5 +1,5 @@
 .idea
-/__pycache__
+__pycache__
 /includes/__pycache__
 /tests/__pycache__
 /scraped_events/*

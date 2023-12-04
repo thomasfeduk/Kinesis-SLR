@@ -2,6 +2,9 @@ class ConfigValidationError(Exception):
     """Raised when a configuration parameter is invalid."""
     pass
 
+class ValidationError(Exception):
+    """Raised when a configuration parameter is invalid."""
+    pass
 
 class FileProcessingError(Exception):
     """Raised when a configuration parameter is invalid."""

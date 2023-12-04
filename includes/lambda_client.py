@@ -1,13 +1,8 @@
 import shutil
 from typing import Union, Any
-import boto3
 import botocore
-import logging
 import json
-
 import includes.kinesis_client as kinesis_client
-from includes.debug import *
-import random
 import datetime
 import includes.common as common
 import logging
