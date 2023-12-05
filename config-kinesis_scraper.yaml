@@ -80,7 +80,7 @@ starting_timestamp: "2022-12-01 00:00:00"
 # ---------------------------
 # Description: Only used if starting_position = AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER
 #
-starting_sequence_number: 49643934656360832602609658368764233620663174847046615042
+starting_sequence_number: 49643934656360832602609752961918150152949005442143485954
 
 # ---------------------------
 # Property: ending_position

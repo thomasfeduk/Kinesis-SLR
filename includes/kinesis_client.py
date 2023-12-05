@@ -808,15 +808,17 @@ class Client:
         common.require_instance(iterator_obj, GetRecordsIterationInput)
         common.require_instance(response, Boto3GetRecordsResponse)
 
-        myvar = []
-        myvar = myvar + 5
-        pvdd(myvar)
+        # myvar = []
+        # myvar = myvar + 5
+        # pvdd(myvar)
 
-
-        records_to_process = RecordsCollection([])
-        records_to_process2 = RecordsCollection(['hello'])
+        records_to_process = common.Collection(['bob'])
+        records_to_process2 = common.Collection(['hello'])
 
         records_to_proces3 = records_to_process + records_to_process2
+        print(repr(['bob', 'hello']))
+        print(repr(records_to_proces3))
+        die('sdsdsdasd')
         pvdd(records_to_proces3)
         # response.Records[1] = response.Records[1]
         pvdd(response.Records[1])

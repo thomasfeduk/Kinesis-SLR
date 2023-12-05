@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from debug.debug import *
 import os
 import re
 from os import path
@@ -131,22 +131,29 @@ class Collection(ABC):
     def __setitem__(self, key, value):
         self._items[key] = value
 
-    def __add__(self, value: list | self):
-        self._items.append(value)
+    def __add__(self, value: list | Collection):
+        if isinstance(value, Collection):
+            combined = self._items + value._items
+        elif isinstance(value, list):
+            combined = self._items + value
+        else:
+            raise TypeError(f"Cannot concatenate '{self.__class__.__name__}' and '{value.__class__.__name__}' objects")
+        # Return a new instance
+        return Collection(combined)
+
+    def append(self, item):
+        self._items.append(item)
 
     def __len__(self):
         return len(self._items)
 
     def __str__(self):
-        output = f"{self.__class__.__name__}("
-        output += ','.join(map(str, self._items))
-        output += f')'
-        return output
+        return str(self._items)
 
     def __repr__(self):
-        output = f"{self.__class__.__name__}("
+        output = f"{self.__class__.__name__}["
         output += ','.join(map(repr, self._items))
-        output += f')'
+        output += f']'
         return output
 
     def __eq__(self, other):
