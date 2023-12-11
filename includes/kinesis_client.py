@@ -252,12 +252,6 @@ class RecordsCollection(common.RestrictedCollection):
     def __getitem__(self, index) -> Record:
         return self._items[int(index)]
 
-    def __len__(self):
-        return len(self._items)
-
-    def toJson(self, *, indent: Optional[Union[int, None]] = None) -> str:
-        return json.dumps([json.loads(i.toJson()) for i in self._items], indent=indent)
-
 
 class Boto3GetRecordsResponse(common.BaseCommonClass):
     def __init__(self, passed_data: [dict]):

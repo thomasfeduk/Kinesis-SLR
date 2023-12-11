@@ -1,5 +1,6 @@
 from __future__ import annotations
 from debug.debug import *
+from typing import Union, Optional
 import os
 import re
 from os import path
@@ -104,14 +105,14 @@ class BaseCommonClass(BaseSuperclass):
         return repr(self) == repr(other)
 
 
-class Collection(ABC):
+class Collection:
     def __init__(self, items: list):
         self._current_index = 0
         if not isinstance(items, list):
             raise TypeError(f'Type "list" is expected. Received:  {type(items)} {repr(items)}')
         self._items = items
 
-    def __iter__(self):
+    def __iter__(self) -> Collection:
         self._current_index = 0
         return self
 
@@ -128,10 +129,10 @@ class Collection(ABC):
         else:
             return self._items[int(index)]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         self._items[key] = value
 
-    def __add__(self, value: list | Collection):
+    def __add__(self, value: list | Collection) -> Collection:
         if isinstance(value, Collection):
             combined = self._items + value._items
         elif isinstance(value, list):
@@ -141,16 +142,13 @@ class Collection(ABC):
         # Return a new instance
         return Collection(combined)
 
-    def append(self, item):
-        self._items.append(item)
-
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._items)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._items)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = f"{self.__class__.__name__}["
         output += ','.join(map(repr, self._items))
         output += f']'
@@ -158,6 +156,12 @@ class Collection(ABC):
 
     def __eq__(self, other):
         return repr(self) == repr(other)
+
+    def append(self, item) -> None:
+        self._items.append(item)
+
+    def toJson(self, *, indent: Optional[Union[int, None]] = None) -> str:
+        return json.dumps([json.loads(i.toJson()) for i in self._items], indent=indent)
 
 
 class RestrictedCollection(Collection):
@@ -178,7 +182,7 @@ class RestrictedCollection(Collection):
     def _validate_item(self, value):
         if isinstance(value, self.expected_type):
             return value
-        raise TypeError(f"Each item in the list must be of type {repr(self.expected_type)}. Received: "
+        raise TypeError(f"Each item in the collection must be of type {repr(self.expected_type)}. Received: "
                         f"{type(value)} {repr(value)}")
 
 
