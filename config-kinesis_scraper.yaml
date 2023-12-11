@@ -80,7 +80,7 @@ starting_timestamp: "2022-12-01 00:00:00"
 # ---------------------------
 # Description: Only used if starting_position = AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER
 #
-starting_sequence_number: 49643934656360832602609752961918150152949005442143485954
+starting_sequence_number: 49643934656360832602610280800286668503574119240605630466
 
 # ---------------------------
 # Property: ending_position
@@ -105,7 +105,7 @@ starting_sequence_number: 496439346563608326026097529619181501529490054421434859
 # Note: AT_TIMESTAMP = Read upto and including the first occurrence of a single, or set of contiguous messages,
 #       where ApproximateArrivalTimestamp matches the specified timestamp
 # Note: AFTER_TIMESTAMP = Read upto and including the next single, or set of continuous messages, where
-#       ApproximateArrivalTimestamp is greater by any amount, than the specified timestamp
+#       ApproximateArrivalTimestamp is later by any amount of time, than the specified timestamp
 # Note: BEFORE_TIMESTAMP = Read upto and including the messages directly preceding the first message in the stream
 #       that has ApproximateArrivalTimestamp equal to the specified timestamp
 #

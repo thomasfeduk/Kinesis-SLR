@@ -1,6 +1,6 @@
 from __future__ import annotations
 from debug.debug import *
-from typing import Union, Optional
+from typing import Union, Optional, Any
 import os
 import re
 from os import path
@@ -72,6 +72,7 @@ class BaseCommonClass(BaseSuperclass):
             if not callable(getattr(self, item)):
                 attribs[item] = getattr(self, item)
         self._proprules.validate(attribs)
+
     def _post_init_processing(self):
         del self._base_superclass_passed_data
 
@@ -106,23 +107,25 @@ class BaseCommonClass(BaseSuperclass):
 
 
 class Collection:
-    def __init__(self, items: list):
+    def __init__(self, items: list | None = None):
+        if items is None:
+            items = []
         self._current_index = 0
         if not isinstance(items, list):
             raise TypeError(f'Type "list" is expected. Received:  {type(items)} {repr(items)}')
         self._items = items
 
-    def __iter__(self) -> Collection:
+    def __iter__(self) -> Any:
         self._current_index = 0
         return self
 
-    def __next__(self):
+    def __next__(self) -> Any:
         if self._current_index >= len(self._items):
             raise StopIteration
         self._current_index += 1
         return self._items[self._current_index - 1]
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> Any:
         if isinstance(index, slice):
             start, stop, step = index.indices(len(self._items))
             return [self._items[i] for i in range(start, stop, step)]
@@ -154,7 +157,7 @@ class Collection:
         output += f']'
         return output
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return repr(self) == repr(other)
 
     def append(self, item) -> None:
@@ -165,14 +168,41 @@ class Collection:
 
 
 class RestrictedCollection(Collection):
-    def __init__(self, items):
+    @abstractmethod
+    def __init__(self, items: list = None):
         super().__init__(items)
         for item in self._items:
             self._validate_item(item)
 
-    def __setitem__(self, key, value):
+    @abstractmethod
+    def __iter__(self) -> Any:
+        super().__iter__()
+        return self
+
+    @abstractmethod
+    def __getitem__(self, index) -> Any:
+        return super().__getitem__(index)
+
+    @abstractmethod
+    def __next__(self) -> Any:
+        return super().__next__()
+
+    def append(self, item) -> None:
+        self._validate_item(item)
+        self._items.append(item)
+
+    def __setitem__(self, key, value) -> None:
         self._validate_item(value)
         self._items[key] = value
+
+    def __add__(self, value: RestrictedCollection) -> Any:
+        # Need to rework this to handle restricted type checking with list support both here
+        # and in the extended class that does proper type checking thats compatible from
+        # both the restricted class and extended class perspective
+        raise NotImplementedError
+
+        # Return a new instance
+        # return RestrictedCollection(list(super().__add__(list(value))))
 
     @property
     @abstractmethod
@@ -443,6 +473,8 @@ def get_class_attribs_non_callable(obj: object) -> dict:
         if not callable(getattr(obj, item)):
             attribs[item] = getattr(obj, item)
         return attribs
+
+
 def list_append_upto_n_items_total(base_list: list, from_list: list, upto_item_count=None):
     """
     Appends upto X items in the from_list to the base_list but ensure the base_list never exceeds the upto_item_count

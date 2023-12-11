@@ -1,4 +1,5 @@
-from typing import Union, Optional
+from __future__ import annotations
+from typing import Union, Optional, Any
 import includes.exceptions as exceptions
 import time
 import re
@@ -12,7 +13,7 @@ import base64
 import boto3
 import json
 from debug.debug import *
-
+from includes.common import RestrictedCollection
 
 log = logging.getLogger(__name__)
 
@@ -244,13 +245,26 @@ class Record(common.BaseCommonClass):
 
 
 class RecordsCollection(common.RestrictedCollection):
+    def __init__(self, items: list = None):
+        super().__init__(items)
+
     @property
     def expected_type(self):
         return Record
 
+    def __iter__(self) -> RecordsCollection:
+        return super().__iter__()
+
+    def __add__(self, value: RestrictedCollection) -> RecordsCollection:
+        return super().__add__(value)
+
     # Override get item so we can typehint the explicit type
     def __getitem__(self, index) -> Record:
-        return self._items[int(index)]
+        return super().__getitem__(index)
+
+    # Override get item so we can typehint the explicit type
+    def __next__(self) -> Record:
+        return super().__next__()
 
 
 class Boto3GetRecordsResponse(common.BaseCommonClass):
@@ -607,6 +621,11 @@ class Client:
                     f'Specified shard_id "{shard_id}" does not exist in stream '
                     f'"{self._client_config.stream_name}". Detected shards: {repr(shard_ids_detected)}')
 
+    @staticmethod
+    def get_time_object_from_timestamp(timestamp: str) -> datetime:
+        format_string = "%Y-%m-%d %H:%M:%S"
+        return datetime.datetime.strptime(timestamp, format_string).replace(tzinfo=datetime.timezone.utc)
+
     def begin_scraping(self):
         shard_ids_detected = self._get_shard_ids_of_stream()
         self._confirm_shards_exist(shard_ids_detected)
@@ -780,7 +799,7 @@ class Client:
     def _select_records_ending_at_timestamp(self, iterator_obj: GetRecordsIterationInput,
                                             response: Boto3GetRecordsResponse) -> RecordsCollection:
         """
-        Given the current iterator object state and the raw Boto3GetRecordsResponse object, calculate
+        Given the current iterator object state and the raw Boto3GetRecordsResponse object, idetify
         how many of the returned records should be selected from the Boto3GetRecordsResponse object and return just
         those records.
 
@@ -801,32 +820,21 @@ class Client:
         """
         common.require_instance(iterator_obj, GetRecordsIterationInput)
         common.require_instance(response, Boto3GetRecordsResponse)
+        records_to_process = RecordsCollection()
 
-        # myvar = []
-        # myvar = myvar + 5
-        # pvdd(myvar)
+        pvd(Client.get_time_object_from_timestamp("2022-12-01 00:00:00"))
+        pvd(datetime.datetime.now(datetime.timezone.utc))
+        pvdd(response.Records[0].ApproximateArrivalTimestamp)
 
-        records_to_process = common.Collection(['bob'])
-        records_to_process2 = common.Collection(['hello'])
-
-        records_to_proces3 = records_to_process + records_to_process2
-        print(repr(['bob', 'hello']))
-        print(repr(records_to_proces3))
-        die('sdsdsdasd')
-        pvdd(records_to_proces3)
-        # response.Records[1] = response.Records[1]
-        pvdd(response.Records[1])
-        # pvdd(response.Records)
-        pvdd('got here')
-
-
+        pvdd(records_to_process)
 
 
         return records_to_process
 
     def _calculate_iteration_upto_add(self, total_found_records_without_records_count: int, records_count: int) -> int:
         """
-        :param total_found_records: The total found records for all get_records calls for the current shard.
+        :param total_found_records_without_records_count:The total found records for all get_records calls for the
+        current shard.
                Note: This does not include the passed "records_count".
                e.g. if the first get_records call returns 20 records, total_found_records=0 and records_count=20
         :param records_count: The count of records returned in the current get_records() call
